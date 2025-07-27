@@ -5,6 +5,8 @@ import {
   Outlet,
   Scripts,
   createRootRoute,
+  createRootRouteWithContext,
+  useRouteContext,
 } from "@tanstack/react-router";
 import {
   ClerkProvider,
@@ -12,6 +14,7 @@ import {
   SignedIn,
   SignedOut,
   UserButton,
+  useAuth,
 } from "@clerk/tanstack-react-start";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
@@ -21,20 +24,40 @@ import { getWebRequest } from "@tanstack/react-start/server";
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary.js";
 import { NotFound } from "~/components/NotFound.js";
 import appCss from "~/styles/app.css?url";
+import { QueryClient } from "@tanstack/react-query";
+import { ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { ConvexQueryClient } from "@convex-dev/react-query";
 
 const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
   const request = getWebRequest();
   if (!request) throw new Error("No request found");
   try {
-    const { userId } = await getAuth(request);
-    return { userId };
+    const auth = await getAuth(request);
+    const token = await auth.getToken({ template: "convex" });
+
+    return { userId: auth.userId, token };
   } catch (error) {
-    return { userId: null };
+    return { userId: null, token: null };
   }
 });
 
-export const Route = createRootRoute({
-  beforeLoad: async () => await fetchClerkAuth(),
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient;
+  convexClient: ConvexReactClient;
+  convexQueryClient: ConvexQueryClient;
+}>()({
+  beforeLoad: async ({ context }) => {
+    const { userId, token } = await fetchClerkAuth();
+
+    // During SSR only (the only time serverHttpClient exists),
+    // set the Clerk auth token to make HTTP queries with.
+    if (token) {
+      context.convexQueryClient.serverHttpClient?.setAuth(token);
+    }
+
+    return { userId, token };
+  },
   head: () => ({
     meta: [
       {
@@ -80,11 +103,15 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const context = useRouteContext({ from: Route.id });
+
   return (
     <ClerkProvider>
-      <RootDocument>
-        <Outlet />
-      </RootDocument>
+      <ConvexProviderWithClerk client={context.convexClient} useAuth={useAuth}>
+        <RootDocument>
+          <Outlet />
+        </RootDocument>
+      </ConvexProviderWithClerk>
     </ClerkProvider>
   );
 }
