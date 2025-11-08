@@ -14,7 +14,7 @@ export const getAll = query({
 });
 
 export const getById = query({
-  args: { id: v.string() },
+  args: { id: v.id("posts") },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) {

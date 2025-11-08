@@ -4,7 +4,6 @@ import {
   Link,
   Outlet,
   Scripts,
-  createRootRoute,
   createRootRouteWithContext,
   useRouteContext,
 } from "@tanstack/react-router";
@@ -19,24 +18,21 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
 import * as React from "react";
-import { getAuth } from "@clerk/tanstack-react-start/server";
-import { getWebRequest } from "@tanstack/react-start/server";
-import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary.js";
-import { NotFound } from "~/components/NotFound.js";
-import appCss from "~/styles/app.css?url";
+import { auth } from "@clerk/tanstack-react-start/server";
+import { DefaultCatchBoundary } from "@/components/DefaultCatchBoundary.js";
+import { NotFound } from "@/components/NotFound.js";
+import appCss from "@/styles/app.css?url";
 import { QueryClient } from "@tanstack/react-query";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexQueryClient } from "@convex-dev/react-query";
 
 const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
-  const request = getWebRequest();
-  if (!request) throw new Error("No request found");
   try {
-    const auth = await getAuth(request);
-    const token = await auth.getToken({ template: "convex" });
+    const authObj = await auth();
+    const token = await authObj.getToken({ template: "convex" });
 
-    return { userId: auth.userId, token };
+    return { userId: authObj.userId, token };
   } catch (error) {
     return { userId: null, token: null };
   }
@@ -44,7 +40,6 @@ const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
-  convexClient: ConvexReactClient;
   convexQueryClient: ConvexQueryClient;
 }>()({
   beforeLoad: async ({ context }) => {
@@ -107,7 +102,10 @@ function RootComponent() {
 
   return (
     <ClerkProvider>
-      <ConvexProviderWithClerk client={context.convexClient} useAuth={useAuth}>
+      <ConvexProviderWithClerk
+        client={context.convexQueryClient.convexClient}
+        useAuth={useAuth}
+      >
         <RootDocument>
           <Outlet />
         </RootDocument>
