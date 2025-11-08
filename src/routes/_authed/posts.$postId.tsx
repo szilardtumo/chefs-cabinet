@@ -5,6 +5,13 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { NotFound } from "@/components/NotFound.js";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export const Route = createFileRoute("/_authed/posts/$postId")({
   loader: ({ params: { postId }, context: { queryClient } }) =>
@@ -24,9 +31,14 @@ function PostComponent() {
   );
 
   return (
-    <div className="space-y-2">
-      <h4 className="text-xl font-bold underline">{post.title}</h4>
-      <div className="text-sm">{post.body}</div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{post.title}</CardTitle>
+        <CardDescription>Post details</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm leading-relaxed">{post.body}</p>
+      </CardContent>
+    </Card>
   );
 }
