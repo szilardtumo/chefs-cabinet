@@ -8,7 +8,16 @@
  * @module
  */
 
-import type * as posts from "../posts.js";
+import type * as ai from "../ai.js";
+import type * as categories from "../categories.js";
+import type * as errors from "../errors.js";
+import type * as helpers from "../helpers.js";
+import type * as ingredients from "../ingredients.js";
+import type * as recipeIngredients from "../recipeIngredients.js";
+import type * as recipes from "../recipes.js";
+import type * as seed from "../seed.js";
+import type * as shoppingListItems from "../shoppingListItems.js";
+import type * as shoppingLists from "../shoppingLists.js";
 
 import type {
   ApiFromModules,
@@ -25,7 +34,16 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  posts: typeof posts;
+  ai: typeof ai;
+  categories: typeof categories;
+  errors: typeof errors;
+  helpers: typeof helpers;
+  ingredients: typeof ingredients;
+  recipeIngredients: typeof recipeIngredients;
+  recipes: typeof recipes;
+  seed: typeof seed;
+  shoppingListItems: typeof shoppingListItems;
+  shoppingLists: typeof shoppingLists;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 import {
   HeadContent,
-  Link,
   Outlet,
   Scripts,
   createRootRouteWithContext,
@@ -9,23 +8,20 @@ import {
 } from "@tanstack/react-router";
 import {
   ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
   useAuth,
 } from "@clerk/tanstack-react-start";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
 import * as React from "react";
 import { auth } from "@clerk/tanstack-react-start/server";
-import { DefaultCatchBoundary } from "@/components/DefaultCatchBoundary.js";
-import { NotFound } from "@/components/NotFound.js";
+import { DefaultCatchBoundary } from "@/components/default-catch-boundary.js";
+import { NotFound } from "@/components/not-found.js";
 import appCss from "@/styles/app.css?url";
 import { QueryClient } from "@tanstack/react-query";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexQueryClient } from "@convex-dev/react-query";
+import { Toaster } from "@/components/ui/sonner";
 
 const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
   try {
@@ -121,35 +117,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="p-2 flex gap-2 text-lg">
-          <Link
-            to="/"
-            activeProps={{
-              className: "font-bold",
-            }}
-            activeOptions={{ exact: true }}
-          >
-            Home
-          </Link>{" "}
-          <Link
-            to="/posts"
-            activeProps={{
-              className: "font-bold",
-            }}
-          >
-            Posts
-          </Link>
-          <div className="ml-auto">
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal" />
-            </SignedOut>
-          </div>
-        </div>
-        <hr />
         {children}
+        <Toaster />
         <TanStackRouterDevtools position="bottom-right" />
         <Scripts />
       </body>

@@ -11,9 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthedPostsRouteImport } from './routes/_authed/posts'
-import { Route as AuthedPostsIndexRouteImport } from './routes/_authed/posts.index'
-import { Route as AuthedPostsPostIdRouteImport } from './routes/_authed/posts.$postId'
+import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AuthedShoppingIndexRouteImport } from './routes/_authed/shopping.index'
+import { Route as AuthedRecipesIndexRouteImport } from './routes/_authed/recipes.index'
+import { Route as AuthedIngredientsIndexRouteImport } from './routes/_authed/ingredients.index'
+import { Route as AuthedShoppingListIdRouteImport } from './routes/_authed/shopping.$listId'
+import { Route as AuthedRecipesNewRouteImport } from './routes/_authed/recipes.new'
+import { Route as AuthedRecipesRecipeIdRouteImport } from './routes/_authed/recipes.$recipeId'
+import { Route as AuthedIngredientsCategoriesRouteImport } from './routes/_authed/ingredients.categories'
+import { Route as AuthedRecipesRecipeIdEditRouteImport } from './routes/_authed/recipes.$recipeId.edit'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -24,53 +30,130 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthedPostsRoute = AuthedPostsRouteImport.update({
-  id: '/posts',
-  path: '/posts',
+const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedPostsIndexRoute = AuthedPostsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthedPostsRoute,
+const AuthedShoppingIndexRoute = AuthedShoppingIndexRouteImport.update({
+  id: '/shopping/',
+  path: '/shopping/',
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedPostsPostIdRoute = AuthedPostsPostIdRouteImport.update({
-  id: '/$postId',
-  path: '/$postId',
-  getParentRoute: () => AuthedPostsRoute,
+const AuthedRecipesIndexRoute = AuthedRecipesIndexRouteImport.update({
+  id: '/recipes/',
+  path: '/recipes/',
+  getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedIngredientsIndexRoute = AuthedIngredientsIndexRouteImport.update({
+  id: '/ingredients/',
+  path: '/ingredients/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedShoppingListIdRoute = AuthedShoppingListIdRouteImport.update({
+  id: '/shopping/$listId',
+  path: '/shopping/$listId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedRecipesNewRoute = AuthedRecipesNewRouteImport.update({
+  id: '/recipes/new',
+  path: '/recipes/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedRecipesRecipeIdRoute = AuthedRecipesRecipeIdRouteImport.update({
+  id: '/recipes/$recipeId',
+  path: '/recipes/$recipeId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedIngredientsCategoriesRoute =
+  AuthedIngredientsCategoriesRouteImport.update({
+    id: '/ingredients/categories',
+    path: '/ingredients/categories',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedRecipesRecipeIdEditRoute =
+  AuthedRecipesRecipeIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedRecipesRecipeIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/posts': typeof AuthedPostsRouteWithChildren
-  '/posts/$postId': typeof AuthedPostsPostIdRoute
-  '/posts/': typeof AuthedPostsIndexRoute
+  '/dashboard': typeof AuthedDashboardRoute
+  '/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
+  '/recipes/$recipeId': typeof AuthedRecipesRecipeIdRouteWithChildren
+  '/recipes/new': typeof AuthedRecipesNewRoute
+  '/shopping/$listId': typeof AuthedShoppingListIdRoute
+  '/ingredients': typeof AuthedIngredientsIndexRoute
+  '/recipes': typeof AuthedRecipesIndexRoute
+  '/shopping': typeof AuthedShoppingIndexRoute
+  '/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/posts/$postId': typeof AuthedPostsPostIdRoute
-  '/posts': typeof AuthedPostsIndexRoute
+  '/dashboard': typeof AuthedDashboardRoute
+  '/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
+  '/recipes/$recipeId': typeof AuthedRecipesRecipeIdRouteWithChildren
+  '/recipes/new': typeof AuthedRecipesNewRoute
+  '/shopping/$listId': typeof AuthedShoppingListIdRoute
+  '/ingredients': typeof AuthedIngredientsIndexRoute
+  '/recipes': typeof AuthedRecipesIndexRoute
+  '/shopping': typeof AuthedShoppingIndexRoute
+  '/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
-  '/_authed/posts': typeof AuthedPostsRouteWithChildren
-  '/_authed/posts/$postId': typeof AuthedPostsPostIdRoute
-  '/_authed/posts/': typeof AuthedPostsIndexRoute
+  '/_authed/dashboard': typeof AuthedDashboardRoute
+  '/_authed/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
+  '/_authed/recipes/$recipeId': typeof AuthedRecipesRecipeIdRouteWithChildren
+  '/_authed/recipes/new': typeof AuthedRecipesNewRoute
+  '/_authed/shopping/$listId': typeof AuthedShoppingListIdRoute
+  '/_authed/ingredients/': typeof AuthedIngredientsIndexRoute
+  '/_authed/recipes/': typeof AuthedRecipesIndexRoute
+  '/_authed/shopping/': typeof AuthedShoppingIndexRoute
+  '/_authed/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/posts' | '/posts/$postId' | '/posts/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/ingredients/categories'
+    | '/recipes/$recipeId'
+    | '/recipes/new'
+    | '/shopping/$listId'
+    | '/ingredients'
+    | '/recipes'
+    | '/shopping'
+    | '/recipes/$recipeId/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/posts/$postId' | '/posts'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/ingredients/categories'
+    | '/recipes/$recipeId'
+    | '/recipes/new'
+    | '/shopping/$listId'
+    | '/ingredients'
+    | '/recipes'
+    | '/shopping'
+    | '/recipes/$recipeId/edit'
   id:
     | '__root__'
     | '/'
     | '/_authed'
-    | '/_authed/posts'
-    | '/_authed/posts/$postId'
-    | '/_authed/posts/'
+    | '/_authed/dashboard'
+    | '/_authed/ingredients/categories'
+    | '/_authed/recipes/$recipeId'
+    | '/_authed/recipes/new'
+    | '/_authed/shopping/$listId'
+    | '/_authed/ingredients/'
+    | '/_authed/recipes/'
+    | '/_authed/shopping/'
+    | '/_authed/recipes/$recipeId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,50 +177,105 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authed/posts': {
-      id: '/_authed/posts'
-      path: '/posts'
-      fullPath: '/posts'
-      preLoaderRoute: typeof AuthedPostsRouteImport
+    '/_authed/dashboard': {
+      id: '/_authed/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthedDashboardRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/posts/': {
-      id: '/_authed/posts/'
-      path: '/'
-      fullPath: '/posts/'
-      preLoaderRoute: typeof AuthedPostsIndexRouteImport
-      parentRoute: typeof AuthedPostsRoute
+    '/_authed/shopping/': {
+      id: '/_authed/shopping/'
+      path: '/shopping'
+      fullPath: '/shopping'
+      preLoaderRoute: typeof AuthedShoppingIndexRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/_authed/posts/$postId': {
-      id: '/_authed/posts/$postId'
-      path: '/$postId'
-      fullPath: '/posts/$postId'
-      preLoaderRoute: typeof AuthedPostsPostIdRouteImport
-      parentRoute: typeof AuthedPostsRoute
+    '/_authed/recipes/': {
+      id: '/_authed/recipes/'
+      path: '/recipes'
+      fullPath: '/recipes'
+      preLoaderRoute: typeof AuthedRecipesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/ingredients/': {
+      id: '/_authed/ingredients/'
+      path: '/ingredients'
+      fullPath: '/ingredients'
+      preLoaderRoute: typeof AuthedIngredientsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/shopping/$listId': {
+      id: '/_authed/shopping/$listId'
+      path: '/shopping/$listId'
+      fullPath: '/shopping/$listId'
+      preLoaderRoute: typeof AuthedShoppingListIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/recipes/new': {
+      id: '/_authed/recipes/new'
+      path: '/recipes/new'
+      fullPath: '/recipes/new'
+      preLoaderRoute: typeof AuthedRecipesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/recipes/$recipeId': {
+      id: '/_authed/recipes/$recipeId'
+      path: '/recipes/$recipeId'
+      fullPath: '/recipes/$recipeId'
+      preLoaderRoute: typeof AuthedRecipesRecipeIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/ingredients/categories': {
+      id: '/_authed/ingredients/categories'
+      path: '/ingredients/categories'
+      fullPath: '/ingredients/categories'
+      preLoaderRoute: typeof AuthedIngredientsCategoriesRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/recipes/$recipeId/edit': {
+      id: '/_authed/recipes/$recipeId/edit'
+      path: '/edit'
+      fullPath: '/recipes/$recipeId/edit'
+      preLoaderRoute: typeof AuthedRecipesRecipeIdEditRouteImport
+      parentRoute: typeof AuthedRecipesRecipeIdRoute
     }
   }
 }
 
-interface AuthedPostsRouteChildren {
-  AuthedPostsPostIdRoute: typeof AuthedPostsPostIdRoute
-  AuthedPostsIndexRoute: typeof AuthedPostsIndexRoute
+interface AuthedRecipesRecipeIdRouteChildren {
+  AuthedRecipesRecipeIdEditRoute: typeof AuthedRecipesRecipeIdEditRoute
 }
 
-const AuthedPostsRouteChildren: AuthedPostsRouteChildren = {
-  AuthedPostsPostIdRoute: AuthedPostsPostIdRoute,
-  AuthedPostsIndexRoute: AuthedPostsIndexRoute,
+const AuthedRecipesRecipeIdRouteChildren: AuthedRecipesRecipeIdRouteChildren = {
+  AuthedRecipesRecipeIdEditRoute: AuthedRecipesRecipeIdEditRoute,
 }
 
-const AuthedPostsRouteWithChildren = AuthedPostsRoute._addFileChildren(
-  AuthedPostsRouteChildren,
-)
+const AuthedRecipesRecipeIdRouteWithChildren =
+  AuthedRecipesRecipeIdRoute._addFileChildren(
+    AuthedRecipesRecipeIdRouteChildren,
+  )
 
 interface AuthedRouteChildren {
-  AuthedPostsRoute: typeof AuthedPostsRouteWithChildren
+  AuthedDashboardRoute: typeof AuthedDashboardRoute
+  AuthedIngredientsCategoriesRoute: typeof AuthedIngredientsCategoriesRoute
+  AuthedRecipesRecipeIdRoute: typeof AuthedRecipesRecipeIdRouteWithChildren
+  AuthedRecipesNewRoute: typeof AuthedRecipesNewRoute
+  AuthedShoppingListIdRoute: typeof AuthedShoppingListIdRoute
+  AuthedIngredientsIndexRoute: typeof AuthedIngredientsIndexRoute
+  AuthedRecipesIndexRoute: typeof AuthedRecipesIndexRoute
+  AuthedShoppingIndexRoute: typeof AuthedShoppingIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
-  AuthedPostsRoute: AuthedPostsRouteWithChildren,
+  AuthedDashboardRoute: AuthedDashboardRoute,
+  AuthedIngredientsCategoriesRoute: AuthedIngredientsCategoriesRoute,
+  AuthedRecipesRecipeIdRoute: AuthedRecipesRecipeIdRouteWithChildren,
+  AuthedRecipesNewRoute: AuthedRecipesNewRoute,
+  AuthedShoppingListIdRoute: AuthedShoppingListIdRoute,
+  AuthedIngredientsIndexRoute: AuthedIngredientsIndexRoute,
+  AuthedRecipesIndexRoute: AuthedRecipesIndexRoute,
+  AuthedShoppingIndexRoute: AuthedShoppingIndexRoute,
 }
 
 const AuthedRouteWithChildren =
