@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/app-layout";
-import { useConvexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMutation, useAction } from "convex/react";
+import { useAction } from "convex/react";
 import { toast } from "sonner";
 import {
   Select,
@@ -15,7 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Upload, Sparkles, Loader2, GripVertical, X, ArrowLeft } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Upload,
+  Sparkles,
+  Loader2,
+  GripVertical,
+  X,
+  ArrowLeft,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Id } from "@convex/_generated/dataModel";
@@ -38,11 +48,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
-import {
-  Field,
-  FieldLabel,
-  FieldError,
-} from "@/components/ui/field";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authed/recipes/$recipeId/edit")({
@@ -122,14 +128,23 @@ function SortableIngredientRow({ ingredient, onUpdate, onRemove }: any) {
         />
       </div>
 
-      <Button variant="ghost" size="icon" onClick={() => onRemove(ingredient.id)}>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => onRemove(ingredient.id)}
+      >
         <Trash2 className="h-4 w-4" />
       </Button>
     </div>
   );
 }
 
-function SortableInstructionRow({ instruction, index, onUpdate, onRemove }: any) {
+function SortableInstructionRow({
+  instruction,
+  index,
+  onUpdate,
+  onRemove,
+}: any) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: instruction.id });
 
@@ -158,9 +173,7 @@ function SortableInstructionRow({ instruction, index, onUpdate, onRemove }: any)
 
       <Textarea
         value={instruction.text}
-        onChange={(e) =>
-          onUpdate({ ...instruction, text: e.target.value })
-        }
+        onChange={(e) => onUpdate({ ...instruction, text: e.target.value })}
         placeholder="Enter instruction..."
         rows={2}
         className="flex-1"
@@ -181,13 +194,27 @@ function SortableInstructionRow({ instruction, index, onUpdate, onRemove }: any)
 function EditRecipeComponent() {
   const { recipeId } = Route.useParams();
   const navigate = useNavigate();
-  const recipe = useConvexQuery(api.recipes.getById, { id: recipeId as Id<"recipes"> });
-  const ingredients = useConvexQuery(api.ingredients.getAll, {});
-  const updateRecipe = useMutation(api.recipes.update);
-  const updateRecipeIngredient = useMutation(api.recipeIngredients.update);
-  const addRecipeIngredient = useMutation(api.recipeIngredients.add);
-  const removeRecipeIngredient = useMutation(api.recipeIngredients.remove);
-  const generateUploadUrl = useMutation(api.recipes.generateUploadUrl);
+  const { data: recipe } = useSuspenseQuery(
+    convexQuery(api.recipes.getById, { id: recipeId as Id<"recipes"> })
+  );
+  const { data: ingredients } = useSuspenseQuery(
+    convexQuery(api.ingredients.getAll, {})
+  );
+  const { mutateAsync: updateRecipe } = useMutation({
+    mutationFn: useConvexMutation(api.recipes.update),
+  });
+  const { mutateAsync: updateRecipeIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.recipeIngredients.update),
+  });
+  const { mutateAsync: addRecipeIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.recipeIngredients.add),
+  });
+  const { mutateAsync: removeRecipeIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.recipeIngredients.remove),
+  });
+  const { mutateAsync: generateUploadUrl } = useMutation({
+    mutationFn: useConvexMutation(api.recipes.generateUploadUrl),
+  });
   const generateDescription = useAction(api.ai.generateRecipeDescription);
   const enhanceDescription = useAction(api.ai.enhanceRecipeDescription);
   const customizeDescription = useAction(api.ai.customizeRecipeDescription);
@@ -325,16 +352,6 @@ function EditRecipeComponent() {
     setImagePreview(recipe.imageUrl || null);
   }
 
-  if (!recipe) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-96">
-          <p className="text-muted-foreground">Loading recipe...</p>
-        </div>
-      </AppLayout>
-    );
-  }
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -392,10 +409,7 @@ function EditRecipeComponent() {
   };
 
   const handleAddInstruction = () => {
-    setInstructions([
-      ...instructions,
-      { id: crypto.randomUUID(), text: "" },
-    ]);
+    setInstructions([...instructions, { id: crypto.randomUUID(), text: "" }]);
   };
 
   const handleUpdateInstruction = (updated: any) => {
@@ -439,7 +453,8 @@ function EditRecipeComponent() {
       const result = await generateDescription({
         title,
         ingredients: ingredientNames,
-        cookingTime: form.getFieldValue("cookingTime") + form.getFieldValue("prepTime"),
+        cookingTime:
+          form.getFieldValue("cookingTime") + form.getFieldValue("prepTime"),
       });
 
       if (result.success) {
@@ -536,14 +551,14 @@ function EditRecipeComponent() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Edit Recipe</h1>
-            <p className="text-muted-foreground">
-              Update your recipe details
-            </p>
+            <p className="text-muted-foreground">Update your recipe details</p>
           </div>
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate({ to: "/recipes/$recipeId", params: { recipeId } })}
+            onClick={() =>
+              navigate({ to: "/recipes/$recipeId", params: { recipeId } })
+            }
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
@@ -579,16 +594,22 @@ function EditRecipeComponent() {
                 name="prepTime"
                 children={(field) => (
                   <Field>
-                    <FieldLabel htmlFor={field.name}>Prep Time (min)</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      Prep Time (min)
+                    </FieldLabel>
                     <Input
                       id={field.name}
                       name={field.name}
                       type="number"
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(parseInt(e.target.value) || 0)}
+                      onChange={(e) =>
+                        field.handleChange(parseInt(e.target.value) || 0)
+                      }
                       onBlur={field.handleBlur}
                     />
-                    <FieldError>{field.state.meta.errors.join(", ")}</FieldError>
+                    <FieldError>
+                      {field.state.meta.errors.join(", ")}
+                    </FieldError>
                   </Field>
                 )}
               />
@@ -597,16 +618,22 @@ function EditRecipeComponent() {
                 name="cookingTime"
                 children={(field) => (
                   <Field>
-                    <FieldLabel htmlFor={field.name}>Cook Time (min)</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      Cook Time (min)
+                    </FieldLabel>
                     <Input
                       id={field.name}
                       name={field.name}
                       type="number"
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(parseInt(e.target.value) || 0)}
+                      onChange={(e) =>
+                        field.handleChange(parseInt(e.target.value) || 0)
+                      }
                       onBlur={field.handleBlur}
                     />
-                    <FieldError>{field.state.meta.errors.join(", ")}</FieldError>
+                    <FieldError>
+                      {field.state.meta.errors.join(", ")}
+                    </FieldError>
                   </Field>
                 )}
               />
@@ -621,10 +648,14 @@ function EditRecipeComponent() {
                       name={field.name}
                       type="number"
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(parseInt(e.target.value) || 0)}
+                      onChange={(e) =>
+                        field.handleChange(parseInt(e.target.value) || 0)
+                      }
                       onBlur={field.handleBlur}
                     />
-                    <FieldError>{field.state.meta.errors.join(", ")}</FieldError>
+                    <FieldError>
+                      {field.state.meta.errors.join(", ")}
+                    </FieldError>
                   </Field>
                 )}
               />
@@ -772,7 +803,9 @@ function EditRecipeComponent() {
             <Separator />
 
             <div>
-              <FieldLabel htmlFor="customPrompt">Custom AI Modification</FieldLabel>
+              <FieldLabel htmlFor="customPrompt">
+                Custom AI Modification
+              </FieldLabel>
               <div className="flex gap-2 mt-2">
                 <Input
                   id="customPrompt"
@@ -824,7 +857,11 @@ function EditRecipeComponent() {
               </SortableContext>
             </DndContext>
 
-            <Button type="button" variant="outline" onClick={handleAddIngredient}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAddIngredient}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Ingredient
             </Button>
@@ -860,7 +897,11 @@ function EditRecipeComponent() {
               </SortableContext>
             </DndContext>
 
-            <Button type="button" variant="outline" onClick={handleAddInstruction}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAddInstruction}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Step
             </Button>
@@ -872,7 +913,9 @@ function EditRecipeComponent() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate({ to: "/recipes/$recipeId", params: { recipeId } })}
+            onClick={() =>
+              navigate({ to: "/recipes/$recipeId", params: { recipeId } })
+            }
           >
             Cancel
           </Button>

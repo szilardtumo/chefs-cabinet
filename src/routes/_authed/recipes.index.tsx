@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/app-layout";
-import { useConvexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Plus, Clock, Users, BookOpen, Search } from "lucide-react";
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/_authed/recipes/")({
 });
 
 function RecipesComponent() {
-  const recipes = useConvexQuery(api.recipes.getAll, {});
+  const { data: recipes } = useSuspenseQuery(convexQuery(api.recipes.getAll, {}));
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter recipes

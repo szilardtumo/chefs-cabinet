@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/app-layout";
-import { useConvexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMutation, useAction } from "convex/react";
+import { useAction } from "convex/react";
 import { toast } from "sonner";
 import {
   Select,
@@ -181,10 +182,16 @@ function SortableInstructionRow({ instruction, index, onUpdate, onRemove }: any)
 
 function RecipeFormComponent() {
   const navigate = useNavigate();
-  const ingredients = useConvexQuery(api.ingredients.getAll, {});
-  const createRecipe = useMutation(api.recipes.create);
-  const addRecipeIngredient = useMutation(api.recipeIngredients.add);
-  const generateUploadUrl = useMutation(api.recipes.generateUploadUrl);
+  const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
+  const { mutateAsync: createRecipe } = useMutation({
+    mutationFn: useConvexMutation(api.recipes.create),
+  });
+  const { mutateAsync: addRecipeIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.recipeIngredients.add),
+  });
+  const { mutateAsync: generateUploadUrl } = useMutation({
+    mutationFn: useConvexMutation(api.recipes.generateUploadUrl),
+  });
   const generateDescription = useAction(api.ai.generateRecipeDescription);
   const enhanceDescription = useAction(api.ai.enhanceRecipeDescription);
   const customizeDescription = useAction(api.ai.customizeRecipeDescription);

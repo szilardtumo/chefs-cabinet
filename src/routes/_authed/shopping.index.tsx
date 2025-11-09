@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/app-layout";
-import { useConvexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -56,7 +56,9 @@ function AddIngredientDialog({
   listId: Id<"shoppingLists">;
   onAdd: (ingredientId: Id<"ingredients">) => void;
 }) {
-  const ingredients = useConvexQuery(api.ingredients.getAll, {});
+  const { data: ingredients } = useSuspenseQuery(
+    convexQuery(api.ingredients.getAll, {})
+  );
 
   const form = useForm({
     defaultValues: {
@@ -142,7 +144,9 @@ function AddIngredientDialog({
 }
 
 function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
-  const toggleChecked = useMutation(api.shoppingListItems.toggleChecked);
+  const { mutateAsync: toggleChecked } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingListItems.toggleChecked),
+  });
 
   // Group items by category
   const groupedItems = list.items?.reduce((acc: any, item: any) => {
@@ -236,12 +240,24 @@ function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
 }
 
 function ShoppingListComponent() {
-  const list = useConvexQuery(api.shoppingLists.get);
-  const createDefault = useMutation(api.shoppingLists.createDefault);
-  const addItem = useMutation(api.shoppingListItems.add);
-  const toggleChecked = useMutation(api.shoppingListItems.toggleChecked);
-  const removeItem = useMutation(api.shoppingListItems.remove);
-  const clearChecked = useMutation(api.shoppingListItems.clearChecked);
+  const { data: list } = useSuspenseQuery(
+    convexQuery(api.shoppingLists.get, {})
+  );
+  const { mutateAsync: createDefault } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingLists.createDefault),
+  });
+  const { mutateAsync: addItem } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingListItems.add),
+  });
+  const { mutateAsync: toggleChecked } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingListItems.toggleChecked),
+  });
+  const { mutateAsync: removeItem } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingListItems.remove),
+  });
+  const { mutateAsync: clearChecked } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingListItems.clearChecked),
+  });
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [storeMode, setStoreMode] = useState(false);
   const [showChecked, setShowChecked] = useState(true);
@@ -249,19 +265,9 @@ function ShoppingListComponent() {
   // Create default list if it doesn't exist
   useEffect(() => {
     if (list === null) {
-      createDefault();
+      createDefault(undefined);
     }
   }, [list, createDefault]);
-
-  if (list === undefined) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-96">
-          <p className="text-muted-foreground">Loading shopping list...</p>
-        </div>
-      </AppLayout>
-    );
-  }
 
   if (list === null) {
     return (

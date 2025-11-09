@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/app-layout";
-import { useConvexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
 import {
   Dialog,
   DialogContent,
@@ -229,11 +229,21 @@ function CategoryDialog({
 }
 
 function CategoriesComponent() {
-  const categories = useConvexQuery(api.categories.getAll, {});
-  const createCategory = useMutation(api.categories.create);
-  const updateCategory = useMutation(api.categories.update);
-  const deleteCategory = useMutation(api.categories.remove);
-  const reorderCategories = useMutation(api.categories.reorder);
+  const { data: categories } = useSuspenseQuery(
+    convexQuery(api.categories.getAll, {})
+  );
+  const { mutateAsync: createCategory } = useMutation({
+    mutationFn: useConvexMutation(api.categories.create),
+  });
+  const { mutateAsync: updateCategory } = useMutation({
+    mutationFn: useConvexMutation(api.categories.update),
+  });
+  const { mutateAsync: deleteCategory } = useMutation({
+    mutationFn: useConvexMutation(api.categories.remove),
+  });
+  const { mutateAsync: reorderCategories } = useMutation({
+    mutationFn: useConvexMutation(api.categories.reorder),
+  });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);

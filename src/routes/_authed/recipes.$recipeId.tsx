@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/app-layout";
-import { useConvexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useMutation } from "convex/react";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -43,9 +44,13 @@ function AddToShoppingListDialog({
   recipeId: Id<"recipes">;
   recipeTitle: string;
 }) {
-  const list = useConvexQuery(api.shoppingLists.get);
-  const createDefault = useMutation(api.shoppingLists.createDefault);
-  const addFromRecipe = useMutation(api.shoppingListItems.addFromRecipe);
+  const { data: list } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
+  const { mutateAsync: createDefault } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingLists.createDefault),
+  });
+  const { mutateAsync: addFromRecipe } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingListItems.addFromRecipe),
+  });
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAdd = async () => {
@@ -103,10 +108,12 @@ function AddToShoppingListDialog({
 
 function RecipeDetailComponent() {
   const { recipeId } = Route.useParams();
-  const recipe = useConvexQuery(api.recipes.getById, {
+  const { data: recipe } = useSuspenseQuery(convexQuery(api.recipes.getById, {
     id: recipeId as Id<"recipes">,
+  }));
+  const { mutateAsync: deleteRecipe } = useMutation({
+    mutationFn: useConvexMutation(api.recipes.remove),
   });
-  const deleteRecipe = useMutation(api.recipes.remove);
   const navigate = useNavigate();
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -129,15 +136,6 @@ function RecipeDetailComponent() {
     }
   };
 
-  if (!recipe) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-96">
-          <p className="text-muted-foreground">Loading recipe...</p>
-        </div>
-      </AppLayout>
-    );
-  }
 
   const totalTime = recipe.prepTime + recipe.cookingTime;
 
@@ -372,7 +370,3 @@ function RecipeDetailComponent() {
     </AppLayout>
   );
 }
-
-// Missing import
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";

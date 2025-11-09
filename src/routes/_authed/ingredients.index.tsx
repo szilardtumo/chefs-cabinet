@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/app-layout";
-import { useConvexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, Search, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
 import {
   Dialog,
   DialogContent,
@@ -198,11 +198,17 @@ function IngredientDialog({
 }
 
 function IngredientsComponent() {
-  const ingredients = useConvexQuery(api.ingredients.getAll, {});
-  const categories = useConvexQuery(api.categories.getAll, {});
-  const createIngredient = useMutation(api.ingredients.create);
-  const updateIngredient = useMutation(api.ingredients.update);
-  const deleteIngredient = useMutation(api.ingredients.remove);
+  const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
+  const { data: categories } = useSuspenseQuery(convexQuery(api.categories.getAll, {}));
+  const { mutateAsync: createIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.ingredients.create),
+  });
+  const { mutateAsync: updateIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.ingredients.update),
+  });
+  const { mutateAsync: deleteIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.ingredients.remove),
+  });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<any>(null);

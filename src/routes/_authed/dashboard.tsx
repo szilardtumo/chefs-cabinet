@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/app-layout";
-import { useConvexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, BookOpen, Carrot, ShoppingCart } from "lucide-react";
-import { useMutation } from "convex/react";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authed/dashboard")({
@@ -13,23 +13,33 @@ export const Route = createFileRoute("/_authed/dashboard")({
 });
 
 function DashboardComponent() {
-  const recipes = useConvexQuery(api.recipes.getAll, {});
-  const ingredients = useConvexQuery(api.ingredients.getAll, {});
-  const shoppingLists = useConvexQuery(api.shoppingLists.getActive, {});
+  const { data: recipes } = useSuspenseQuery(
+    convexQuery(api.recipes.getAll, {})
+  );
+  const { data: ingredients } = useSuspenseQuery(
+    convexQuery(api.ingredients.getAll, {})
+  );
+  const { data: shoppingLists } = useSuspenseQuery(
+    convexQuery(api.shoppingLists.getActive, {})
+  );
 
-  const seedUserData = useMutation(api.seed.seedUserData);
-  const checkSeeded = useMutation(api.seed.checkSeeded);
+  const { mutateAsync: seedUserData } = useMutation({
+    mutationFn: useConvexMutation(api.seed.seedUserData),
+  });
+  const { mutateAsync: checkSeeded } = useMutation({
+    mutationFn: useConvexMutation(api.seed.checkSeeded),
+  });
 
   // Auto-seed on first visit
   useEffect(() => {
     const initializeData = async () => {
-      const result = await checkSeeded();
+      const result = await checkSeeded(undefined);
       if (!result.isSeeded) {
-        await seedUserData();
+        await seedUserData(undefined);
       }
     };
     initializeData();
-  }, []);
+  }, [checkSeeded, seedUserData]);
 
   const stats = [
     {
