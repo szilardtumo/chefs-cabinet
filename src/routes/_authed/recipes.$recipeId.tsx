@@ -17,7 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +26,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Id } from "@convex/_generated/dataModel";
 
 export const Route = createFileRoute("/_authed/recipes/$recipeId")({
@@ -51,21 +43,21 @@ function AddToShoppingListDialog({
   recipeId: Id<"recipes">;
   recipeTitle: string;
 }) {
-  const shoppingLists = useConvexQuery(api.shoppingLists.getActive, {});
-  const createList = useMutation(api.shoppingLists.create);
+  const list = useConvexQuery(api.shoppingLists.get);
+  const createDefault = useMutation(api.shoppingLists.createDefault);
   const addFromRecipe = useMutation(api.shoppingListItems.addFromRecipe);
-  const [selectedList, setSelectedList] = useState<string>("");
-  const [newListName, setNewListName] = useState("");
-  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleAdd = async () => {
     try {
-      let listId = selectedList as Id<"shoppingLists">;
+      setIsAdding(true);
 
-      if (isCreatingNew) {
-        listId = await createList({
-          name: newListName || `${recipeTitle} Shopping List`,
-        });
+      // Get or create the user's single shopping list
+      let listId: Id<"shoppingLists">;
+      if (list?._id) {
+        listId = list._id;
+      } else {
+        listId = await createDefault();
       }
 
       await addFromRecipe({
@@ -81,6 +73,8 @@ function AddToShoppingListDialog({
       toast.error("Error", {
         description: error.message,
       });
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -90,72 +84,16 @@ function AddToShoppingListDialog({
         <DialogHeader>
           <DialogTitle>Add to Shopping List</DialogTitle>
           <DialogDescription>
-            Choose a shopping list to add all ingredients from this recipe
+            Add all ingredients from "{recipeTitle}" to your shopping list
           </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4">
-          {!isCreatingNew && shoppingLists && shoppingLists.length > 0 && (
-            <div>
-              <Label>Select existing list</Label>
-              <Select value={selectedList} onValueChange={setSelectedList}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a list" />
-                </SelectTrigger>
-                <SelectContent>
-                  {shoppingLists.map((list) => (
-                    <SelectItem key={list._id} value={list._id}>
-                      {list.name} ({list.totalItems} items)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2">
-            <Separator className="flex-1" />
-            <span className="text-sm text-muted-foreground">or</span>
-            <Separator className="flex-1" />
-          </div>
-
-          <div>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setIsCreatingNew(!isCreatingNew);
-                if (!isCreatingNew) {
-                  setSelectedList("");
-                }
-              }}
-            >
-              {isCreatingNew ? "Choose Existing" : "Create New List"}
-            </Button>
-          </div>
-
-          {isCreatingNew && (
-            <div>
-              <Label htmlFor="newListName">New List Name</Label>
-              <Input
-                id="newListName"
-                value={newListName}
-                onChange={(e) => setNewListName(e.target.value)}
-                placeholder={`${recipeTitle} Shopping List`}
-              />
-            </div>
-          )}
-        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleAdd}
-            disabled={!isCreatingNew && !selectedList}
-          >
-            Add Ingredients
+          <Button onClick={handleAdd} disabled={isAdding}>
+            {isAdding ? "Adding..." : "Add Ingredients"}
           </Button>
         </DialogFooter>
       </DialogContent>

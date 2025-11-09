@@ -44,12 +44,6 @@ function DashboardComponent() {
       icon: Carrot,
       color: "text-green-600",
     },
-    {
-      title: "Active Shopping Lists",
-      value: shoppingLists?.length || 0,
-      icon: ShoppingCart,
-      color: "text-orange-600",
-    },
   ];
 
   const recentRecipes = recipes?.slice(0, 6) || [];

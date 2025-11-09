@@ -39,7 +39,7 @@ export const getActive = authenticatedQuery({
   handler: async (ctx) => {
     const lists = await ctx.db
       .query("shoppingLists")
-      .withIndex("by_user_and_status", (q) => 
+      .withIndex("by_user_and_status", (q) =>
         q.eq("userId", ctx.userId).eq("status", "active")
       )
       .order("desc")
@@ -119,7 +119,6 @@ export const create = authenticatedMutation({
       userId: ctx.userId,
       name: args.name,
       status: "active",
-      createdAt: Date.now(),
     });
 
     return listId;
@@ -131,7 +130,13 @@ export const update = authenticatedMutation({
   args: {
     id: v.id("shoppingLists"),
     name: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("active"), v.literal("completed"), v.literal("archived"))),
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("completed"),
+        v.literal("archived")
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const list = await ctx.db.get(args.id);
@@ -144,7 +149,7 @@ export const update = authenticatedMutation({
     }
 
     const { id, ...updates } = args;
-    
+
     // If marking as completed, set completedAt
     const patchData: any = { ...updates };
     if (updates.status === "completed" && list.status !== "completed") {
@@ -154,6 +159,75 @@ export const update = authenticatedMutation({
     await ctx.db.patch(id, patchData);
 
     return id;
+  },
+});
+
+// Get the single shopping list for the user
+export const get = authenticatedQuery({
+  args: {},
+  handler: async (ctx) => {
+    // Fetch the user's shopping list (should only be one)
+    const list = await ctx.db
+      .query("shoppingLists")
+      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .first();
+
+    // If no list exists, return null
+    if (!list) {
+      return null;
+    }
+
+    // Get items with ingredient details
+    const items = await ctx.db
+      .query("shoppingListItems")
+      .withIndex("by_list_and_order", (q) => q.eq("shoppingListId", list._id))
+      .order("asc")
+      .collect();
+
+    const itemsWithDetails = await Promise.all(
+      items.map(async (item) => {
+        const ingredient = await ctx.db.get(item.ingredientId);
+        let category = null;
+        if (ingredient) {
+          category = await ctx.db.get(ingredient.categoryId);
+        }
+        return {
+          ...item,
+          ingredient,
+          category,
+        };
+      })
+    );
+
+    return {
+      ...list,
+      items: itemsWithDetails,
+    };
+  },
+});
+
+// Create the default shopping list for the user
+export const createDefault = authenticatedMutation({
+  args: {},
+  handler: async (ctx) => {
+    // Check if user already has a shopping list
+    const existingList = await ctx.db
+      .query("shoppingLists")
+      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .first();
+
+    if (existingList) {
+      return existingList._id;
+    }
+
+    // Create a new default shopping list
+    const listId = await ctx.db.insert("shoppingLists", {
+      userId: ctx.userId,
+      name: "My Shopping List",
+      status: "active",
+    });
+
+    return listId;
   },
 });
 
@@ -184,4 +258,3 @@ export const remove = authenticatedMutation({
     await ctx.db.delete(args.id);
   },
 });
-

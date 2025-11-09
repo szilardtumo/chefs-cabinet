@@ -1,20 +1,13 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { UserButton } from "@clerk/tanstack-react-start";
-import { 
-  Home, 
-  ShoppingCart, 
-  BookOpen, 
-  Carrot, 
-  Settings,
-  ChefHat
-} from "lucide-react";
+import { Home, ShoppingCart, BookOpen, Carrot, ChefHat } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Ingredients", href: "/ingredients", icon: Carrot },
   { name: "Recipes", href: "/recipes", icon: BookOpen },
-  { name: "Shopping Lists", href: "/shopping", icon: ShoppingCart },
+  { name: "Shopping List", href: "/shopping", icon: ShoppingCart },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -36,7 +29,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname.startsWith(item.href);
-              
+
               return (
                 <Link
                   key={item.name}
@@ -72,4 +65,3 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

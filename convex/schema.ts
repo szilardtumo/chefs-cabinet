@@ -56,8 +56,7 @@ export default defineSchema({
         })
       )
     ),
-  })
-    .index("by_user", ["userId"]),
+  }).index("by_user", ["userId"]),
 
   // Recipe Ingredients (join table)
   recipeIngredients: defineTable({
@@ -81,7 +80,6 @@ export default defineSchema({
       v.literal("completed"),
       v.literal("archived")
     ),
-    createdAt: v.number(),
     completedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
@@ -99,4 +97,3 @@ export default defineSchema({
     .index("by_list", ["shoppingListId"])
     .index("by_list_and_order", ["shoppingListId", "order"]),
 });
-
