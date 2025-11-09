@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppLayout } from "@/components/app-layout";
 import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -39,6 +38,7 @@ import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 
 export const Route = createFileRoute("/_authed/shopping/")({
   component: ShoppingListComponent,
+  context: () => ({ title: "Shopping List" }),
 });
 
 const ingredientSchema = z.object({
@@ -271,11 +271,9 @@ function ShoppingListComponent() {
 
   if (list === null) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-96">
-          <p className="text-muted-foreground">Creating shopping list...</p>
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Creating shopping list...</p>
+      </div>
     );
   }
 
@@ -365,7 +363,7 @@ function ShoppingListComponent() {
   const checkedItems = list.items?.filter((i: any) => i.checked).length || 0;
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -511,6 +509,6 @@ function ShoppingListComponent() {
         listId={list._id}
         onAdd={handleAddIngredient}
       />
-    </AppLayout>
+    </>
   );
 }

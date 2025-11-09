@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppLayout } from "@/components/app-layout";
 import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -46,6 +45,7 @@ import {
 
 export const Route = createFileRoute("/_authed/ingredients/categories")({
   component: CategoriesComponent,
+  context: () => ({ title: "Categories" }),
 });
 
 const categorySchema = z.object({
@@ -331,7 +331,7 @@ function CategoriesComponent() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
@@ -396,6 +396,6 @@ function CategoriesComponent() {
         category={editingCategory}
         onSave={handleSave}
       />
-    </AppLayout>
+    </>
   );
 }

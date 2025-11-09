@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { AppLayout } from "@/components/app-layout";
 import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -480,8 +479,7 @@ function RecipeFormComponent() {
   };
 
   return (
-    <AppLayout>
-      <form
+    <form
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -834,6 +832,5 @@ function RecipeFormComponent() {
           </Button>
         </div>
       </form>
-    </AppLayout>
   );
 }

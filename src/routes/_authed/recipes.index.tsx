@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppLayout } from "@/components/app-layout";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -12,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authed/recipes/")({
   component: RecipesComponent,
+  context: () => ({ title: "Recipes" }),
 });
 
 function RecipesComponent() {
@@ -27,8 +27,7 @@ function RecipesComponent() {
   });
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -138,7 +137,6 @@ function RecipesComponent() {
           </div>
         )}
       </div>
-    </AppLayout>
   );
 }
 

@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppLayout } from "@/components/app-layout";
 import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -198,8 +197,12 @@ function IngredientDialog({
 }
 
 function IngredientsComponent() {
-  const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
-  const { data: categories } = useSuspenseQuery(convexQuery(api.categories.getAll, {}));
+  const { data: ingredients } = useSuspenseQuery(
+    convexQuery(api.ingredients.getAll, {})
+  );
+  const { data: categories } = useSuspenseQuery(
+    convexQuery(api.categories.getAll, {})
+  );
   const { mutateAsync: createIngredient } = useMutation({
     mutationFn: useConvexMutation(api.ingredients.create),
   });
@@ -264,7 +267,7 @@ function IngredientsComponent() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -426,6 +429,6 @@ function IngredientsComponent() {
           onSave={handleSave}
         />
       )}
-    </AppLayout>
+    </>
   );
 }

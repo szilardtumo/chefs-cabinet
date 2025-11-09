@@ -6,10 +6,7 @@ import {
   createRootRouteWithContext,
   useRouteContext,
 } from "@tanstack/react-router";
-import {
-  ClerkProvider,
-  useAuth,
-} from "@clerk/tanstack-react-start";
+import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
 import * as React from "react";
@@ -37,6 +34,7 @@ const fetchClerkAuth = createServerFn({ method: "GET" }).handler(async () => {
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
   convexQueryClient: ConvexQueryClient;
+  title?: string;
 }>()({
   beforeLoad: async ({ context }) => {
     const { userId, token } = await fetchClerkAuth();
@@ -47,7 +45,7 @@ export const Route = createRootRouteWithContext<{
       context.convexQueryClient.serverHttpClient?.setAuth(token);
     }
 
-    return { userId, token };
+    return { userId, token, title: "Chef's Cabinet" };
   },
   head: () => ({
     meta: [

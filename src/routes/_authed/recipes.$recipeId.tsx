@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { AppLayout } from "@/components/app-layout";
 import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "@convex/_generated/api";
@@ -44,7 +43,9 @@ function AddToShoppingListDialog({
   recipeId: Id<"recipes">;
   recipeTitle: string;
 }) {
-  const { data: list } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
+  const { data: list } = useSuspenseQuery(
+    convexQuery(api.shoppingLists.get, {})
+  );
   const { mutateAsync: createDefault } = useMutation({
     mutationFn: useConvexMutation(api.shoppingLists.createDefault),
   });
@@ -62,7 +63,7 @@ function AddToShoppingListDialog({
       if (list?._id) {
         listId = list._id;
       } else {
-        listId = await createDefault();
+        listId = await createDefault({});
       }
 
       await addFromRecipe({
@@ -108,9 +109,11 @@ function AddToShoppingListDialog({
 
 function RecipeDetailComponent() {
   const { recipeId } = Route.useParams();
-  const { data: recipe } = useSuspenseQuery(convexQuery(api.recipes.getById, {
-    id: recipeId as Id<"recipes">,
-  }));
+  const { data: recipe } = useSuspenseQuery(
+    convexQuery(api.recipes.getById, {
+      id: recipeId as Id<"recipes">,
+    })
+  );
   const { mutateAsync: deleteRecipe } = useMutation({
     mutationFn: useConvexMutation(api.recipes.remove),
   });
@@ -136,11 +139,10 @@ function RecipeDetailComponent() {
     }
   };
 
-
   const totalTime = recipe.prepTime + recipe.cookingTime;
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6">
         {/* Back button */}
         <Button variant="ghost" asChild>
@@ -367,6 +369,6 @@ function RecipeDetailComponent() {
         recipeId={recipeId as Id<"recipes">}
         recipeTitle={recipe.title}
       />
-    </AppLayout>
+    </>
   );
 }
