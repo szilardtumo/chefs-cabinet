@@ -1,22 +1,22 @@
-import { v } from "convex/values";
-import { authenticatedQuery, authenticatedMutation } from "./helpers";
+import { v } from 'convex/values';
+import { authenticatedMutation, authenticatedQuery } from './helpers';
 
 // Get all shopping lists for the current user
 export const getAll = authenticatedQuery({
   args: {},
   handler: async (ctx) => {
     const lists = await ctx.db
-      .query("shoppingLists")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .order("desc")
+      .query('shoppingLists')
+      .withIndex('by_user', (q) => q.eq('userId', ctx.userId))
+      .order('desc')
       .collect();
 
     // Get item counts for each list
     const listsWithCounts = await Promise.all(
       lists.map(async (list) => {
         const items = await ctx.db
-          .query("shoppingListItems")
-          .withIndex("by_list", (q) => q.eq("shoppingListId", list._id))
+          .query('shoppingListItems')
+          .withIndex('by_list', (q) => q.eq('shoppingListId', list._id))
           .collect();
 
         const checkedCount = items.filter((item) => item.checked).length;
@@ -26,7 +26,7 @@ export const getAll = authenticatedQuery({
           totalItems: items.length,
           checkedItems: checkedCount,
         };
-      })
+      }),
     );
 
     return listsWithCounts;
@@ -38,19 +38,17 @@ export const getActive = authenticatedQuery({
   args: {},
   handler: async (ctx) => {
     const lists = await ctx.db
-      .query("shoppingLists")
-      .withIndex("by_user_and_status", (q) =>
-        q.eq("userId", ctx.userId).eq("status", "active")
-      )
-      .order("desc")
+      .query('shoppingLists')
+      .withIndex('by_user_and_status', (q) => q.eq('userId', ctx.userId).eq('status', 'active'))
+      .order('desc')
       .collect();
 
     // Get item counts
     const listsWithCounts = await Promise.all(
       lists.map(async (list) => {
         const items = await ctx.db
-          .query("shoppingListItems")
-          .withIndex("by_list", (q) => q.eq("shoppingListId", list._id))
+          .query('shoppingListItems')
+          .withIndex('by_list', (q) => q.eq('shoppingListId', list._id))
           .collect();
 
         const checkedCount = items.filter((item) => item.checked).length;
@@ -60,7 +58,7 @@ export const getActive = authenticatedQuery({
           totalItems: items.length,
           checkedItems: checkedCount,
         };
-      })
+      }),
     );
 
     return listsWithCounts;
@@ -69,22 +67,22 @@ export const getActive = authenticatedQuery({
 
 // Get a single shopping list with items
 export const getById = authenticatedQuery({
-  args: { id: v.id("shoppingLists") },
+  args: { id: v.id('shoppingLists') },
   handler: async (ctx, args) => {
     const list = await ctx.db.get(args.id);
     if (!list) {
-      throw new Error("Shopping list not found");
+      throw new Error('Shopping list not found');
     }
 
     if (list.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     // Get items with ingredient details
     const items = await ctx.db
-      .query("shoppingListItems")
-      .withIndex("by_list_and_order", (q) => q.eq("shoppingListId", args.id))
-      .order("asc")
+      .query('shoppingListItems')
+      .withIndex('by_list_and_order', (q) => q.eq('shoppingListId', args.id))
+      .order('asc')
       .collect();
 
     const itemsWithDetails = await Promise.all(
@@ -99,7 +97,7 @@ export const getById = authenticatedQuery({
           ingredient,
           category,
         };
-      })
+      }),
     );
 
     return {
@@ -115,10 +113,10 @@ export const create = authenticatedMutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const listId = await ctx.db.insert("shoppingLists", {
+    const listId = await ctx.db.insert('shoppingLists', {
       userId: ctx.userId,
       name: args.name,
-      status: "active",
+      status: 'active',
     });
 
     return listId;
@@ -128,31 +126,25 @@ export const create = authenticatedMutation({
 // Update a shopping list
 export const update = authenticatedMutation({
   args: {
-    id: v.id("shoppingLists"),
+    id: v.id('shoppingLists'),
     name: v.optional(v.string()),
-    status: v.optional(
-      v.union(
-        v.literal("active"),
-        v.literal("completed"),
-        v.literal("archived")
-      )
-    ),
+    status: v.optional(v.union(v.literal('active'), v.literal('completed'), v.literal('archived'))),
   },
   handler: async (ctx, args) => {
     const list = await ctx.db.get(args.id);
     if (!list) {
-      throw new Error("Shopping list not found");
+      throw new Error('Shopping list not found');
     }
 
     if (list.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const { id, ...updates } = args;
 
     // If marking as completed, set completedAt
     const patchData: any = { ...updates };
-    if (updates.status === "completed" && list.status !== "completed") {
+    if (updates.status === 'completed' && list.status !== 'completed') {
       patchData.completedAt = Date.now();
     }
 
@@ -168,8 +160,8 @@ export const get = authenticatedQuery({
   handler: async (ctx) => {
     // Fetch the user's shopping list (should only be one)
     const list = await ctx.db
-      .query("shoppingLists")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .query('shoppingLists')
+      .withIndex('by_user', (q) => q.eq('userId', ctx.userId))
       .first();
 
     // If no list exists, return null
@@ -179,9 +171,9 @@ export const get = authenticatedQuery({
 
     // Get items with ingredient details
     const items = await ctx.db
-      .query("shoppingListItems")
-      .withIndex("by_list_and_order", (q) => q.eq("shoppingListId", list._id))
-      .order("asc")
+      .query('shoppingListItems')
+      .withIndex('by_list_and_order', (q) => q.eq('shoppingListId', list._id))
+      .order('asc')
       .collect();
 
     const itemsWithDetails = await Promise.all(
@@ -196,7 +188,7 @@ export const get = authenticatedQuery({
           ingredient,
           category,
         };
-      })
+      }),
     );
 
     return {
@@ -212,8 +204,8 @@ export const createDefault = authenticatedMutation({
   handler: async (ctx) => {
     // Check if user already has a shopping list
     const existingList = await ctx.db
-      .query("shoppingLists")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .query('shoppingLists')
+      .withIndex('by_user', (q) => q.eq('userId', ctx.userId))
       .first();
 
     if (existingList) {
@@ -221,10 +213,10 @@ export const createDefault = authenticatedMutation({
     }
 
     // Create a new default shopping list
-    const listId = await ctx.db.insert("shoppingLists", {
+    const listId = await ctx.db.insert('shoppingLists', {
       userId: ctx.userId,
-      name: "My Shopping List",
-      status: "active",
+      name: 'My Shopping List',
+      status: 'active',
     });
 
     return listId;
@@ -233,21 +225,21 @@ export const createDefault = authenticatedMutation({
 
 // Delete a shopping list
 export const remove = authenticatedMutation({
-  args: { id: v.id("shoppingLists") },
+  args: { id: v.id('shoppingLists') },
   handler: async (ctx, args) => {
     const list = await ctx.db.get(args.id);
     if (!list) {
-      throw new Error("Shopping list not found");
+      throw new Error('Shopping list not found');
     }
 
     if (list.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     // Delete all items
     const items = await ctx.db
-      .query("shoppingListItems")
-      .withIndex("by_list", (q) => q.eq("shoppingListId", args.id))
+      .query('shoppingListItems')
+      .withIndex('by_list', (q) => q.eq('shoppingListId', args.id))
       .collect();
 
     for (const item of items) {

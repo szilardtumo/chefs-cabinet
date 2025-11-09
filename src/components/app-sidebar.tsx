@@ -1,46 +1,41 @@
-import { Link, useLocation } from "@tanstack/react-router";
-import { UserButton } from "@clerk/tanstack-react-start";
-import { Home, ShoppingCart, BookOpen, Carrot, ChefHat } from "lucide-react";
+import { Link } from '@tanstack/react-router';
+import { BookOpen, Carrot, ChefHat, Home, ShoppingCart } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
-} from "@/components/ui/sidebar";
+} from '@/components/ui/sidebar';
 
 const navItems = [
   {
-    label: "Dashboard",
+    label: 'Dashboard',
     icon: Home,
-    to: "/dashboard",
+    to: '/dashboard',
   },
 
   {
-    label: "Ingredients",
+    label: 'Ingredients',
     icon: Carrot,
-    to: "/ingredients",
+    to: '/ingredients',
   },
   {
-    label: "Recipes",
+    label: 'Recipes',
     icon: BookOpen,
-    to: "/recipes",
+    to: '/recipes',
   },
   {
-    label: "Shopping List",
+    label: 'Shopping List',
     icon: ShoppingCart,
-    to: "/shopping",
+    to: '/shopping',
   },
 ];
 
 export function AppSidebar() {
-  const location = useLocation();
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -66,10 +61,7 @@ export function AppSidebar() {
               {navItems.map((navItem) => (
                 <SidebarMenuItem key={navItem.label}>
                   <SidebarMenuButton asChild tooltip={navItem.label}>
-                    <Link
-                      to={navItem.to}
-                      activeProps={{ "data-active": "true" }}
-                    >
+                    <Link to={navItem.to} activeProps={{ 'data-active': 'true' }}>
                       <navItem.icon /> {navItem.label}
                     </Link>
                   </SidebarMenuButton>

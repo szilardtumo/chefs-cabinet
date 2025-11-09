@@ -1,63 +1,56 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
-import {
-  DndContext,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
+} from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { Id } from "@convex/_generated/dataModel";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useForm } from '@tanstack/react-form';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  FieldInput,
-  FieldColor,
-  FieldEmoji,
-} from "@/components/ui/form-fields";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { FieldColor, FieldEmoji, FieldInput } from '@/components/ui/form-fields';
 
-export const Route = createFileRoute("/_authed/ingredients/categories")({
+export const Route = createFileRoute('/_authed/ingredients/categories')({
   component: CategoriesComponent,
-  context: () => ({ title: "Categories" }),
+  context: () => ({ title: 'Categories' }),
 });
 
 const categorySchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   emoji: z.string().optional(),
   color: z.string().optional(),
 });
 
 function SortableCategoryRow({ category, onEdit, onDelete }: any) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: category._id });
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: category._id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -65,34 +58,17 @@ function SortableCategoryRow({ category, onEdit, onDelete }: any) {
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-3 rounded-lg border bg-card p-4"
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing"
-      >
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 rounded-lg border bg-card p-4">
+      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </button>
 
       <div className="flex items-center gap-3 flex-1">
         {category.emoji && <span className="text-2xl">{category.emoji}</span>}
-        {category.color && (
-          <div
-            className="h-6 w-6 rounded border"
-            style={{ backgroundColor: category.color }}
-          />
-        )}
+        {category.color && <div className="h-6 w-6 rounded border" style={{ backgroundColor: category.color }} />}
         <div className="flex-1">
           <h3 className="font-medium">{category.name}</h3>
-          {category.description && (
-            <p className="text-sm text-muted-foreground">
-              {category.description}
-            </p>
-          )}
+          {category.description && <p className="text-sm text-muted-foreground">{category.description}</p>}
         </div>
       </div>
 
@@ -100,11 +76,7 @@ function SortableCategoryRow({ category, onEdit, onDelete }: any) {
         <Button variant="ghost" size="icon" onClick={() => onEdit(category)}>
           <Pencil className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDelete(category._id)}
-        >
+        <Button variant="ghost" size="icon" onClick={() => onDelete(category._id)}>
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
@@ -125,10 +97,10 @@ function CategoryDialog({
 }) {
   const form = useForm({
     defaultValues: {
-      name: category?.name || "",
-      description: category?.description || "",
-      emoji: category?.emoji || "",
-      color: category?.color || "#000000",
+      name: category?.name || '',
+      description: category?.description || '',
+      emoji: category?.emoji || '',
+      color: category?.color || '#000000',
     } as z.infer<typeof categorySchema>,
     validators: {
       onChange: categorySchema,
@@ -147,24 +119,20 @@ function CategoryDialog({
   // Reset form when category changes or dialog opens/closes
   useEffect(() => {
     if (open) {
-      form.setFieldValue("name", category?.name || "");
-      form.setFieldValue("description", category?.description || "");
-      form.setFieldValue("emoji", category?.emoji || "");
-      form.setFieldValue("color", category?.color || "#000000");
+      form.setFieldValue('name', category?.name || '');
+      form.setFieldValue('description', category?.description || '');
+      form.setFieldValue('emoji', category?.emoji || '');
+      form.setFieldValue('color', category?.color || '#000000');
     }
-  }, [category, open]);
+  }, [category, open, form.setFieldValue]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {category ? "Edit Category" : "Create Category"}
-          </DialogTitle>
+          <DialogTitle>{category ? 'Edit Category' : 'Create Category'}</DialogTitle>
           <DialogDescription>
-            {category
-              ? "Update the category details"
-              : "Add a new category for organizing ingredients"}
+            {category ? 'Update the category details' : 'Add a new category for organizing ingredients'}
           </DialogDescription>
         </DialogHeader>
 
@@ -176,51 +144,23 @@ function CategoryDialog({
           }}
           className="space-y-4"
         >
-          <form.Field
-            name="name"
-            children={(field) => (
-              <FieldInput
-                field={field}
-                label="Name"
-                placeholder="e.g., Vegetables"
-              />
-            )}
-          />
+          <form.Field name="name">
+            {(field) => <FieldInput field={field} label="Name" placeholder="e.g., Vegetables" />}
+          </form.Field>
 
-          <form.Field
-            name="description"
-            children={(field) => (
-              <FieldInput
-                field={field}
-                label="Description (Optional)"
-                placeholder="Brief description"
-              />
-            )}
-          />
+          <form.Field name="description">
+            {(field) => <FieldInput field={field} label="Description (Optional)" placeholder="Brief description" />}
+          </form.Field>
 
-          <form.Field
-            name="emoji"
-            children={(field) => (
-              <FieldEmoji field={field} label="Emoji (Optional)" />
-            )}
-          />
+          <form.Field name="emoji">{(field) => <FieldEmoji field={field} label="Emoji (Optional)" />}</form.Field>
 
-          <form.Field
-            name="color"
-            children={(field) => (
-              <FieldColor field={field} label="Color (Optional)" />
-            )}
-          />
+          <form.Field name="color">{(field) => <FieldColor field={field} label="Color (Optional)" />}</form.Field>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">{category ? "Update" : "Create"}</Button>
+            <Button type="submit">{category ? 'Update' : 'Create'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -229,9 +169,7 @@ function CategoryDialog({
 }
 
 function CategoriesComponent() {
-  const { data: categories } = useSuspenseQuery(
-    convexQuery(api.categories.getAll, {})
-  );
+  const { data: categories } = useSuspenseQuery(convexQuery(api.categories.getAll, {}));
   const { mutateAsync: createCategory } = useMutation({
     mutationFn: useConvexMutation(api.categories.create),
   });
@@ -260,7 +198,7 @@ function CategoriesComponent() {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -281,11 +219,11 @@ function CategoriesComponent() {
 
       try {
         await reorderCategories({ updates });
-        toast.success("Categories reordered", {
-          description: "The category order has been updated.",
+        toast.success('Categories reordered', {
+          description: 'The category order has been updated.',
         });
       } catch (error: any) {
-        toast.error("Error", {
+        toast.error('Error', {
           description: error.message,
         });
       }
@@ -296,35 +234,35 @@ function CategoriesComponent() {
     try {
       if (editingCategory) {
         await updateCategory({ id: editingCategory._id, ...data });
-        toast.success("Category updated", {
-          description: "The category has been updated successfully.",
+        toast.success('Category updated', {
+          description: 'The category has been updated successfully.',
         });
       } else {
         await createCategory(data);
-        toast.success("Category created", {
-          description: "The category has been created successfully.",
+        toast.success('Category created', {
+          description: 'The category has been created successfully.',
         });
       }
       setEditingCategory(null);
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     }
   };
 
-  const handleDelete = async (id: Id<"categories">) => {
-    if (!confirm("Are you sure you want to delete this category?")) {
+  const handleDelete = async (id: Id<'categories'>) => {
+    if (!confirm('Are you sure you want to delete this category?')) {
       return;
     }
 
     try {
       await deleteCategory({ id });
-      toast.success("Category deleted", {
-        description: "The category has been deleted successfully.",
+      toast.success('Category deleted', {
+        description: 'The category has been deleted successfully.',
       });
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     }
@@ -336,9 +274,7 @@ function CategoriesComponent() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
-            <p className="text-muted-foreground">
-              Organize your ingredients with categories
-            </p>
+            <p className="text-muted-foreground">Organize your ingredients with categories</p>
           </div>
           <Button
             onClick={() => {
@@ -357,19 +293,10 @@ function CategoriesComponent() {
           </CardHeader>
           <CardContent>
             {!localCategories || localCategories.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No categories yet. Create your first category!
-              </p>
+              <p className="text-center text-muted-foreground py-8">No categories yet. Create your first category!</p>
             ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={localCategories.map((c) => c._id)}
-                  strategy={verticalListSortingStrategy}
-                >
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={localCategories.map((c) => c._id)} strategy={verticalListSortingStrategy}>
                   <div className="space-y-2">
                     {localCategories.map((category) => (
                       <SortableCategoryRow
@@ -390,12 +317,7 @@ function CategoriesComponent() {
         </Card>
       </div>
 
-      <CategoryDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        category={editingCategory}
-        onSave={handleSave}
-      />
+      <CategoryDialog open={dialogOpen} onOpenChange={setDialogOpen} category={editingCategory} onSave={handleSave} />
     </>
   );
 }

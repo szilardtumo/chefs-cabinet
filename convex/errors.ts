@@ -6,9 +6,9 @@
  * Thrown when a user is not authenticated
  */
 export class UnauthenticatedError extends Error {
-  constructor(message: string = "Not authenticated") {
+  constructor(message: string = 'Not authenticated') {
     super(message);
-    this.name = "UnauthenticatedError";
+    this.name = 'UnauthenticatedError';
   }
 }
 
@@ -16,9 +16,9 @@ export class UnauthenticatedError extends Error {
  * Thrown when a user is authenticated but not authorized to access a resource
  */
 export class UnauthorizedError extends Error {
-  constructor(message: string = "Unauthorized") {
+  constructor(message: string = 'Unauthorized') {
     super(message);
-    this.name = "UnauthorizedError";
+    this.name = 'UnauthorizedError';
   }
 }
 
@@ -27,11 +27,9 @@ export class UnauthorizedError extends Error {
  */
 export class NotFoundError extends Error {
   constructor(resource: string, id?: string) {
-    const message = id
-      ? `${resource} with ID ${id} not found`
-      : `${resource} not found`;
+    const message = id ? `${resource} with ID ${id} not found` : `${resource} not found`;
     super(message);
-    this.name = "NotFoundError";
+    this.name = 'NotFoundError';
   }
 }
 
@@ -41,7 +39,7 @@ export class NotFoundError extends Error {
 export class InvalidOperationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "InvalidOperationError";
+    this.name = 'InvalidOperationError';
   }
 }
 
@@ -51,7 +49,6 @@ export class InvalidOperationError extends Error {
 export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "ValidationError";
+    this.name = 'ValidationError';
   }
 }
-

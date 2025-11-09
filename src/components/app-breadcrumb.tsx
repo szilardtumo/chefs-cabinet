@@ -1,34 +1,32 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from '@tanstack/react-router';
+import { uniqBy } from 'es-toolkit';
 import {
   Breadcrumb,
-  BreadcrumbList,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbEllipsis,
+  BreadcrumbList,
   BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { uniqBy } from "es-toolkit";
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const ITEMS_TO_DISPLAY = 3;
 
 export function AppBreadcrumb(props: React.ComponentProps<typeof Breadcrumb>) {
   const matches = useRouterState({ select: (s) => s.matches });
 
-  const items = uniqBy(matches, (match) => match.context.title).map(
-    ({ pathname, context }) => {
-      return {
-        title: context.title,
-        path: pathname,
-      };
-    }
-  );
+  const items = uniqBy(matches, (match) => match.context.title).map(({ pathname, context }) => {
+    return {
+      title: context.title,
+      path: pathname,
+    };
+  });
 
   return (
     <Breadcrumb {...props}>
@@ -45,15 +43,12 @@ export function AppBreadcrumb(props: React.ComponentProps<typeof Breadcrumb>) {
           <>
             <BreadcrumbItem>
               <DropdownMenu>
-                <DropdownMenuTrigger
-                  className="flex items-center gap-1"
-                  aria-label="Toggle menu"
-                >
+                <DropdownMenuTrigger className="flex items-center gap-1" aria-label="Toggle menu">
                   <BreadcrumbEllipsis />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  {items.slice(1, -2).map((item, index) => (
-                    <DropdownMenuItem key={index}>
+                  {items.slice(1, -2).map((item) => (
+                    <DropdownMenuItem key={item.path}>
                       <Link to={item.path}> {item.title}</Link>
                     </DropdownMenuItem>
                   ))}
@@ -63,24 +58,15 @@ export function AppBreadcrumb(props: React.ComponentProps<typeof Breadcrumb>) {
             <BreadcrumbSeparator />
           </>
         )}
-        {items
-          .slice(Math.max(items.length - ITEMS_TO_DISPLAY + 1, 1), -1)
-          .map((item, index) => (
-            <BreadcrumbItem key={index}>
-              <>
-                <BreadcrumbLink
-                  asChild
-                  className="max-w-20 truncate md:max-w-none"
-                >
-                  <Link to={item.path}>{item.title}</Link>
-                </BreadcrumbLink>
-                <BreadcrumbSeparator />
-              </>
-            </BreadcrumbItem>
-          ))}
-        {items.length > 1 && (
-          <BreadcrumbPage>{items[items.length - 1].title}</BreadcrumbPage>
-        )}
+        {items.slice(Math.max(items.length - ITEMS_TO_DISPLAY + 1, 1), -1).map((item) => (
+          <BreadcrumbItem key={item.path}>
+            <BreadcrumbLink asChild className="max-w-20 truncate md:max-w-none">
+              <Link to={item.path}>{item.title}</Link>
+            </BreadcrumbLink>
+            <BreadcrumbSeparator />
+          </BreadcrumbItem>
+        ))}
+        {items.length > 1 && <BreadcrumbPage>{items[items.length - 1].title}</BreadcrumbPage>}
       </BreadcrumbList>
     </Breadcrumb>
   );

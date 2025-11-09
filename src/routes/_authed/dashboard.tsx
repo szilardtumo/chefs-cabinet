@@ -1,26 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, BookOpen, Carrot, ShoppingCart } from "lucide-react";
-import { useEffect } from "react";
+import { api } from '@convex/_generated/api';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { BookOpen, Carrot, Plus } from 'lucide-react';
+import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export const Route = createFileRoute("/_authed/dashboard")({
+export const Route = createFileRoute('/_authed/dashboard')({
   component: DashboardComponent,
 });
 
 function DashboardComponent() {
-  const { data: recipes } = useSuspenseQuery(
-    convexQuery(api.recipes.getAll, {})
-  );
-  const { data: ingredients } = useSuspenseQuery(
-    convexQuery(api.ingredients.getAll, {})
-  );
-  const { data: shoppingLists } = useSuspenseQuery(
-    convexQuery(api.shoppingLists.getActive, {})
-  );
+  const { data: recipes } = useSuspenseQuery(convexQuery(api.recipes.getAll, {}));
+  const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
 
   const { mutateAsync: seedUserData } = useMutation({
     mutationFn: useConvexMutation(api.seed.seedUserData),
@@ -42,16 +35,16 @@ function DashboardComponent() {
 
   const stats = [
     {
-      title: "Total Recipes",
+      title: 'Total Recipes',
       value: recipes?.length || 0,
       icon: BookOpen,
-      color: "text-blue-600",
+      color: 'text-blue-600',
     },
     {
-      title: "Total Ingredients",
+      title: 'Total Ingredients',
       value: ingredients?.length || 0,
       icon: Carrot,
-      color: "text-green-600",
+      color: 'text-green-600',
     },
   ];
 
@@ -62,9 +55,7 @@ function DashboardComponent() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome to your kitchen management hub
-        </p>
+        <p className="text-muted-foreground">Welcome to your kitchen management hub</p>
       </div>
 
       {/* Stats */}
@@ -74,9 +65,7 @@ function DashboardComponent() {
           return (
             <Card key={stat.title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.title}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
                 <Icon className={`h-4 w-4 ${stat.color}`} />
               </CardHeader>
               <CardContent>
@@ -103,9 +92,7 @@ function DashboardComponent() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-center">
-                No recipes yet. Start by creating your first recipe!
-              </p>
+              <p className="text-muted-foreground text-center">No recipes yet. Start by creating your first recipe!</p>
               <Button asChild className="mt-4">
                 <Link to="/recipes/new">Create Recipe</Link>
               </Button>
@@ -117,11 +104,7 @@ function DashboardComponent() {
               <Card key={recipe._id} className="overflow-hidden">
                 <Link to="/recipes/$recipeId" params={{ recipeId: recipe._id }}>
                   {recipe.imageUrl && (
-                    <img
-                      src={recipe.imageUrl}
-                      alt={recipe.title}
-                      className="h-48 w-full object-cover"
-                    />
+                    <img src={recipe.imageUrl} alt={recipe.title} className="h-48 w-full object-cover" />
                   )}
                   {!recipe.imageUrl && (
                     <div className="h-48 w-full bg-muted flex items-center justify-center">
@@ -129,14 +112,10 @@ function DashboardComponent() {
                     </div>
                   )}
                   <CardHeader>
-                    <CardTitle className="line-clamp-1">
-                      {recipe.title}
-                    </CardTitle>
+                    <CardTitle className="line-clamp-1">{recipe.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {recipe.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{recipe.description}</p>
                     <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
                       <span>⏱️ {recipe.cookingTime + recipe.prepTime} min</span>
                       <span>🍽️ {recipe.servings} servings</span>

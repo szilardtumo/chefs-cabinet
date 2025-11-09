@@ -1,22 +1,14 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@convex/_generated/api";
-import { Button } from "@/components/ui/button";
-import {
-  Clock,
-  Users,
-  Trash2,
-  ShoppingCart,
-  ChefHat,
-  ArrowLeft,
-  History,
-  Pencil,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, ChefHat, Clock, History, Pencil, ShoppingCart, Trash2, Users } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -24,11 +16,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { useState } from "react";
-import { Id } from "@convex/_generated/dataModel";
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 
-export const Route = createFileRoute("/_authed/recipes/$recipeId")({
+export const Route = createFileRoute('/_authed/recipes/$recipeId')({
   component: RecipeDetailComponent,
 });
 
@@ -40,12 +31,10 @@ function AddToShoppingListDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  recipeId: Id<"recipes">;
+  recipeId: Id<'recipes'>;
   recipeTitle: string;
 }) {
-  const { data: list } = useSuspenseQuery(
-    convexQuery(api.shoppingLists.get, {})
-  );
+  const { data: list } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
   const { mutateAsync: createDefault } = useMutation({
     mutationFn: useConvexMutation(api.shoppingLists.createDefault),
   });
@@ -59,7 +48,7 @@ function AddToShoppingListDialog({
       setIsAdding(true);
 
       // Get or create the user's single shopping list
-      let listId: Id<"shoppingLists">;
+      let listId: Id<'shoppingLists'>;
       if (list?._id) {
         listId = list._id;
       } else {
@@ -71,12 +60,12 @@ function AddToShoppingListDialog({
         recipeId,
       });
 
-      toast.success("Added to shopping list", {
-        description: "All ingredients have been added to your shopping list.",
+      toast.success('Added to shopping list', {
+        description: 'All ingredients have been added to your shopping list.',
       });
       onOpenChange(false);
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     } finally {
@@ -89,9 +78,7 @@ function AddToShoppingListDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add to Shopping List</DialogTitle>
-          <DialogDescription>
-            Add all ingredients from "{recipeTitle}" to your shopping list
-          </DialogDescription>
+          <DialogDescription>Add all ingredients from "{recipeTitle}" to your shopping list</DialogDescription>
         </DialogHeader>
 
         <DialogFooter>
@@ -99,7 +86,7 @@ function AddToShoppingListDialog({
             Cancel
           </Button>
           <Button onClick={handleAdd} disabled={isAdding}>
-            {isAdding ? "Adding..." : "Add Ingredients"}
+            {isAdding ? 'Adding...' : 'Add Ingredients'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -111,8 +98,8 @@ function RecipeDetailComponent() {
   const { recipeId } = Route.useParams();
   const { data: recipe } = useSuspenseQuery(
     convexQuery(api.recipes.getById, {
-      id: recipeId as Id<"recipes">,
-    })
+      id: recipeId as Id<'recipes'>,
+    }),
   );
   const { mutateAsync: deleteRecipe } = useMutation({
     mutationFn: useConvexMutation(api.recipes.remove),
@@ -122,18 +109,18 @@ function RecipeDetailComponent() {
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this recipe?")) {
+    if (!confirm('Are you sure you want to delete this recipe?')) {
       return;
     }
 
     try {
-      await deleteRecipe({ id: recipeId as Id<"recipes"> });
-      toast.success("Recipe deleted", {
-        description: "The recipe has been deleted successfully.",
+      await deleteRecipe({ id: recipeId as Id<'recipes'> });
+      toast.success('Recipe deleted', {
+        description: 'The recipe has been deleted successfully.',
       });
-      navigate({ to: "/recipes" });
+      navigate({ to: '/recipes' });
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     }
@@ -156,22 +143,14 @@ function RecipeDetailComponent() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             {recipe.imageUrl && (
-              <img
-                src={recipe.imageUrl}
-                alt={recipe.title}
-                className="w-full h-96 object-cover rounded-lg"
-              />
+              <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-96 object-cover rounded-lg" />
             )}
 
             <div>
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight mb-2">
-                    {recipe.title}
-                  </h1>
-                  <p className="text-lg text-muted-foreground">
-                    {recipe.description}
-                  </p>
+                  <h1 className="text-4xl font-bold tracking-tight mb-2">{recipe.title}</h1>
+                  <p className="text-lg text-muted-foreground">{recipe.description}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="icon" asChild>
@@ -208,9 +187,7 @@ function RecipeDetailComponent() {
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Total Time</p>
-                    <p className="text-sm text-muted-foreground">
-                      {totalTime} minutes
-                    </p>
+                    <p className="text-sm text-muted-foreground">{totalTime} minutes</p>
                   </div>
                 </div>
                 <Separator />
@@ -218,9 +195,7 @@ function RecipeDetailComponent() {
                   <ChefHat className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Prep Time</p>
-                    <p className="text-sm text-muted-foreground">
-                      {recipe.prepTime} minutes
-                    </p>
+                    <p className="text-sm text-muted-foreground">{recipe.prepTime} minutes</p>
                   </div>
                 </div>
                 <Separator />
@@ -228,9 +203,7 @@ function RecipeDetailComponent() {
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Cook Time</p>
-                    <p className="text-sm text-muted-foreground">
-                      {recipe.cookingTime} minutes
-                    </p>
+                    <p className="text-sm text-muted-foreground">{recipe.cookingTime} minutes</p>
                   </div>
                 </div>
                 <Separator />
@@ -238,28 +211,19 @@ function RecipeDetailComponent() {
                   <Users className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Servings</p>
-                    <p className="text-sm text-muted-foreground">
-                      {recipe.servings} people
-                    </p>
+                    <p className="text-sm text-muted-foreground">{recipe.servings} people</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Button
-              className="w-full"
-              onClick={() => setShoppingListDialogOpen(true)}
-            >
+            <Button className="w-full" onClick={() => setShoppingListDialogOpen(true)}>
               <ShoppingCart className="mr-2 h-4 w-4" />
               Add to Shopping List
             </Button>
 
             {recipe.history && recipe.history.length > 0 && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setHistoryOpen(!historyOpen)}
-              >
+              <Button variant="outline" className="w-full" onClick={() => setHistoryOpen(!historyOpen)}>
                 <History className="mr-2 h-4 w-4" />
                 View History ({recipe.history.length})
               </Button>
@@ -279,18 +243,12 @@ function RecipeDetailComponent() {
               <ul className="space-y-2">
                 {recipe.ingredients.map((ri) => (
                   <li key={ri._id} className="flex items-center gap-2">
-                    {ri.ingredient?.emoji && (
-                      <span className="text-lg">{ri.ingredient.emoji}</span>
-                    )}
+                    {ri.ingredient?.emoji && <span className="text-lg">{ri.ingredient.emoji}</span>}
                     <span className="font-medium">
                       {ri.quantity} {ri.unit}
                     </span>
                     <span>{ri.ingredient?.name}</span>
-                    {ri.notes && (
-                      <span className="text-muted-foreground text-sm">
-                        ({ri.notes})
-                      </span>
-                    )}
+                    {ri.notes && <span className="text-muted-foreground text-sm">({ri.notes})</span>}
                   </li>
                 ))}
               </ul>
@@ -309,6 +267,7 @@ function RecipeDetailComponent() {
             ) : (
               <ol className="space-y-4">
                 {recipe.instructions.map((instruction, index) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: index is the correct key
                   <li key={index} className="flex gap-4">
                     <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold">
                       {index + 1}
@@ -329,32 +288,21 @@ function RecipeDetailComponent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recipe.history.map((entry, index) => (
-                  <div key={index} className="border-l-2 border-muted pl-4">
+                {recipe.history.map((entry) => (
+                  <div key={entry.timestamp} className="border-l-2 border-muted pl-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge
-                        variant={entry.aiGenerated ? "default" : "secondary"}
-                      >
-                        {entry.type.replace(/_/g, " ")}
+                      <Badge variant={entry.aiGenerated ? 'default' : 'secondary'}>
+                        {entry.type.replace(/_/g, ' ')}
                       </Badge>
-                      {entry.aiGenerated && (
-                        <Badge variant="outline">AI Generated</Badge>
-                      )}
+                      {entry.aiGenerated && <Badge variant="outline">AI Generated</Badge>}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(entry.timestamp).toLocaleString()}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{new Date(entry.timestamp).toLocaleString()}</p>
                     {entry.aiPrompt && (
                       <p className="text-sm mt-1">
-                        <span className="font-medium">Prompt:</span>{" "}
-                        {entry.aiPrompt}
+                        <span className="font-medium">Prompt:</span> {entry.aiPrompt}
                       </p>
                     )}
-                    {entry.note && (
-                      <p className="text-sm mt-1 text-muted-foreground">
-                        {entry.note}
-                      </p>
-                    )}
+                    {entry.note && <p className="text-sm mt-1 text-muted-foreground">{entry.note}</p>}
                   </div>
                 ))}
               </div>
@@ -366,7 +314,7 @@ function RecipeDetailComponent() {
       <AddToShoppingListDialog
         open={shoppingListDialogOpen}
         onOpenChange={setShoppingListDialogOpen}
-        recipeId={recipeId as Id<"recipes">}
+        recipeId={recipeId as Id<'recipes'>}
         recipeTitle={recipe.title}
       />
     </>

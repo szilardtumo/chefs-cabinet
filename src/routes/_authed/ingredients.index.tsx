@@ -1,11 +1,16 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@convex/_generated/api";
-import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Search, Settings2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import { useForm } from '@tanstack/react-form';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Pencil, Plus, Search, Settings2, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -13,43 +18,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Id } from "@convex/_generated/dataModel";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
-import {
-  FieldInput,
-  FieldTextarea,
-  FieldEmoji,
-  FieldSelect,
-} from "@/components/ui/form-fields";
-import { FieldGroup } from "@/components/ui/field";
+} from '@/components/ui/dialog';
+import { FieldEmoji, FieldInput, FieldSelect, FieldTextarea } from '@/components/ui/form-fields';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-export const Route = createFileRoute("/_authed/ingredients/")({
+export const Route = createFileRoute('/_authed/ingredients/')({
   component: IngredientsComponent,
 });
 
 const ingredientSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  categoryId: z.string().min(1, "Category is required"),
+  name: z.string().min(1, 'Name is required'),
+  categoryId: z.string().min(1, 'Category is required'),
   defaultUnit: z.string(),
   notes: z.string(),
   emoji: z.string(),
@@ -70,11 +51,11 @@ function IngredientDialog({
 }) {
   const form = useForm({
     defaultValues: {
-      name: ingredient?.name || "",
-      categoryId: ingredient?.categoryId || "",
-      defaultUnit: ingredient?.defaultUnit || "",
-      notes: ingredient?.notes || "",
-      emoji: ingredient?.emoji || "",
+      name: ingredient?.name || '',
+      categoryId: ingredient?.categoryId || '',
+      defaultUnit: ingredient?.defaultUnit || '',
+      notes: ingredient?.notes || '',
+      emoji: ingredient?.emoji || '',
     },
     validators: {
       onChange: ingredientSchema,
@@ -82,7 +63,7 @@ function IngredientDialog({
     onSubmit: async ({ value }) => {
       onSave({
         name: value.name,
-        categoryId: value.categoryId as Id<"categories">,
+        categoryId: value.categoryId as Id<'categories'>,
         defaultUnit: value.defaultUnit || undefined,
         notes: value.notes || undefined,
         emoji: value.emoji || undefined,
@@ -94,25 +75,21 @@ function IngredientDialog({
   // Reset form when ingredient changes or dialog opens/closes
   useEffect(() => {
     if (open) {
-      form.setFieldValue("name", ingredient?.name || "");
-      form.setFieldValue("categoryId", ingredient?.categoryId || "");
-      form.setFieldValue("defaultUnit", ingredient?.defaultUnit || "");
-      form.setFieldValue("notes", ingredient?.notes || "");
-      form.setFieldValue("emoji", ingredient?.emoji || "");
+      form.setFieldValue('name', ingredient?.name || '');
+      form.setFieldValue('categoryId', ingredient?.categoryId || '');
+      form.setFieldValue('defaultUnit', ingredient?.defaultUnit || '');
+      form.setFieldValue('notes', ingredient?.notes || '');
+      form.setFieldValue('emoji', ingredient?.emoji || '');
     }
-  }, [ingredient, open]);
+  }, [ingredient, open, form.setFieldValue]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {ingredient ? "Edit Ingredient" : "Add Ingredient"}
-          </DialogTitle>
+          <DialogTitle>{ingredient ? 'Edit Ingredient' : 'Add Ingredient'}</DialogTitle>
           <DialogDescription>
-            {ingredient
-              ? "Update the ingredient details"
-              : "Add a new ingredient to your kitchen"}
+            {ingredient ? 'Update the ingredient details' : 'Add a new ingredient to your kitchen'}
           </DialogDescription>
         </DialogHeader>
 
@@ -125,70 +102,42 @@ function IngredientDialog({
           className="space-y-4"
         >
           <div className="grid grid-cols-[auto_1fr] gap-4">
-            <form.Field
-              name="emoji"
-              children={(field) => <FieldEmoji field={field} label="Icon" />}
-            />
+            <form.Field name="emoji">{(field) => <FieldEmoji field={field} label="Icon" />}</form.Field>
 
-            <form.Field
-              name="name"
-              children={(field) => (
-                <FieldInput
-                  field={field}
-                  label="Name"
-                  placeholder="e.g., Tomato"
-                />
-              )}
-            />
+            <form.Field name="name">
+              {(field) => <FieldInput field={field} label="Name" placeholder="e.g., Tomato" />}
+            </form.Field>
           </div>
 
-          <form.Field
-            name="categoryId"
-            children={(field) => (
+          <form.Field name="categoryId">
+            {(field) => (
               <FieldSelect
                 field={field}
                 label="Category"
                 placeholder="Select a category"
                 options={categories.map((cat) => ({
                   value: cat._id,
-                  label: `${cat.emoji ? cat.emoji + " " : ""}${cat.name}`,
+                  label: `${cat.emoji ? `${cat.emoji} ` : ''}${cat.name}`,
                 }))}
               />
             )}
-          />
+          </form.Field>
 
-          <form.Field
-            name="defaultUnit"
-            children={(field) => (
-              <FieldInput
-                field={field}
-                label="Default Unit (Optional)"
-                placeholder="e.g., g, ml, piece"
-              />
-            )}
-          />
+          <form.Field name="defaultUnit">
+            {(field) => <FieldInput field={field} label="Default Unit (Optional)" placeholder="e.g., g, ml, piece" />}
+          </form.Field>
 
-          <form.Field
-            name="notes"
-            children={(field) => (
-              <FieldTextarea
-                field={field}
-                label="Notes (Optional)"
-                placeholder="Any additional notes..."
-                rows={3}
-              />
+          <form.Field name="notes">
+            {(field) => (
+              <FieldTextarea field={field} label="Notes (Optional)" placeholder="Any additional notes..." rows={3} />
             )}
-          />
+          </form.Field>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">{ingredient ? "Update" : "Add"}</Button>
+            <Button type="submit">{ingredient ? 'Update' : 'Add'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -197,12 +146,8 @@ function IngredientDialog({
 }
 
 function IngredientsComponent() {
-  const { data: ingredients } = useSuspenseQuery(
-    convexQuery(api.ingredients.getAll, {})
-  );
-  const { data: categories } = useSuspenseQuery(
-    convexQuery(api.categories.getAll, {})
-  );
+  const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
+  const { data: categories } = useSuspenseQuery(convexQuery(api.categories.getAll, {}));
   const { mutateAsync: createIngredient } = useMutation({
     mutationFn: useConvexMutation(api.ingredients.create),
   });
@@ -215,16 +160,13 @@ function IngredientsComponent() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Filter ingredients
   const filteredIngredients = ingredients?.filter((ingredient) => {
-    const matchesSearch = ingredient.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || ingredient.categoryId === selectedCategory;
+    const matchesSearch = ingredient.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || ingredient.categoryId === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -232,35 +174,35 @@ function IngredientsComponent() {
     try {
       if (editingIngredient) {
         await updateIngredient({ id: editingIngredient._id, ...data });
-        toast.success("Ingredient updated", {
-          description: "The ingredient has been updated successfully.",
+        toast.success('Ingredient updated', {
+          description: 'The ingredient has been updated successfully.',
         });
       } else {
         await createIngredient(data);
-        toast.success("Ingredient added", {
-          description: "The ingredient has been added successfully.",
+        toast.success('Ingredient added', {
+          description: 'The ingredient has been added successfully.',
         });
       }
       setEditingIngredient(null);
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     }
   };
 
-  const handleDelete = async (id: Id<"ingredients">) => {
-    if (!confirm("Are you sure you want to delete this ingredient?")) {
+  const handleDelete = async (id: Id<'ingredients'>) => {
+    if (!confirm('Are you sure you want to delete this ingredient?')) {
       return;
     }
 
     try {
       await deleteIngredient({ id });
-      toast.success("Ingredient deleted", {
-        description: "The ingredient has been deleted successfully.",
+      toast.success('Ingredient deleted', {
+        description: 'The ingredient has been deleted successfully.',
       });
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     }
@@ -273,9 +215,7 @@ function IngredientsComponent() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Ingredients</h1>
-            <p className="text-muted-foreground">
-              Manage your kitchen ingredients
-            </p>
+            <p className="text-muted-foreground">Manage your kitchen ingredients</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" asChild>
@@ -311,10 +251,7 @@ function IngredientsComponent() {
                   />
                 </div>
               </div>
-              <Select
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
-              >
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="All categories" />
                 </SelectTrigger>
@@ -335,17 +272,15 @@ function IngredientsComponent() {
         {/* Ingredients Table */}
         <Card>
           <CardHeader>
-            <CardTitle>
-              All Ingredients ({filteredIngredients?.length || 0})
-            </CardTitle>
+            <CardTitle>All Ingredients ({filteredIngredients?.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
             {!filteredIngredients || filteredIngredients.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">
-                  {searchQuery || selectedCategory !== "all"
-                    ? "No ingredients match your filters"
-                    : "No ingredients yet. Add your first ingredient!"}
+                  {searchQuery || selectedCategory !== 'all'
+                    ? 'No ingredients match your filters'
+                    : 'No ingredients yet. Add your first ingredient!'}
                 </p>
               </div>
             ) : (
@@ -365,30 +300,20 @@ function IngredientsComponent() {
                       <TableRow key={ingredient._id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            {ingredient.emoji && (
-                              <span className="text-lg">
-                                {ingredient.emoji}
-                              </span>
-                            )}
+                            {ingredient.emoji && <span className="text-lg">{ingredient.emoji}</span>}
                             {ingredient.name}
                           </div>
                         </TableCell>
                         <TableCell>
                           {ingredient.category && (
                             <Badge variant="secondary">
-                              {ingredient.category.emoji && (
-                                <span className="mr-1">
-                                  {ingredient.category.emoji}
-                                </span>
-                              )}
+                              {ingredient.category.emoji && <span className="mr-1">{ingredient.category.emoji}</span>}
                               {ingredient.category.name}
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell>{ingredient.defaultUnit || "-"}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {ingredient.notes || "-"}
-                        </TableCell>
+                        <TableCell>{ingredient.defaultUnit || '-'}</TableCell>
+                        <TableCell className="max-w-xs truncate">{ingredient.notes || '-'}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
@@ -401,11 +326,7 @@ function IngredientsComponent() {
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(ingredient._id)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(ingredient._id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>

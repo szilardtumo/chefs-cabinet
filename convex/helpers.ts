@@ -1,10 +1,6 @@
-import {
-  customCtx,
-  customMutation,
-  customQuery,
-} from "convex-helpers/server/customFunctions";
-import { query, mutation } from "./_generated/server";
-import { UnauthenticatedError } from "./errors";
+import { customCtx, customMutation, customQuery } from 'convex-helpers/server/customFunctions';
+import { mutation, query } from './_generated/server';
+import { UnauthenticatedError } from './errors';
 
 /**
  * Custom query builder that automatically handles authentication.
@@ -18,7 +14,7 @@ export const authenticatedQuery = customQuery(
       throw new UnauthenticatedError();
     }
     return { userId: identity.subject };
-  })
+  }),
 );
 
 /**
@@ -33,5 +29,5 @@ export const authenticatedMutation = customMutation(
       throw new UnauthenticatedError();
     }
     return { userId: identity.subject };
-  })
+  }),
 );

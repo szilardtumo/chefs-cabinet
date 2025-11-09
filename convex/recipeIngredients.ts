@@ -1,20 +1,20 @@
-import { v } from "convex/values";
-import { authenticatedQuery, authenticatedMutation } from "./helpers";
+import { v } from 'convex/values';
+import { authenticatedMutation, authenticatedQuery } from './helpers';
 
 // Get all ingredients for a recipe
 export const getByRecipe = authenticatedQuery({
-  args: { recipeId: v.id("recipes") },
+  args: { recipeId: v.id('recipes') },
   handler: async (ctx, args) => {
     // Verify user owns the recipe
     const recipe = await ctx.db.get(args.recipeId);
     if (!recipe || recipe.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const recipeIngredients = await ctx.db
-      .query("recipeIngredients")
-      .withIndex("by_recipe_and_order", (q) => q.eq("recipeId", args.recipeId))
-      .order("asc")
+      .query('recipeIngredients')
+      .withIndex('by_recipe_and_order', (q) => q.eq('recipeId', args.recipeId))
+      .order('asc')
       .collect();
 
     // Fetch ingredient details
@@ -25,7 +25,7 @@ export const getByRecipe = authenticatedQuery({
           ...ri,
           ingredient,
         };
-      })
+      }),
     );
 
     return ingredientsWithDetails;
@@ -35,8 +35,8 @@ export const getByRecipe = authenticatedQuery({
 // Add an ingredient to a recipe
 export const add = authenticatedMutation({
   args: {
-    recipeId: v.id("recipes"),
-    ingredientId: v.id("ingredients"),
+    recipeId: v.id('recipes'),
+    ingredientId: v.id('ingredients'),
     quantity: v.number(),
     unit: v.string(),
     notes: v.optional(v.string()),
@@ -45,18 +45,18 @@ export const add = authenticatedMutation({
     // Verify user owns the recipe
     const recipe = await ctx.db.get(args.recipeId);
     if (!recipe || recipe.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     // Get current max order
     const existing = await ctx.db
-      .query("recipeIngredients")
-      .withIndex("by_recipe", (q) => q.eq("recipeId", args.recipeId))
+      .query('recipeIngredients')
+      .withIndex('by_recipe', (q) => q.eq('recipeId', args.recipeId))
       .collect();
 
     const maxOrder = existing.reduce((max, ri) => Math.max(max, ri.order), 0);
 
-    const recipeIngredientId = await ctx.db.insert("recipeIngredients", {
+    const recipeIngredientId = await ctx.db.insert('recipeIngredients', {
       recipeId: args.recipeId,
       ingredientId: args.ingredientId,
       quantity: args.quantity,
@@ -72,7 +72,7 @@ export const add = authenticatedMutation({
 // Update a recipe ingredient
 export const update = authenticatedMutation({
   args: {
-    id: v.id("recipeIngredients"),
+    id: v.id('recipeIngredients'),
     quantity: v.optional(v.number()),
     unit: v.optional(v.string()),
     notes: v.optional(v.string()),
@@ -80,13 +80,13 @@ export const update = authenticatedMutation({
   handler: async (ctx, args) => {
     const recipeIngredient = await ctx.db.get(args.id);
     if (!recipeIngredient) {
-      throw new Error("Recipe ingredient not found");
+      throw new Error('Recipe ingredient not found');
     }
 
     // Verify user owns the recipe
     const recipe = await ctx.db.get(recipeIngredient.recipeId);
     if (!recipe || recipe.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const { id, ...updates } = args;
@@ -98,17 +98,17 @@ export const update = authenticatedMutation({
 
 // Remove an ingredient from a recipe
 export const remove = authenticatedMutation({
-  args: { id: v.id("recipeIngredients") },
+  args: { id: v.id('recipeIngredients') },
   handler: async (ctx, args) => {
     const recipeIngredient = await ctx.db.get(args.id);
     if (!recipeIngredient) {
-      throw new Error("Recipe ingredient not found");
+      throw new Error('Recipe ingredient not found');
     }
 
     // Verify user owns the recipe
     const recipe = await ctx.db.get(recipeIngredient.recipeId);
     if (!recipe || recipe.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     await ctx.db.delete(args.id);
@@ -120,9 +120,9 @@ export const reorder = authenticatedMutation({
   args: {
     updates: v.array(
       v.object({
-        id: v.id("recipeIngredients"),
+        id: v.id('recipeIngredients'),
         order: v.number(),
-      })
+      }),
     ),
   },
   handler: async (ctx, args) => {
@@ -130,12 +130,12 @@ export const reorder = authenticatedMutation({
     for (const update of args.updates) {
       const recipeIngredient = await ctx.db.get(update.id);
       if (!recipeIngredient) {
-        throw new Error("Recipe ingredient not found");
+        throw new Error('Recipe ingredient not found');
       }
 
       const recipe = await ctx.db.get(recipeIngredient.recipeId);
       if (!recipe || recipe.userId !== ctx.userId) {
-        throw new Error("Unauthorized");
+        throw new Error('Unauthorized');
       }
     }
 
@@ -145,4 +145,3 @@ export const reorder = authenticatedMutation({
     }
   },
 });
-

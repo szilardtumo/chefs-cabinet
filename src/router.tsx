@@ -1,16 +1,16 @@
-import { createRouter } from "@tanstack/react-router";
-import { MutationCache, QueryClient } from "@tanstack/react-query";
-import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
-import { ConvexQueryClient } from "@convex-dev/react-query";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { routeTree } from "./routeTree.gen";
-import { DefaultCatchBoundary } from "./components/default-catch-boundary";
-import { NotFound } from "./components/not-found";
+import { ConvexQueryClient } from '@convex-dev/react-query';
+import { MutationCache, QueryClient } from '@tanstack/react-query';
+import { createRouter } from '@tanstack/react-router';
+import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query';
+import { ConvexProvider, ConvexReactClient } from 'convex/react';
+import { DefaultCatchBoundary } from './components/default-catch-boundary';
+import { NotFound } from './components/not-found';
+import { routeTree } from './routeTree.gen';
 
 export function getRouter() {
-  const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL!;
+  const CONVEX_URL = import.meta.env.VITE_CONVEX_URL!;
   if (!CONVEX_URL) {
-    console.error("missing envar VITE_CONVEX_URL");
+    console.error('missing envar VITE_CONVEX_URL');
   }
 
   const convex = new ConvexReactClient(CONVEX_URL, {
@@ -28,7 +28,7 @@ export function getRouter() {
     mutationCache: new MutationCache({
       onError: (error) => {
         // TODO: show toast
-        console.error("mutation error", error.message);
+        console.error('mutation error', error.message);
       },
     }),
   });
@@ -36,15 +36,11 @@ export function getRouter() {
 
   const router = createRouter({
     routeTree,
-    defaultPreload: "intent",
+    defaultPreload: 'intent',
     defaultErrorComponent: DefaultCatchBoundary,
     defaultNotFoundComponent: () => <NotFound />,
     context: { queryClient, convexQueryClient },
-    Wrap: ({ children }) => (
-      <ConvexProvider client={convexQueryClient.convexClient}>
-        {children}
-      </ConvexProvider>
-    ),
+    Wrap: ({ children }) => <ConvexProvider client={convexQueryClient.convexClient}>{children}</ConvexProvider>,
     scrollRestoration: true,
   });
 
@@ -56,7 +52,7 @@ export function getRouter() {
   return router;
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface Register {
     router: ReturnType<typeof getRouter>;
   }

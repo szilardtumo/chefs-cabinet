@@ -1,21 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { api } from "@convex/_generated/api";
-import { Button } from "@/components/ui/button";
-import {
-  Plus,
-  Trash2,
-  ArrowLeft,
-  Check,
-  Store,
-  ShoppingCart,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import { useForm } from '@tanstack/react-form';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { ArrowLeft, Check, Plus, ShoppingCart, Store, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -23,52 +19,41 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Id } from "@convex/_generated/dataModel";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
-import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+} from '@/components/ui/dialog';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export const Route = createFileRoute("/_authed/shopping/")({
+export const Route = createFileRoute('/_authed/shopping/')({
   component: ShoppingListComponent,
-  context: () => ({ title: "Shopping List" }),
+  context: () => ({ title: 'Shopping List' }),
 });
 
 const ingredientSchema = z.object({
-  ingredientId: z.string().min(1, "Ingredient is required"),
+  ingredientId: z.string().min(1, 'Ingredient is required'),
 });
 
 function AddIngredientDialog({
   open,
   onOpenChange,
-  listId,
+
   onAdd,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  listId: Id<"shoppingLists">;
-  onAdd: (ingredientId: Id<"ingredients">) => void;
+
+  onAdd: (ingredientId: Id<'ingredients'>) => void;
 }) {
-  const { data: ingredients } = useSuspenseQuery(
-    convexQuery(api.ingredients.getAll, {})
-  );
+  const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
 
   const form = useForm({
     defaultValues: {
-      ingredientId: "",
+      ingredientId: '',
     },
     validators: {
       onChange: ingredientSchema,
     },
     onSubmit: async ({ value }) => {
-      onAdd(value.ingredientId as Id<"ingredients">);
+      onAdd(value.ingredientId as Id<'ingredients'>);
       form.reset();
       onOpenChange(false);
     },
@@ -79,16 +64,14 @@ function AddIngredientDialog({
     if (!open) {
       form.reset();
     }
-  }, [open]);
+  }, [open, form.reset]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Ingredient</DialogTitle>
-          <DialogDescription>
-            Select an ingredient to add to your shopping list
-          </DialogDescription>
+          <DialogDescription>Select an ingredient to add to your shopping list</DialogDescription>
         </DialogHeader>
 
         <form
@@ -99,40 +82,30 @@ function AddIngredientDialog({
           }}
           className="space-y-4"
         >
-          <form.Field
-            name="ingredientId"
-            children={(field) => (
+          <form.Field name="ingredientId">
+            {(field) => (
               <Field>
                 <FieldLabel>Ingredient</FieldLabel>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(value) => field.handleChange(value)}
-                >
+                <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose an ingredient" />
                   </SelectTrigger>
                   <SelectContent>
                     {ingredients?.map((ingredient) => (
                       <SelectItem key={ingredient._id} value={ingredient._id}>
-                        {ingredient.emoji && (
-                          <span className="mr-1">{ingredient.emoji}</span>
-                        )}
+                        {ingredient.emoji && <span className="mr-1">{ingredient.emoji}</span>}
                         {ingredient.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError>{field.state.meta.errors.join(", ")}</FieldError>
+                <FieldError>{field.state.meta.errors.join(', ')}</FieldError>
               </Field>
             )}
-          />
+          </form.Field>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit">Add</Button>
@@ -152,7 +125,7 @@ function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
   const groupedItems = list.items?.reduce((acc: any, item: any) => {
     if (item.checked) return acc; // Only show unchecked in store mode
 
-    const categoryName = item.category?.name || "Other";
+    const categoryName = item.category?.name || 'Other';
     if (!acc[categoryName]) {
       acc[categoryName] = [];
     }
@@ -160,7 +133,7 @@ function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
     return acc;
   }, {});
 
-  const handleToggle = async (itemId: Id<"shoppingListItems">) => {
+  const handleToggle = async (itemId: Id<'shoppingListItems'>) => {
     await toggleChecked({ id: itemId });
   };
 
@@ -182,54 +155,41 @@ function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
             <CardTitle className="text-2xl">{list.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {Object.entries(groupedItems || {}).map(
-              ([category, items]: [string, any]) => (
-                <div key={category}>
-                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    {category}
-                  </h3>
-                  <div className="space-y-3">
-                    {items.map((item: any) => (
-                      <div
-                        key={item._id}
-                        onClick={() => handleToggle(item._id)}
-                        className="flex items-start gap-4 p-4 border rounded-lg cursor-pointer hover:bg-accent transition-colors"
-                      >
-                        <Checkbox
-                          checked={item.checked}
-                          onCheckedChange={() => handleToggle(item._id)}
-                          className="mt-1 h-6 w-6"
-                        />
-                        <div className="flex-1">
-                          <p className="text-lg font-medium">
-                            {item.ingredient?.emoji && (
-                              <span className="mr-2">
-                                {item.ingredient.emoji}
-                              </span>
-                            )}
-                            {item.ingredient?.name}
-                          </p>
-                          {item.notes && (
-                            <p className="text-sm text-muted-foreground">
-                              {item.notes}
-                            </p>
-                          )}
-                        </div>
+            {Object.entries(groupedItems || {}).map(([category, items]: [string, any]) => (
+              <div key={category}>
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  {category}
+                </h3>
+                <div className="space-y-3">
+                  {items.map((item: any) => (
+                    <div
+                      key={item._id}
+                      className="flex items-start gap-4 p-4 border rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                    >
+                      <Checkbox
+                        checked={item.checked}
+                        onCheckedChange={() => handleToggle(item._id)}
+                        className="mt-1 h-6 w-6"
+                      />
+                      <div className="flex-1">
+                        <p className="text-lg font-medium">
+                          {item.ingredient?.emoji && <span className="mr-2">{item.ingredient.emoji}</span>}
+                          {item.ingredient?.name}
+                        </p>
+                        {item.notes && <p className="text-sm text-muted-foreground">{item.notes}</p>}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )
-            )}
+              </div>
+            ))}
 
             {(!groupedItems || Object.keys(groupedItems).length === 0) && (
               <div className="text-center py-12">
                 <Check className="h-16 w-16 text-green-600 mx-auto mb-4" />
                 <p className="text-xl font-semibold mb-2">All done!</p>
-                <p className="text-muted-foreground">
-                  You've checked off all items on your list
-                </p>
+                <p className="text-muted-foreground">You've checked off all items on your list</p>
               </div>
             )}
           </CardContent>
@@ -240,9 +200,7 @@ function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
 }
 
 function ShoppingListComponent() {
-  const { data: list } = useSuspenseQuery(
-    convexQuery(api.shoppingLists.get, {})
-  );
+  const { data: list } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
   const { mutateAsync: createDefault } = useMutation({
     mutationFn: useConvexMutation(api.shoppingLists.createDefault),
   });
@@ -281,51 +239,51 @@ function ShoppingListComponent() {
     return <StoreModeView list={list} onBack={() => setStoreMode(false)} />;
   }
 
-  const handleAddIngredient = async (ingredientId: Id<"ingredients">) => {
+  const handleAddIngredient = async (ingredientId: Id<'ingredients'>) => {
     try {
       await addItem({
         shoppingListId: list._id,
         ingredientId,
       });
-      toast.success("Ingredient added", {
-        description: "The ingredient has been added to your list.",
+      toast.success('Ingredient added', {
+        description: 'The ingredient has been added to your list.',
       });
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     }
   };
 
-  const handleToggle = async (itemId: Id<"shoppingListItems">) => {
+  const handleToggle = async (itemId: Id<'shoppingListItems'>) => {
     await toggleChecked({ id: itemId });
   };
 
-  const handleRemove = async (itemId: Id<"shoppingListItems">) => {
+  const handleRemove = async (itemId: Id<'shoppingListItems'>) => {
     try {
       await removeItem({ id: itemId });
-      toast.success("Item removed", {
-        description: "The item has been removed from your list.",
+      toast.success('Item removed', {
+        description: 'The item has been removed from your list.',
       });
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     }
   };
 
   const handleClearChecked = async () => {
-    if (!confirm("Remove all checked items from the list?")) {
+    if (!confirm('Remove all checked items from the list?')) {
       return;
     }
 
     try {
       const count = await clearChecked({ shoppingListId: list._id });
-      toast.success("Items cleared", {
+      toast.success('Items cleared', {
         description: `Removed ${count} checked items from your list.`,
       });
     } catch (error: any) {
-      toast.error("Error", {
+      toast.error('Error', {
         description: error.message,
       });
     }
@@ -333,7 +291,7 @@ function ShoppingListComponent() {
 
   // Group items by category
   const groupedItems = list.items?.reduce((acc: any, item: any) => {
-    const categoryName = item.category?.name || "Other";
+    const categoryName = item.category?.name || 'Other';
     if (!acc[categoryName]) {
       acc[categoryName] = {
         emoji: item.category?.emoji,
@@ -346,18 +304,13 @@ function ShoppingListComponent() {
 
   const filteredGroups = showChecked
     ? groupedItems
-    : Object.entries(groupedItems || {}).reduce(
-        (acc: any, [key, value]: [string, any]) => {
-          const uncheckedItems = value.items.filter(
-            (item: any) => !item.checked
-          );
-          if (uncheckedItems.length > 0) {
-            acc[key] = { ...value, items: uncheckedItems };
-          }
-          return acc;
-        },
-        {}
-      );
+    : Object.entries(groupedItems || {}).reduce((acc: any, [key, value]: [string, any]) => {
+        const uncheckedItems = value.items.filter((item: any) => !item.checked);
+        if (uncheckedItems.length > 0) {
+          acc[key] = { ...value, items: uncheckedItems };
+        }
+        return acc;
+      }, {});
 
   const totalItems = list.items?.length || 0;
   const checkedItems = list.items?.filter((i: any) => i.checked).length || 0;
@@ -392,9 +345,7 @@ function ShoppingListComponent() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Progress</span>
-                  <span className="font-medium">
-                    {Math.round((checkedItems / totalItems) * 100)}%
-                  </span>
+                  <span className="font-medium">{Math.round((checkedItems / totalItems) * 100)}%</span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-3">
                   <div
@@ -411,12 +362,8 @@ function ShoppingListComponent() {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowChecked(!showChecked)}
-          >
-            {showChecked ? "Hide" : "Show"} Checked Items
+          <Button variant="outline" size="sm" onClick={() => setShowChecked(!showChecked)}>
+            {showChecked ? 'Hide' : 'Show'} Checked Items
           </Button>
           {checkedItems > 0 && (
             <Button variant="outline" size="sm" onClick={handleClearChecked}>
@@ -431,74 +378,47 @@ function ShoppingListComponent() {
             <CardContent className="flex flex-col items-center justify-center py-16">
               <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">List is empty</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Add ingredients to your shopping list
-              </p>
-              <Button onClick={() => setAddDialogOpen(true)}>
-                Add First Item
-              </Button>
+              <p className="text-muted-foreground text-center mb-4">Add ingredients to your shopping list</p>
+              <Button onClick={() => setAddDialogOpen(true)}>Add First Item</Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-6">
-            {Object.entries(filteredGroups || {}).map(
-              ([categoryName, group]: [string, any]) => (
-                <Card key={categoryName}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      {group.emoji && <span>{group.emoji}</span>}
-                      {categoryName}
-                      <Badge variant="secondary" className="ml-auto">
-                        {group.items.length}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {group.items.map((item: any) => (
-                        <div
-                          key={item._id}
-                          className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
-                        >
-                          <Checkbox
-                            checked={item.checked}
-                            onCheckedChange={() => handleToggle(item._id)}
-                          />
-                          <div className="flex-1">
-                            <p
-                              className={`font-medium ${
-                                item.checked
-                                  ? "line-through text-muted-foreground"
-                                  : ""
-                              }`}
-                            >
-                              {item.ingredient?.emoji && (
-                                <span className="mr-1">
-                                  {item.ingredient.emoji}
-                                </span>
-                              )}
-                              {item.ingredient?.name}
-                            </p>
-                            {item.notes && (
-                              <p className="text-sm text-muted-foreground">
-                                {item.notes}
-                              </p>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemove(item._id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+            {Object.entries(filteredGroups || {}).map(([categoryName, group]: [string, any]) => (
+              <Card key={categoryName}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {group.emoji && <span>{group.emoji}</span>}
+                    {categoryName}
+                    <Badge variant="secondary" className="ml-auto">
+                      {group.items.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {group.items.map((item: any) => (
+                      <div
+                        key={item._id}
+                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
+                      >
+                        <Checkbox checked={item.checked} onCheckedChange={() => handleToggle(item._id)} />
+                        <div className="flex-1">
+                          <p className={`font-medium ${item.checked ? 'line-through text-muted-foreground' : ''}`}>
+                            {item.ingredient?.emoji && <span className="mr-1">{item.ingredient.emoji}</span>}
+                            {item.ingredient?.name}
+                          </p>
+                          {item.notes && <p className="text-sm text-muted-foreground">{item.notes}</p>}
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            )}
+                        <Button variant="ghost" size="icon" onClick={() => handleRemove(item._id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>

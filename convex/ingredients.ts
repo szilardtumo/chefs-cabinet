@@ -1,13 +1,13 @@
-import { v } from "convex/values";
-import { authenticatedQuery, authenticatedMutation } from "./helpers";
+import { v } from 'convex/values';
+import { authenticatedMutation, authenticatedQuery } from './helpers';
 
 // Get all ingredients for the current user
 export const getAll = authenticatedQuery({
   args: {},
   handler: async (ctx) => {
     const ingredients = await ctx.db
-      .query("ingredients")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .query('ingredients')
+      .withIndex('by_user', (q) => q.eq('userId', ctx.userId))
       .collect();
 
     // Fetch category for each ingredient
@@ -18,7 +18,7 @@ export const getAll = authenticatedQuery({
           ...ingredient,
           category,
         };
-      })
+      }),
     );
 
     return ingredientsWithCategory;
@@ -27,26 +27,26 @@ export const getAll = authenticatedQuery({
 
 // Get ingredients by category
 export const getByCategory = authenticatedQuery({
-  args: { categoryId: v.id("categories") },
+  args: { categoryId: v.id('categories') },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("ingredients")
-      .withIndex("by_category", (q) => q.eq("categoryId", args.categoryId))
+      .query('ingredients')
+      .withIndex('by_category', (q) => q.eq('categoryId', args.categoryId))
       .collect();
   },
 });
 
 // Get a single ingredient by ID
 export const getById = authenticatedQuery({
-  args: { id: v.id("ingredients") },
+  args: { id: v.id('ingredients') },
   handler: async (ctx, args) => {
     const ingredient = await ctx.db.get(args.id);
     if (!ingredient) {
-      throw new Error("Ingredient not found");
+      throw new Error('Ingredient not found');
     }
 
     if (ingredient.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const category = await ctx.db.get(ingredient.categoryId);
@@ -63,15 +63,13 @@ export const search = authenticatedQuery({
   args: { query: v.string() },
   handler: async (ctx, args) => {
     const allIngredients = await ctx.db
-      .query("ingredients")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
+      .query('ingredients')
+      .withIndex('by_user', (q) => q.eq('userId', ctx.userId))
       .collect();
 
     // Simple search by name (case-insensitive)
     const query = args.query.toLowerCase();
-    const filtered = allIngredients.filter((ingredient) =>
-      ingredient.name.toLowerCase().includes(query)
-    );
+    const filtered = allIngredients.filter((ingredient) => ingredient.name.toLowerCase().includes(query));
 
     // Fetch categories
     const ingredientsWithCategory = await Promise.all(
@@ -81,7 +79,7 @@ export const search = authenticatedQuery({
           ...ingredient,
           category,
         };
-      })
+      }),
     );
 
     return ingredientsWithCategory;
@@ -92,7 +90,7 @@ export const search = authenticatedQuery({
 export const create = authenticatedMutation({
   args: {
     name: v.string(),
-    categoryId: v.id("categories"),
+    categoryId: v.id('categories'),
     defaultUnit: v.optional(v.string()),
     notes: v.optional(v.string()),
     emoji: v.optional(v.string()),
@@ -101,10 +99,10 @@ export const create = authenticatedMutation({
     // Verify category belongs to user
     const category = await ctx.db.get(args.categoryId);
     if (!category || category.userId !== ctx.userId) {
-      throw new Error("Invalid category");
+      throw new Error('Invalid category');
     }
 
-    const ingredientId = await ctx.db.insert("ingredients", {
+    const ingredientId = await ctx.db.insert('ingredients', {
       userId: ctx.userId,
       name: args.name,
       categoryId: args.categoryId,
@@ -120,9 +118,9 @@ export const create = authenticatedMutation({
 // Update an ingredient
 export const update = authenticatedMutation({
   args: {
-    id: v.id("ingredients"),
+    id: v.id('ingredients'),
     name: v.optional(v.string()),
-    categoryId: v.optional(v.id("categories")),
+    categoryId: v.optional(v.id('categories')),
     defaultUnit: v.optional(v.string()),
     notes: v.optional(v.string()),
     emoji: v.optional(v.string()),
@@ -130,18 +128,18 @@ export const update = authenticatedMutation({
   handler: async (ctx, args) => {
     const ingredient = await ctx.db.get(args.id);
     if (!ingredient) {
-      throw new Error("Ingredient not found");
+      throw new Error('Ingredient not found');
     }
 
     if (ingredient.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     // If changing category, verify new category belongs to user
     if (args.categoryId) {
       const category = await ctx.db.get(args.categoryId);
       if (!category || category.userId !== ctx.userId) {
-        throw new Error("Invalid category");
+        throw new Error('Invalid category');
       }
     }
 
@@ -154,25 +152,25 @@ export const update = authenticatedMutation({
 
 // Delete an ingredient
 export const remove = authenticatedMutation({
-  args: { id: v.id("ingredients") },
+  args: { id: v.id('ingredients') },
   handler: async (ctx, args) => {
     const ingredient = await ctx.db.get(args.id);
     if (!ingredient) {
-      throw new Error("Ingredient not found");
+      throw new Error('Ingredient not found');
     }
 
     if (ingredient.userId !== ctx.userId) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     // Check if any recipes use this ingredient
     const recipeIngredient = await ctx.db
-      .query("recipeIngredients")
-      .withIndex("by_ingredient", (q) => q.eq("ingredientId", args.id))
+      .query('recipeIngredients')
+      .withIndex('by_ingredient', (q) => q.eq('ingredientId', args.id))
       .first();
 
     if (recipeIngredient) {
-      throw new Error("Cannot delete ingredient used in recipes");
+      throw new Error('Cannot delete ingredient used in recipes');
     }
 
     await ctx.db.delete(args.id);

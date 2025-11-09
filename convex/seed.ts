@@ -1,67 +1,66 @@
-import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { mutation } from './_generated/server';
 
 // Default categories with emojis and colors
 const defaultCategories = [
-  { name: "Vegetables", emoji: "🥬", color: "#22c55e", order: 1 },
-  { name: "Fruits", emoji: "🍎", color: "#ef4444", order: 2 },
-  { name: "Meat & Poultry", emoji: "🍖", color: "#dc2626", order: 3 },
-  { name: "Seafood", emoji: "🐟", color: "#3b82f6", order: 4 },
-  { name: "Dairy & Eggs", emoji: "🥛", color: "#f8fafc", order: 5 },
-  { name: "Grains & Pasta", emoji: "🌾", color: "#d97706", order: 6 },
-  { name: "Herbs & Spices", emoji: "🌿", color: "#84cc16", order: 7 },
-  { name: "Oils & Condiments", emoji: "🫙", color: "#fbbf24", order: 8 },
-  { name: "Baking", emoji: "🧁", color: "#ec4899", order: 9 },
-  { name: "Other", emoji: "📦", color: "#6b7280", order: 10 },
+  { name: 'Vegetables', emoji: '🥬', color: '#22c55e', order: 1 },
+  { name: 'Fruits', emoji: '🍎', color: '#ef4444', order: 2 },
+  { name: 'Meat & Poultry', emoji: '🍖', color: '#dc2626', order: 3 },
+  { name: 'Seafood', emoji: '🐟', color: '#3b82f6', order: 4 },
+  { name: 'Dairy & Eggs', emoji: '🥛', color: '#f8fafc', order: 5 },
+  { name: 'Grains & Pasta', emoji: '🌾', color: '#d97706', order: 6 },
+  { name: 'Herbs & Spices', emoji: '🌿', color: '#84cc16', order: 7 },
+  { name: 'Oils & Condiments', emoji: '🫙', color: '#fbbf24', order: 8 },
+  { name: 'Baking', emoji: '🧁', color: '#ec4899', order: 9 },
+  { name: 'Other', emoji: '📦', color: '#6b7280', order: 10 },
 ];
 
 // Default ingredients by category
 const defaultIngredients: Record<string, Array<{ name: string; defaultUnit: string }>> = {
-  "Vegetables": [
-    { name: "Onion", defaultUnit: "g" },
-    { name: "Garlic", defaultUnit: "g" },
-    { name: "Tomato", defaultUnit: "g" },
-    { name: "Carrot", defaultUnit: "g" },
-    { name: "Bell Pepper", defaultUnit: "g" },
-    { name: "Potato", defaultUnit: "g" },
-    { name: "Broccoli", defaultUnit: "g" },
-    { name: "Spinach", defaultUnit: "g" },
+  Vegetables: [
+    { name: 'Onion', defaultUnit: 'g' },
+    { name: 'Garlic', defaultUnit: 'g' },
+    { name: 'Tomato', defaultUnit: 'g' },
+    { name: 'Carrot', defaultUnit: 'g' },
+    { name: 'Bell Pepper', defaultUnit: 'g' },
+    { name: 'Potato', defaultUnit: 'g' },
+    { name: 'Broccoli', defaultUnit: 'g' },
+    { name: 'Spinach', defaultUnit: 'g' },
   ],
-  "Herbs & Spices": [
-    { name: "Salt", defaultUnit: "g" },
-    { name: "Black Pepper", defaultUnit: "g" },
-    { name: "Basil", defaultUnit: "g" },
-    { name: "Oregano", defaultUnit: "g" },
-    { name: "Thyme", defaultUnit: "g" },
-    { name: "Rosemary", defaultUnit: "g" },
-    { name: "Paprika", defaultUnit: "g" },
-    { name: "Cumin", defaultUnit: "g" },
+  'Herbs & Spices': [
+    { name: 'Salt', defaultUnit: 'g' },
+    { name: 'Black Pepper', defaultUnit: 'g' },
+    { name: 'Basil', defaultUnit: 'g' },
+    { name: 'Oregano', defaultUnit: 'g' },
+    { name: 'Thyme', defaultUnit: 'g' },
+    { name: 'Rosemary', defaultUnit: 'g' },
+    { name: 'Paprika', defaultUnit: 'g' },
+    { name: 'Cumin', defaultUnit: 'g' },
   ],
-  "Oils & Condiments": [
-    { name: "Olive Oil", defaultUnit: "ml" },
-    { name: "Vegetable Oil", defaultUnit: "ml" },
-    { name: "Soy Sauce", defaultUnit: "ml" },
-    { name: "Vinegar", defaultUnit: "ml" },
+  'Oils & Condiments': [
+    { name: 'Olive Oil', defaultUnit: 'ml' },
+    { name: 'Vegetable Oil', defaultUnit: 'ml' },
+    { name: 'Soy Sauce', defaultUnit: 'ml' },
+    { name: 'Vinegar', defaultUnit: 'ml' },
   ],
-  "Grains & Pasta": [
-    { name: "Pasta", defaultUnit: "g" },
-    { name: "Rice", defaultUnit: "g" },
-    { name: "Flour", defaultUnit: "g" },
-    { name: "Bread", defaultUnit: "g" },
+  'Grains & Pasta': [
+    { name: 'Pasta', defaultUnit: 'g' },
+    { name: 'Rice', defaultUnit: 'g' },
+    { name: 'Flour', defaultUnit: 'g' },
+    { name: 'Bread', defaultUnit: 'g' },
   ],
-  "Dairy & Eggs": [
-    { name: "Butter", defaultUnit: "g" },
-    { name: "Milk", defaultUnit: "ml" },
-    { name: "Cheese", defaultUnit: "g" },
-    { name: "Eggs", defaultUnit: "piece" },
-    { name: "Cream", defaultUnit: "ml" },
-    { name: "Yogurt", defaultUnit: "ml" },
+  'Dairy & Eggs': [
+    { name: 'Butter', defaultUnit: 'g' },
+    { name: 'Milk', defaultUnit: 'ml' },
+    { name: 'Cheese', defaultUnit: 'g' },
+    { name: 'Eggs', defaultUnit: 'piece' },
+    { name: 'Cream', defaultUnit: 'ml' },
+    { name: 'Yogurt', defaultUnit: 'ml' },
   ],
-  "Meat & Poultry": [
-    { name: "Chicken Breast", defaultUnit: "g" },
-    { name: "Ground Beef", defaultUnit: "g" },
-    { name: "Pork", defaultUnit: "g" },
-    { name: "Bacon", defaultUnit: "g" },
+  'Meat & Poultry': [
+    { name: 'Chicken Breast', defaultUnit: 'g' },
+    { name: 'Ground Beef', defaultUnit: 'g' },
+    { name: 'Pork', defaultUnit: 'g' },
+    { name: 'Bacon', defaultUnit: 'g' },
   ],
 };
 
@@ -70,24 +69,24 @@ export const seedUserData = mutation({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Not authenticated");
+      throw new Error('Not authenticated');
     }
     const userId = identity.subject;
 
     // Check if user already has categories
     const existingCategories = await ctx.db
-      .query("categories")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .query('categories')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .first();
 
     if (existingCategories) {
-      return { message: "User already has data", alreadySeeded: true };
+      return { message: 'User already has data', alreadySeeded: true };
     }
 
     // Create categories
     const categoryMap = new Map<string, string>();
     for (const category of defaultCategories) {
-      const categoryId = await ctx.db.insert("categories", {
+      const categoryId = await ctx.db.insert('categories', {
         userId,
         name: category.name,
         emoji: category.emoji,
@@ -104,7 +103,7 @@ export const seedUserData = mutation({
       if (!categoryId) continue;
 
       for (const ingredient of ingredients) {
-        await ctx.db.insert("ingredients", {
+        await ctx.db.insert('ingredients', {
           userId,
           name: ingredient.name,
           categoryId: categoryId as any,
@@ -115,7 +114,7 @@ export const seedUserData = mutation({
     }
 
     return {
-      message: "Seed data created successfully",
+      message: 'Seed data created successfully',
       categoriesCreated: defaultCategories.length,
       ingredientsCreated: ingredientCount,
     };
@@ -133,11 +132,10 @@ export const checkSeeded = mutation({
     const userId = identity.subject;
 
     const existingCategories = await ctx.db
-      .query("categories")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .query('categories')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
       .first();
 
     return { isSeeded: !!existingCategories };
   },
 });
-

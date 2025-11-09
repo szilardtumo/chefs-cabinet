@@ -94,49 +94,33 @@
  * - Additional props are passed through to the underlying component
  */
 
-import * as React from "react";
-import {
-  Field,
-  FieldLabel,
-  FieldError,
-  FieldDescription,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import EmojiPicker from "emoji-picker-react";
-import { Smile } from "lucide-react";
+import EmojiPicker from 'emoji-picker-react';
+import { Smile } from 'lucide-react';
+import * as React from 'react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 // #region Helper Functions
 
 // Helper function to extract error messages from field errors
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getErrorMessages(errors: any[]): string {
-  if (!errors || errors.length === 0) return "";
+  if (!errors || errors.length === 0) return '';
 
   return errors
     .map((error) => {
       // Handle different error formats
-      if (typeof error === "string") return error;
-      if (error && typeof error === "object" && "message" in error)
-        return error.message;
+      if (typeof error === 'string') return error;
+      if (error && typeof error === 'object' && 'message' in error) return error.message;
       return String(error);
     })
     .filter(Boolean)
-    .join(", ");
+    .join(', ');
 }
 
 // #endregion
@@ -157,19 +141,9 @@ type BaseFieldProps<TData> = {
 // #region FieldInput
 
 type FieldInputProps = BaseFieldProps<string | number> &
-  Omit<
-    React.ComponentProps<typeof Input>,
-    "name" | "value" | "onChange" | "onBlur"
-  >;
+  Omit<React.ComponentProps<typeof Input>, 'name' | 'value' | 'onChange' | 'onBlur'>;
 
-export function FieldInput({
-  field,
-  label,
-  description,
-  hideError,
-  type = "text",
-  ...inputProps
-}: FieldInputProps) {
+export function FieldInput({ field, label, description, hideError, type = 'text', ...inputProps }: FieldInputProps) {
   const hasError = field.state.meta.errors.length > 0;
 
   return (
@@ -183,7 +157,7 @@ export function FieldInput({
         value={field.state.value}
         onChange={(e) => {
           // Handle number inputs differently
-          if (type === "number") {
+          if (type === 'number') {
             field.handleChange(e.target.valueAsNumber);
           } else {
             field.handleChange(e.target.value);
@@ -192,9 +166,7 @@ export function FieldInput({
         onBlur={field.handleBlur}
         {...inputProps}
       />
-      {!hideError && (
-        <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>
-      )}
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
   );
 }
@@ -204,18 +176,9 @@ export function FieldInput({
 // #region FieldTextarea
 
 type FieldTextareaProps = BaseFieldProps<string> &
-  Omit<
-    React.ComponentProps<typeof Textarea>,
-    "name" | "value" | "onChange" | "onBlur"
-  >;
+  Omit<React.ComponentProps<typeof Textarea>, 'name' | 'value' | 'onChange' | 'onBlur'>;
 
-export function FieldTextarea({
-  field,
-  label,
-  description,
-  hideError,
-  ...textareaProps
-}: FieldTextareaProps) {
+export function FieldTextarea({ field, label, description, hideError, ...textareaProps }: FieldTextareaProps) {
   const hasError = field.state.meta.errors.length > 0;
 
   return (
@@ -230,9 +193,7 @@ export function FieldTextarea({
         onBlur={field.handleBlur}
         {...textareaProps}
       />
-      {!hideError && (
-        <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>
-      )}
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
   );
 }
@@ -268,30 +229,19 @@ export function FieldSelect({
     <Field data-invalid={hasError}>
       {label && <FieldLabel htmlFor={field.name}>{label}</FieldLabel>}
       {description && <FieldDescription>{description}</FieldDescription>}
-      <Select
-        name={field.name}
-        value={field.state.value}
-        onValueChange={field.handleChange}
-        disabled={disabled}
-      >
+      <Select name={field.name} value={field.state.value} onValueChange={field.handleChange} disabled={disabled}>
         <SelectTrigger id={field.name} onBlur={field.handleBlur}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
-            <SelectItem
-              key={option.value}
-              value={option.value}
-              disabled={option.disabled}
-            >
+            <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
               {option.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      {!hideError && (
-        <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>
-      )}
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
   );
 }
@@ -301,7 +251,7 @@ export function FieldSelect({
 // #region FieldCheckbox
 
 type FieldCheckboxProps = BaseFieldProps<boolean> &
-  Omit<React.ComponentProps<typeof Checkbox>, "checked" | "onCheckedChange"> & {
+  Omit<React.ComponentProps<typeof Checkbox>, 'checked' | 'onCheckedChange'> & {
     checkboxLabel?: React.ReactNode;
   };
 
@@ -333,9 +283,7 @@ export function FieldCheckbox({
         )}
       </div>
       {description && <FieldDescription>{description}</FieldDescription>}
-      {!hideError && (
-        <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>
-      )}
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
   );
 }
@@ -345,10 +293,7 @@ export function FieldCheckbox({
 // #region FieldColor
 
 type FieldColorProps = BaseFieldProps<string> &
-  Omit<
-    React.ComponentProps<typeof Input>,
-    "type" | "name" | "value" | "onChange" | "onBlur"
-  > & {
+  Omit<React.ComponentProps<typeof Input>, 'type' | 'name' | 'value' | 'onChange' | 'onBlur'> & {
     showTextInput?: boolean;
   };
 
@@ -385,9 +330,7 @@ export function FieldColor({
           />
         )}
       </div>
-      {!hideError && (
-        <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>
-      )}
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
   );
 }
@@ -400,13 +343,7 @@ type FieldEmojiProps = BaseFieldProps<string> & {
   showRemove?: boolean;
 };
 
-export function FieldEmoji({
-  field,
-  label,
-  description,
-  hideError,
-  showRemove = true,
-}: FieldEmojiProps) {
+export function FieldEmoji({ field, label, description, hideError, showRemove = true }: FieldEmojiProps) {
   const [emojiPickerOpen, setEmojiPickerOpen] = React.useState(false);
   const hasError = field.state.meta.errors.length > 0;
 
@@ -416,11 +353,7 @@ export function FieldEmoji({
       {description && <FieldDescription>{description}</FieldDescription>}
       <Popover modal open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
         <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="size-9! p-0 shadow-sm"
-            type="button"
-          >
+          <Button variant="outline" className="size-9! p-0 shadow-sm" type="button">
             {field.state.value ? (
               <span className="text-2xl">{field.state.value}</span>
             ) : (
@@ -437,7 +370,7 @@ export function FieldEmoji({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  field.handleChange("");
+                  field.handleChange('');
                   setEmojiPickerOpen(false);
                 }}
                 className="h-auto px-2 py-1 text-xs"
@@ -454,9 +387,7 @@ export function FieldEmoji({
           />
         </PopoverContent>
       </Popover>
-      {!hideError && (
-        <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>
-      )}
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
   );
 }
