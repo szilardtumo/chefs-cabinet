@@ -130,11 +130,11 @@ Provide the modified description that addresses the user's request while maintai
         success: true,
         text,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error('AI customization error:', error);
       return {
         success: false,
-        error: `Failed to customize description: ${error.message}`,
+        error: `Failed to customize description: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   },

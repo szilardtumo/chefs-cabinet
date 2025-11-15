@@ -25,7 +25,11 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_category', ['categoryId'])
-    .index('by_user_and_name', ['userId', 'name']),
+    .searchIndex('search_by_name', {
+      searchField: 'name',
+      filterFields: ['userId'],
+      staged: false,
+    }),
 
   // Recipes
   recipes: defineTable({
@@ -33,28 +37,18 @@ export default defineSchema({
     title: v.string(),
     description: v.string(),
     image: v.optional(v.id('_storage')),
-    cookingTime: v.number(),
-    prepTime: v.number(),
-    servings: v.number(),
-    instructions: v.array(v.string()),
+    cookingTime: v.optional(v.number()),
+    prepTime: v.optional(v.number()),
+    servings: v.optional(v.number()),
+    instructions: v.string(),
     tags: v.array(v.string()),
-    history: v.optional(
-      v.array(
-        v.object({
-          timestamp: v.number(),
-          type: v.union(
-            v.literal('created'),
-            v.literal('description_modified'),
-            v.literal('ingredients_modified'),
-            v.literal('instructions_modified'),
-            v.literal('general_edit'),
-          ),
-          changedFields: v.optional(v.array(v.string())),
-          aiGenerated: v.optional(v.boolean()),
-          aiPrompt: v.optional(v.string()),
-          note: v.optional(v.string()),
-        }),
-      ),
+    history: v.array(
+      v.object({
+        timestamp: v.number(),
+        type: v.union(v.literal('created'), v.literal('edited')),
+        changes: v.optional(v.record(v.string(), v.any())),
+        aiPrompt: v.optional(v.string()),
+      }),
     ),
   }).index('by_user', ['userId']),
 

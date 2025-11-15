@@ -49,7 +49,24 @@ const categorySchema = z.object({
   color: z.string().optional(),
 });
 
-function SortableCategoryRow({ category, onEdit, onDelete }: any) {
+type Category = {
+  _id: Id<'categories'>;
+  name: string;
+  description?: string;
+  emoji?: string;
+  color?: string;
+  order: number;
+};
+
+function SortableCategoryRow({
+  category,
+  onEdit,
+  onDelete,
+}: {
+  category: Category;
+  onEdit: (category: Category) => void;
+  onDelete: (id: Id<'categories'>) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: category._id });
 
   const style = {
@@ -84,6 +101,13 @@ function SortableCategoryRow({ category, onEdit, onDelete }: any) {
   );
 }
 
+type CategoryFormData = {
+  name: string;
+  description?: string;
+  emoji?: string;
+  color?: string;
+};
+
 function CategoryDialog({
   open,
   onOpenChange,
@@ -92,8 +116,8 @@ function CategoryDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  category?: any;
-  onSave: (data: any) => void;
+  category?: Category;
+  onSave: (data: CategoryFormData) => void;
 }) {
   const form = useForm({
     defaultValues: {
@@ -184,8 +208,8 @@ function CategoriesComponent() {
   });
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [localCategories, setLocalCategories] = useState<any[]>([]);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [localCategories, setLocalCategories] = useState<Category[]>([]);
 
   // Update local categories when data changes
   useEffect(() => {
@@ -212,25 +236,22 @@ function CategoriesComponent() {
       setLocalCategories(newOrder);
 
       // Update orders in database
-      const updates = newOrder.map((category, index) => ({
-        id: category._id,
-        order: index + 1,
-      }));
+      const ids = newOrder.map((category) => category._id);
 
       try {
-        await reorderCategories({ updates });
+        await reorderCategories({ ids });
         toast.success('Categories reordered', {
           description: 'The category order has been updated.',
         });
-      } catch (error: any) {
+      } catch (error) {
         toast.error('Error', {
-          description: error.message,
+          description: error instanceof Error ? error.message : 'An unknown error occurred',
         });
       }
     }
   };
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: CategoryFormData) => {
     try {
       if (editingCategory) {
         await updateCategory({ id: editingCategory._id, ...data });
@@ -244,9 +265,9 @@ function CategoriesComponent() {
         });
       }
       setEditingCategory(null);
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     }
   };
@@ -261,9 +282,9 @@ function CategoriesComponent() {
       toast.success('Category deleted', {
         description: 'The category has been deleted successfully.',
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     }
   };
@@ -302,7 +323,7 @@ function CategoriesComponent() {
                       <SortableCategoryRow
                         key={category._id}
                         category={category}
-                        onEdit={(cat: any) => {
+                        onEdit={(cat) => {
                           setEditingCategory(cat);
                           setDialogOpen(true);
                         }}
@@ -317,7 +338,12 @@ function CategoriesComponent() {
         </Card>
       </div>
 
-      <CategoryDialog open={dialogOpen} onOpenChange={setDialogOpen} category={editingCategory} onSave={handleSave} />
+      <CategoryDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        category={editingCategory || undefined}
+        onSave={handleSave}
+      />
     </>
   );
 }

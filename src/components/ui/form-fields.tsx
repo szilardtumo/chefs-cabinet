@@ -94,6 +94,7 @@
  * - Additional props are passed through to the underlying component
  */
 
+import type { AnyFieldApi } from '@tanstack/react-form';
 import EmojiPicker from 'emoji-picker-react';
 import { Smile } from 'lucide-react';
 import * as React from 'react';
@@ -108,7 +109,7 @@ import { Textarea } from '@/components/ui/textarea';
 // #region Helper Functions
 
 // Helper function to extract error messages from field errors
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: form returns errors as any[]
 function getErrorMessages(errors: any[]): string {
   if (!errors || errors.length === 0) return '';
 
@@ -128,9 +129,8 @@ function getErrorMessages(errors: any[]): string {
 // #region Base Types
 
 // Base field props type
-type BaseFieldProps<TData> = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  field: any; // TanStack Form FieldApi type is complex, using any for flexibility
+type BaseFieldProps = {
+  field: AnyFieldApi;
   label?: React.ReactNode;
   description?: React.ReactNode;
   hideError?: boolean;
@@ -140,7 +140,7 @@ type BaseFieldProps<TData> = {
 
 // #region FieldInput
 
-type FieldInputProps = BaseFieldProps<string | number> &
+type FieldInputProps = BaseFieldProps &
   Omit<React.ComponentProps<typeof Input>, 'name' | 'value' | 'onChange' | 'onBlur'>;
 
 export function FieldInput({ field, label, description, hideError, type = 'text', ...inputProps }: FieldInputProps) {
@@ -175,7 +175,7 @@ export function FieldInput({ field, label, description, hideError, type = 'text'
 
 // #region FieldTextarea
 
-type FieldTextareaProps = BaseFieldProps<string> &
+type FieldTextareaProps = BaseFieldProps &
   Omit<React.ComponentProps<typeof Textarea>, 'name' | 'value' | 'onChange' | 'onBlur'>;
 
 export function FieldTextarea({ field, label, description, hideError, ...textareaProps }: FieldTextareaProps) {
@@ -208,7 +208,7 @@ type SelectOption = {
   disabled?: boolean;
 };
 
-type FieldSelectProps = BaseFieldProps<string> & {
+type FieldSelectProps = BaseFieldProps & {
   options: SelectOption[];
   placeholder?: string;
   disabled?: boolean;
@@ -250,7 +250,7 @@ export function FieldSelect({
 
 // #region FieldCheckbox
 
-type FieldCheckboxProps = BaseFieldProps<boolean> &
+type FieldCheckboxProps = BaseFieldProps &
   Omit<React.ComponentProps<typeof Checkbox>, 'checked' | 'onCheckedChange'> & {
     checkboxLabel?: React.ReactNode;
   };
@@ -292,7 +292,7 @@ export function FieldCheckbox({
 
 // #region FieldColor
 
-type FieldColorProps = BaseFieldProps<string> &
+type FieldColorProps = BaseFieldProps &
   Omit<React.ComponentProps<typeof Input>, 'type' | 'name' | 'value' | 'onChange' | 'onBlur'> & {
     showTextInput?: boolean;
   };
@@ -339,7 +339,7 @@ export function FieldColor({
 
 // #region FieldEmoji
 
-type FieldEmojiProps = BaseFieldProps<string> & {
+type FieldEmojiProps = BaseFieldProps & {
   showRemove?: boolean;
 };
 

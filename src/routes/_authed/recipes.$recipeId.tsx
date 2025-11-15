@@ -64,9 +64,9 @@ function AddToShoppingListDialog({
         description: 'All ingredients have been added to your shopping list.',
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     } finally {
       setIsAdding(false);
@@ -119,14 +119,14 @@ function RecipeDetailComponent() {
         description: 'The recipe has been deleted successfully.',
       });
       navigate({ to: '/recipes' });
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     }
   };
 
-  const totalTime = recipe.prepTime + recipe.cookingTime;
+  const totalTime = (recipe.prepTime || 0) + (recipe.cookingTime || 0);
 
   return (
     <>
@@ -191,29 +191,39 @@ function RecipeDetailComponent() {
                   </div>
                 </div>
                 <Separator />
-                <div className="flex items-center gap-3">
-                  <ChefHat className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Prep Time</p>
-                    <p className="text-sm text-muted-foreground">{recipe.prepTime} minutes</p>
+                {recipe.prepTime !== undefined && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <ChefHat className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Prep Time</p>
+                        <p className="text-sm text-muted-foreground">{recipe.prepTime} minutes</p>
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+                {recipe.cookingTime !== undefined && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Cook Time</p>
+                        <p className="text-sm text-muted-foreground">{recipe.cookingTime} minutes</p>
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+                {recipe.servings !== undefined && (
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Servings</p>
+                      <p className="text-sm text-muted-foreground">{recipe.servings} people</p>
+                    </div>
                   </div>
-                </div>
-                <Separator />
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Cook Time</p>
-                    <p className="text-sm text-muted-foreground">{recipe.cookingTime} minutes</p>
-                  </div>
-                </div>
-                <Separator />
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Servings</p>
-                    <p className="text-sm text-muted-foreground">{recipe.servings} people</p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -262,19 +272,22 @@ function RecipeDetailComponent() {
             <CardTitle>Instructions</CardTitle>
           </CardHeader>
           <CardContent>
-            {!recipe.instructions || recipe.instructions.length === 0 ? (
+            {!recipe.instructions || recipe.instructions.trim().length === 0 ? (
               <p className="text-muted-foreground">No instructions added yet</p>
             ) : (
               <ol className="space-y-4">
-                {recipe.instructions.map((instruction, index) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: index is the correct key
-                  <li key={index} className="flex gap-4">
-                    <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold">
-                      {index + 1}
-                    </div>
-                    <p className="flex-1 pt-1">{instruction}</p>
-                  </li>
-                ))}
+                {recipe.instructions
+                  .split('\n')
+                  .filter((line) => line.trim().length > 0)
+                  .map((instruction, index) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: index is the correct key
+                    <li key={index} className="flex gap-4">
+                      <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold">
+                        {index + 1}
+                      </div>
+                      <p className="flex-1 pt-1">{instruction.trim()}</p>
+                    </li>
+                  ))}
               </ol>
             )}
           </CardContent>
@@ -291,10 +304,8 @@ function RecipeDetailComponent() {
                 {recipe.history.map((entry) => (
                   <div key={entry.timestamp} className="border-l-2 border-muted pl-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant={entry.aiGenerated ? 'default' : 'secondary'}>
-                        {entry.type.replace(/_/g, ' ')}
-                      </Badge>
-                      {entry.aiGenerated && <Badge variant="outline">AI Generated</Badge>}
+                      <Badge variant={entry.aiPrompt ? 'default' : 'secondary'}>{entry.type.replace(/_/g, ' ')}</Badge>
+                      {entry.aiPrompt && <Badge variant="outline">AI Generated</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground">{new Date(entry.timestamp).toLocaleString()}</p>
                     {entry.aiPrompt && (
@@ -302,7 +313,11 @@ function RecipeDetailComponent() {
                         <span className="font-medium">Prompt:</span> {entry.aiPrompt}
                       </p>
                     )}
-                    {entry.note && <p className="text-sm mt-1 text-muted-foreground">{entry.note}</p>}
+                    {entry.changes && Object.keys(entry.changes).length > 0 && (
+                      <p className="text-sm mt-1 text-muted-foreground">
+                        Changed: {Object.keys(entry.changes).join(', ')}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

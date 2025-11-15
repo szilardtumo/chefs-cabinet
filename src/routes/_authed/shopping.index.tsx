@@ -116,13 +116,35 @@ function AddIngredientDialog({
   );
 }
 
-function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
+type ShoppingListItem = {
+  _id: Id<'shoppingListItems'>;
+  checked: boolean;
+  ingredient?: {
+    _id: Id<'ingredients'>;
+    name: string;
+    emoji?: string;
+  } | null;
+  category?: {
+    _id: Id<'categories'>;
+    name: string;
+    emoji?: string;
+  } | null;
+  notes?: string;
+};
+
+type ShoppingList = {
+  _id: Id<'shoppingLists'>;
+  name: string;
+  items?: ShoppingListItem[];
+};
+
+function StoreModeView({ list, onBack }: { list: ShoppingList; onBack: () => void }) {
   const { mutateAsync: toggleChecked } = useMutation({
     mutationFn: useConvexMutation(api.shoppingListItems.toggleChecked),
   });
 
   // Group items by category
-  const groupedItems = list.items?.reduce((acc: any, item: any) => {
+  const groupedItems = list.items?.reduce((acc: Record<string, ShoppingListItem[]>, item) => {
     if (item.checked) return acc; // Only show unchecked in store mode
 
     const categoryName = item.category?.name || 'Other';
@@ -146,7 +168,7 @@ function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
             Exit Store Mode
           </Button>
           <Badge variant="secondary" className="text-lg px-4 py-2">
-            {list.items?.filter((i: any) => !i.checked).length} items left
+            {list.items?.filter((i) => !i.checked).length} items left
           </Badge>
         </div>
 
@@ -155,14 +177,14 @@ function StoreModeView({ list, onBack }: { list: any; onBack: () => void }) {
             <CardTitle className="text-2xl">{list.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {Object.entries(groupedItems || {}).map(([category, items]: [string, any]) => (
+            {Object.entries(groupedItems || {}).map(([category, items]) => (
               <div key={category}>
                 <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
                   {category}
                 </h3>
                 <div className="space-y-3">
-                  {items.map((item: any) => (
+                  {items.map((item) => (
                     <div
                       key={item._id}
                       className="flex items-start gap-4 p-4 border rounded-lg cursor-pointer hover:bg-accent transition-colors"
@@ -214,7 +236,7 @@ function ShoppingListComponent() {
     mutationFn: useConvexMutation(api.shoppingListItems.remove),
   });
   const { mutateAsync: clearChecked } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.clearChecked),
+    mutationFn: useConvexMutation(api.shoppingListItems.removeChecked),
   });
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [storeMode, setStoreMode] = useState(false);
@@ -248,9 +270,9 @@ function ShoppingListComponent() {
       toast.success('Ingredient added', {
         description: 'The ingredient has been added to your list.',
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     }
   };
@@ -265,9 +287,9 @@ function ShoppingListComponent() {
       toast.success('Item removed', {
         description: 'The item has been removed from your list.',
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     }
   };
@@ -282,15 +304,20 @@ function ShoppingListComponent() {
       toast.success('Items cleared', {
         description: `Removed ${count} checked items from your list.`,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     }
   };
 
+  type GroupedItem = {
+    emoji?: string;
+    items: ShoppingListItem[];
+  };
+
   // Group items by category
-  const groupedItems = list.items?.reduce((acc: any, item: any) => {
+  const groupedItems = list.items?.reduce((acc: Record<string, GroupedItem>, item) => {
     const categoryName = item.category?.name || 'Other';
     if (!acc[categoryName]) {
       acc[categoryName] = {
@@ -304,8 +331,8 @@ function ShoppingListComponent() {
 
   const filteredGroups = showChecked
     ? groupedItems
-    : Object.entries(groupedItems || {}).reduce((acc: any, [key, value]: [string, any]) => {
-        const uncheckedItems = value.items.filter((item: any) => !item.checked);
+    : Object.entries(groupedItems || {}).reduce((acc: Record<string, GroupedItem>, [key, value]) => {
+        const uncheckedItems = value.items.filter((item) => !item.checked);
         if (uncheckedItems.length > 0) {
           acc[key] = { ...value, items: uncheckedItems };
         }
@@ -313,7 +340,7 @@ function ShoppingListComponent() {
       }, {});
 
   const totalItems = list.items?.length || 0;
-  const checkedItems = list.items?.filter((i: any) => i.checked).length || 0;
+  const checkedItems = list.items?.filter((i) => i.checked).length || 0;
 
   return (
     <>
@@ -384,7 +411,7 @@ function ShoppingListComponent() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {Object.entries(filteredGroups || {}).map(([categoryName, group]: [string, any]) => (
+            {Object.entries(filteredGroups || {}).map(([categoryName, group]) => (
               <Card key={categoryName}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -397,7 +424,7 @@ function ShoppingListComponent() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {group.items.map((item: any) => (
+                    {group.items.map((item) => (
                       <div
                         key={item._id}
                         className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
@@ -423,12 +450,7 @@ function ShoppingListComponent() {
         )}
       </div>
 
-      <AddIngredientDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-        listId={list._id}
-        onAdd={handleAddIngredient}
-      />
+      <AddIngredientDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} onAdd={handleAddIngredient} />
     </>
   );
 }

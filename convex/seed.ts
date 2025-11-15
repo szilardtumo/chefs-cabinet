@@ -1,4 +1,6 @@
-import { mutation } from './_generated/server';
+import type { Id } from './_generated/dataModel';
+
+import { authenticatedMutation } from './helpers';
 
 // Default categories with emojis and colors
 const defaultCategories = [
@@ -15,7 +17,7 @@ const defaultCategories = [
 ];
 
 // Default ingredients by category
-const defaultIngredients: Record<string, Array<{ name: string; defaultUnit: string }>> = {
+const defaultIngredients = {
   Vegetables: [
     { name: 'Onion', defaultUnit: 'g' },
     { name: 'Garlic', defaultUnit: 'g' },
@@ -64,19 +66,13 @@ const defaultIngredients: Record<string, Array<{ name: string; defaultUnit: stri
   ],
 };
 
-export const seedUserData = mutation({
+export const seedUserData = authenticatedMutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('Not authenticated');
-    }
-    const userId = identity.subject;
-
     // Check if user already has categories
     const existingCategories = await ctx.db
       .query('categories')
-      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .withIndex('by_user', (q) => q.eq('userId', ctx.userId))
       .first();
 
     if (existingCategories) {
@@ -84,16 +80,16 @@ export const seedUserData = mutation({
     }
 
     // Create categories
-    const categoryMap = new Map<string, string>();
+    const categoryMap = new Map<string, Id<'categories'>>();
     for (const category of defaultCategories) {
       const categoryId = await ctx.db.insert('categories', {
-        userId,
+        userId: ctx.userId,
         name: category.name,
         emoji: category.emoji,
         color: category.color,
         order: category.order,
       });
-      categoryMap.set(category.name, categoryId.toString());
+      categoryMap.set(category.name, categoryId);
     }
 
     // Create ingredients
@@ -104,9 +100,9 @@ export const seedUserData = mutation({
 
       for (const ingredient of ingredients) {
         await ctx.db.insert('ingredients', {
-          userId,
+          userId: ctx.userId,
+          categoryId,
           name: ingredient.name,
-          categoryId: categoryId as any,
           defaultUnit: ingredient.defaultUnit,
         });
         ingredientCount++;
@@ -122,18 +118,12 @@ export const seedUserData = mutation({
 });
 
 // Check if user has been seeded
-export const checkSeeded = mutation({
+export const checkSeeded = authenticatedMutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return { isSeeded: false };
-    }
-    const userId = identity.subject;
-
     const existingCategories = await ctx.db
       .query('categories')
-      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .withIndex('by_user', (q) => q.eq('userId', ctx.userId))
       .first();
 
     return { isSeeded: !!existingCategories };

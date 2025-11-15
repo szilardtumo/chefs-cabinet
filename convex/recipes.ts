@@ -1,14 +1,19 @@
 import { v } from 'convex/values';
+import { isEqual, omitBy } from 'es-toolkit';
+import { NotFoundError } from './errors';
 import { authenticatedMutation, authenticatedQuery } from './helpers';
 
-// Get all recipes for the current user
+/**
+ * Retrieves all recipes for the currently authenticated user.
+ *
+ * @returns A promise that resolves to an array of recipes belonging to the user.
+ */
 export const getAll = authenticatedQuery({
   args: {},
   handler: async (ctx) => {
     const recipes = await ctx.db
       .query('recipes')
       .withIndex('by_user', (q) => q.eq('userId', ctx.userId))
-      .order('desc')
       .collect();
 
     // Get image URLs if they exist
@@ -29,17 +34,24 @@ export const getAll = authenticatedQuery({
   },
 });
 
-// Get a single recipe with all details
+/**
+ * Retrieves a single recipe with all details for the currently authenticated user.
+ *
+ * @param args.id - The ID of the recipe to retrieve.
+ *
+ * @returns A promise that resolves to the recipe with all details.
+ */
 export const getById = authenticatedQuery({
   args: { id: v.id('recipes') },
   handler: async (ctx, args) => {
     const recipe = await ctx.db.get(args.id);
     if (!recipe) {
-      throw new Error('Recipe not found');
+      throw new NotFoundError('recipes', args.id);
     }
 
     if (recipe.userId !== ctx.userId) {
-      throw new Error('Unauthorized');
+      // Do not expose the existence of the recipe if it is not owned by the user
+      throw new NotFoundError('recipes', args.id);
     }
 
     // Get image URL
@@ -74,37 +86,42 @@ export const getById = authenticatedQuery({
   },
 });
 
-// Create a new recipe
+/**
+ * Creates a new recipe for the currently authenticated user.
+ *
+ * @param args - The arguments object containing the recipe details.
+ *
+ * @returns A promise that resolves to the ID of the created recipe.
+ */
 export const create = authenticatedMutation({
   args: {
     title: v.string(),
     description: v.string(),
     image: v.optional(v.id('_storage')),
-    cookingTime: v.number(),
-    prepTime: v.number(),
-    servings: v.number(),
-    instructions: v.array(v.string()),
+    cookingTime: v.optional(v.number()),
+    prepTime: v.optional(v.number()),
+    servings: v.optional(v.number()),
+    instructions: v.string(),
     tags: v.array(v.string()),
-    aiGenerated: v.optional(v.boolean()),
     aiPrompt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { aiGenerated, aiPrompt, ...recipeData } = args;
+    const { aiPrompt, ...recipeData } = args;
 
     // Create initial history entry
     const history = [
       {
         timestamp: Date.now(),
         type: 'created' as const,
-        aiGenerated: aiGenerated || false,
+        aiGenerated: !!aiPrompt,
         aiPrompt,
       },
     ];
 
     const recipeId = await ctx.db.insert('recipes', {
       userId: ctx.userId,
-      ...recipeData,
       history,
+      ...recipeData,
     });
 
     return recipeId;
@@ -121,64 +138,59 @@ export const update = authenticatedMutation({
     cookingTime: v.optional(v.number()),
     prepTime: v.optional(v.number()),
     servings: v.optional(v.number()),
-    instructions: v.optional(v.array(v.string())),
+    instructions: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
-    changedFields: v.optional(v.array(v.string())),
-    aiGenerated: v.optional(v.boolean()),
     aiPrompt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const recipe = await ctx.db.get(args.id);
     if (!recipe) {
-      throw new Error('Recipe not found');
+      throw new NotFoundError('recipes', args.id);
     }
 
     if (recipe.userId !== ctx.userId) {
-      throw new Error('Unauthorized');
+      // Do not expose the existence of the recipe if it is not owned by the user
+      throw new NotFoundError('recipes', args.id);
     }
 
-    const { id, changedFields, aiGenerated, aiPrompt, ...updates } = args;
+    const { id, aiPrompt, ...updates } = args;
 
-    // Determine history type
-    let historyType: 'description_modified' | 'instructions_modified' | 'general_edit' = 'general_edit';
-    if (changedFields?.includes('description')) {
-      historyType = 'description_modified';
-    } else if (changedFields?.includes('instructions')) {
-      historyType = 'instructions_modified';
-    }
+    // extract the fields that actually changed
+    const changes = omitBy(updates, (value, key) => isEqual(value, recipe[key]));
 
     // Add history entry
     const newHistoryEntry = {
       timestamp: Date.now(),
-      type: historyType,
-      changedFields,
-      aiGenerated,
+      type: 'edited' as const,
+      changes,
       aiPrompt,
     };
 
-    const existingHistory = recipe.history || [];
-    const updatedHistory = [...existingHistory, newHistoryEntry];
-
     await ctx.db.patch(id, {
-      ...updates,
-      history: updatedHistory,
+      ...changes,
+      history: [...recipe.history, newHistoryEntry],
     });
 
     return id;
   },
 });
 
-// Delete a recipe
+/**
+ * Deletes a recipe for the currently authenticated user.
+ *
+ * @param args.id - The ID of the recipe to delete.
+ */
 export const remove = authenticatedMutation({
   args: { id: v.id('recipes') },
   handler: async (ctx, args) => {
     const recipe = await ctx.db.get(args.id);
     if (!recipe) {
-      throw new Error('Recipe not found');
+      throw new NotFoundError('recipes', args.id);
     }
 
     if (recipe.userId !== ctx.userId) {
-      throw new Error('Unauthorized');
+      // Do not expose the existence of the recipe if it is not owned by the user
+      throw new NotFoundError('recipes', args.id);
     }
 
     // Delete associated recipe ingredients

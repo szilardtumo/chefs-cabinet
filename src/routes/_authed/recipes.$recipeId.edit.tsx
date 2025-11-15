@@ -47,7 +47,34 @@ const recipeSchema = z.object({
   servings: z.number().min(1, 'Servings must be at least 1'),
 });
 
-function SortableIngredientRow({ ingredient, onUpdate, onRemove }: any) {
+type Ingredient = {
+  _id?: Id<'recipeIngredients'>;
+  id: string;
+  ingredientId: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+  availableIngredients?: Array<{
+    _id: Id<'ingredients'>;
+    name: string;
+    emoji?: string;
+  }>;
+};
+
+type Instruction = {
+  id: string;
+  text: string;
+};
+
+function SortableIngredientRow({
+  ingredient,
+  onUpdate,
+  onRemove,
+}: {
+  ingredient: Ingredient;
+  onUpdate: (updated: Ingredient) => void;
+  onRemove: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: ingredient.id });
 
   const style = {
@@ -70,7 +97,7 @@ function SortableIngredientRow({ ingredient, onUpdate, onRemove }: any) {
             <SelectValue placeholder="Ingredient" />
           </SelectTrigger>
           <SelectContent>
-            {ingredient.availableIngredients?.map((ing: any) => (
+            {ingredient.availableIngredients?.map((ing) => (
               <SelectItem key={ing._id} value={ing._id}>
                 {ing.emoji && <span className="mr-1">{ing.emoji}</span>}
                 {ing.name}
@@ -106,7 +133,17 @@ function SortableIngredientRow({ ingredient, onUpdate, onRemove }: any) {
   );
 }
 
-function SortableInstructionRow({ instruction, index, onUpdate, onRemove }: any) {
+function SortableInstructionRow({
+  instruction,
+  index,
+  onUpdate,
+  onRemove,
+}: {
+  instruction: Instruction;
+  index: number;
+  onUpdate: (updated: Instruction) => void;
+  onRemove: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: instruction.id });
 
   const style = {
@@ -167,8 +204,8 @@ function EditRecipeComponent() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [recipeIngredients, setRecipeIngredients] = useState<any[]>([]);
-  const [instructions, setInstructions] = useState<any[]>([]);
+  const [recipeIngredients, setRecipeIngredients] = useState<Ingredient[]>([]);
+  const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [saving, setSaving] = useState(false);
@@ -198,7 +235,7 @@ function EditRecipeComponent() {
         // Upload image if present
         let imageId: Id<'_storage'> | undefined = recipe?.image;
         if (imageFile) {
-          const uploadUrl = await generateUploadUrl();
+          const uploadUrl = await generateUploadUrl({});
           const result = await fetch(uploadUrl, {
             method: 'POST',
             body: imageFile,
@@ -216,7 +253,10 @@ function EditRecipeComponent() {
           prepTime: value.prepTime,
           cookingTime: value.cookingTime,
           servings: value.servings,
-          instructions: instructions.map((i) => i.text).filter(Boolean),
+          instructions: instructions
+            .map((i) => i.text)
+            .filter(Boolean)
+            .join('\n'),
           tags,
         });
 
@@ -261,9 +301,9 @@ function EditRecipeComponent() {
         });
 
         navigate({ to: '/recipes/$recipeId', params: { recipeId } });
-      } catch (error: any) {
+      } catch (error) {
         toast.error('Error', {
-          description: error.message,
+          description: error instanceof Error ? error.message : 'An unknown error occurred',
         });
       } finally {
         setSaving(false);
@@ -286,10 +326,12 @@ function EditRecipeComponent() {
       })) || [],
     );
     setInstructions(
-      recipe.instructions?.map((text, i) => ({
-        id: `inst-${i}`,
-        text,
-      })) || [],
+      recipe.instructions
+        ? recipe.instructions.split('\n').map((text, i) => ({
+            id: `inst-${i}`,
+            text,
+          }))
+        : [],
     );
     setImagePreview(recipe.imageUrl || null);
   }
@@ -331,7 +373,7 @@ function EditRecipeComponent() {
     ]);
   };
 
-  const handleUpdateIngredient = (updated: any) => {
+  const handleUpdateIngredient = (updated: Ingredient) => {
     setRecipeIngredients(recipeIngredients.map((ing) => (ing.id === updated.id ? updated : ing)));
   };
 
@@ -352,7 +394,7 @@ function EditRecipeComponent() {
     setInstructions([...instructions, { id: crypto.randomUUID(), text: '' }]);
   };
 
-  const handleUpdateInstruction = (updated: any) => {
+  const handleUpdateInstruction = (updated: Instruction) => {
     setInstructions(instructions.map((inst) => (inst.id === updated.id ? updated : inst)));
   };
 
@@ -402,9 +444,9 @@ function EditRecipeComponent() {
           description: result.error,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     } finally {
       setAiLoading(false);
@@ -433,9 +475,9 @@ function EditRecipeComponent() {
           description: result.error,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     } finally {
       setAiLoading(false);
@@ -466,9 +508,9 @@ function EditRecipeComponent() {
           description: result.error,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     } finally {
       setAiLoading(false);

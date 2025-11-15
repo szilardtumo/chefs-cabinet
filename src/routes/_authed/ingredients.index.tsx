@@ -36,6 +36,29 @@ const ingredientSchema = z.object({
   emoji: z.string(),
 });
 
+type Ingredient = {
+  _id: Id<'ingredients'>;
+  name: string;
+  categoryId: Id<'categories'>;
+  defaultUnit?: string;
+  notes?: string;
+  emoji?: string;
+};
+
+type Category = {
+  _id: Id<'categories'>;
+  name: string;
+  emoji?: string;
+};
+
+type IngredientFormData = {
+  name: string;
+  categoryId: Id<'categories'>;
+  defaultUnit?: string;
+  notes?: string;
+  emoji?: string;
+};
+
 function IngredientDialog({
   open,
   onOpenChange,
@@ -45,9 +68,9 @@ function IngredientDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  ingredient?: any;
-  categories: any[];
-  onSave: (data: any) => void;
+  ingredient?: Ingredient;
+  categories: Category[];
+  onSave: (data: IngredientFormData) => void;
 }) {
   const form = useForm({
     defaultValues: {
@@ -159,7 +182,7 @@ function IngredientsComponent() {
   });
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingIngredient, setEditingIngredient] = useState<any>(null);
+  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -170,7 +193,7 @@ function IngredientsComponent() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: IngredientFormData) => {
     try {
       if (editingIngredient) {
         await updateIngredient({ id: editingIngredient._id, ...data });
@@ -184,9 +207,9 @@ function IngredientsComponent() {
         });
       }
       setEditingIngredient(null);
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     }
   };
@@ -201,9 +224,9 @@ function IngredientsComponent() {
       toast.success('Ingredient deleted', {
         description: 'The ingredient has been deleted successfully.',
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.error('Error', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     }
   };
@@ -345,7 +368,7 @@ function IngredientsComponent() {
         <IngredientDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          ingredient={editingIngredient}
+          ingredient={editingIngredient || undefined}
           categories={categories}
           onSave={handleSave}
         />
