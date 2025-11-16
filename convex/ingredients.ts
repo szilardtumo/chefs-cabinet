@@ -1,6 +1,13 @@
 import { v } from 'convex/values';
+import type { Doc } from './_generated/dataModel';
 import { InvalidOperationError, NotFoundError } from './errors';
 import { authenticatedMutation, authenticatedQuery } from './helpers';
+
+export type Ingredient = Doc<'ingredients'>;
+
+export type IngredientWithCategory = Ingredient & {
+  category: Doc<'categories'> | null;
+};
 
 /**
  * Retrieves all ingredients for the currently authenticated user.

@@ -9,90 +9,13 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { AddToShoppingListDialog } from './-components/add-to-shopping-list-dialog';
+import { DeleteRecipeDialog } from './-components/delete-recipe-dialog';
 
 export const Route = createFileRoute('/_authed/recipes/$recipeId')({
   component: RecipeDetailComponent,
 });
-
-function AddToShoppingListDialog({
-  open,
-  onOpenChange,
-  recipeId,
-  recipeTitle,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  recipeId: Id<'recipes'>;
-  recipeTitle: string;
-}) {
-  const { data: list } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
-  const { mutateAsync: createDefault } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingLists.createDefault),
-  });
-  const { mutateAsync: addFromRecipe } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.addFromRecipe),
-  });
-  const [isAdding, setIsAdding] = useState(false);
-
-  const handleAdd = async () => {
-    try {
-      setIsAdding(true);
-
-      // Get or create the user's single shopping list
-      let listId: Id<'shoppingLists'>;
-      if (list?._id) {
-        listId = list._id;
-      } else {
-        listId = await createDefault({});
-      }
-
-      await addFromRecipe({
-        shoppingListId: listId,
-        recipeId,
-      });
-
-      toast.success('Added to shopping list', {
-        description: 'All ingredients have been added to your shopping list.',
-      });
-      onOpenChange(false);
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add to Shopping List</DialogTitle>
-          <DialogDescription>Add all ingredients from "{recipeTitle}" to your shopping list</DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleAdd} disabled={isAdding}>
-            {isAdding ? 'Adding...' : 'Add Ingredients'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function RecipeDetailComponent() {
   const { recipeId } = Route.useParams();
@@ -107,12 +30,9 @@ function RecipeDetailComponent() {
   const navigate = useNavigate();
   const [shoppingListDialogOpen, setShoppingListDialogOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this recipe?')) {
-      return;
-    }
-
     try {
       await deleteRecipe({ id: recipeId as Id<'recipes'> });
       toast.success('Recipe deleted', {
@@ -158,7 +78,7 @@ function RecipeDetailComponent() {
                       <Pencil className="h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button variant="outline" size="icon" onClick={handleDelete}>
+                  <Button variant="outline" size="icon" onClick={() => setDeleteDialogOpen(true)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -330,6 +250,12 @@ function RecipeDetailComponent() {
         open={shoppingListDialogOpen}
         onOpenChange={setShoppingListDialogOpen}
         recipeId={recipeId as Id<'recipes'>}
+        recipeTitle={recipe.title}
+      />
+      <DeleteRecipeDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDelete}
         recipeTitle={recipe.title}
       />
     </>

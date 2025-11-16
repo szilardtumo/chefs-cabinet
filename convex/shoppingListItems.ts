@@ -266,3 +266,42 @@ export const removeAll = authenticatedMutation({
     return items.length;
   },
 });
+
+/**
+ * Removes a shopping list item by ingredient ID for the currently authenticated user.
+ *
+ * @param args.shoppingListId - The ID of the shopping list.
+ * @param args.ingredientId - The ID of the ingredient to remove.
+ *
+ * @returns A promise that resolves to the ID of the removed shopping list item, or null if not found.
+ */
+export const removeByIngredient = authenticatedMutation({
+  args: {
+    shoppingListId: v.id('shoppingLists'),
+    ingredientId: v.id('ingredients'),
+  },
+  handler: async (ctx, args) => {
+    // Verify user owns the list
+    const list = await ctx.db.get(args.shoppingListId);
+    if (!list || list.userId !== ctx.userId) {
+      // Do not expose the existence of the list if it is not owned by the user
+      throw new NotFoundError('shoppingLists', args.shoppingListId);
+    }
+
+    // Find the item with this ingredient
+    const items = await ctx.db
+      .query('shoppingListItems')
+      .withIndex('by_list', (q) => q.eq('shoppingListId', args.shoppingListId))
+      .collect();
+
+    const item = items.find((item) => item.ingredientId === args.ingredientId);
+
+    if (!item) {
+      return null;
+    }
+
+    await ctx.db.delete(item._id);
+
+    return item._id;
+  },
+});

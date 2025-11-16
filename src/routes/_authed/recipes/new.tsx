@@ -14,15 +14,13 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useAction } from 'convex/react';
-import { ArrowLeft, GripVertical, Loader2, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Loader2, Plus, Sparkles, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -31,12 +29,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
+import { type Ingredient, SortableIngredientRow } from './-components/sortable-ingredient-row';
+import { type Instruction, SortableInstructionRow } from './-components/sortable-instruction-row';
 
-export const Route = createFileRoute('/_authed/recipes/$recipeId/edit')({
-  component: EditRecipeComponent,
+export const Route = createFileRoute('/_authed/recipes/new')({
+  component: RecipeFormComponent,
 });
 
 const recipeSchema = z.object({
@@ -47,151 +45,14 @@ const recipeSchema = z.object({
   servings: z.number().min(1, 'Servings must be at least 1'),
 });
 
-type Ingredient = {
-  _id?: Id<'recipeIngredients'>;
-  id: string;
-  ingredientId: string;
-  quantity: number;
-  unit: string;
-  notes?: string;
-  availableIngredients?: Array<{
-    _id: Id<'ingredients'>;
-    name: string;
-    emoji?: string;
-  }>;
-};
-
-type Instruction = {
-  id: string;
-  text: string;
-};
-
-function SortableIngredientRow({
-  ingredient,
-  onUpdate,
-  onRemove,
-}: {
-  ingredient: Ingredient;
-  onUpdate: (updated: Ingredient) => void;
-  onRemove: (id: string) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: ingredient.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 p-3 border rounded-lg bg-card">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </button>
-
-      <div className="flex-1 grid grid-cols-4 gap-2">
-        <Select
-          value={ingredient.ingredientId}
-          onValueChange={(value) => onUpdate({ ...ingredient, ingredientId: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Ingredient" />
-          </SelectTrigger>
-          <SelectContent>
-            {ingredient.availableIngredients?.map((ing) => (
-              <SelectItem key={ing._id} value={ing._id}>
-                {ing.emoji && <span className="mr-1">{ing.emoji}</span>}
-                {ing.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Input
-          type="number"
-          placeholder="Quantity"
-          value={ingredient.quantity}
-          onChange={(e) => onUpdate({ ...ingredient, quantity: parseFloat(e.target.value) })}
-        />
-
-        <Input
-          placeholder="Unit"
-          value={ingredient.unit}
-          onChange={(e) => onUpdate({ ...ingredient, unit: e.target.value })}
-        />
-
-        <Input
-          placeholder="Notes (optional)"
-          value={ingredient.notes || ''}
-          onChange={(e) => onUpdate({ ...ingredient, notes: e.target.value })}
-        />
-      </div>
-
-      <Button variant="ghost" size="icon" onClick={() => onRemove(ingredient.id)}>
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-function SortableInstructionRow({
-  instruction,
-  index,
-  onUpdate,
-  onRemove,
-}: {
-  instruction: Instruction;
-  index: number;
-  onUpdate: (updated: Instruction) => void;
-  onRemove: (id: string) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: instruction.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="flex items-start gap-2 p-3 border rounded-lg bg-card">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing mt-2">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </button>
-
-      <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold mt-1">
-        {index + 1}
-      </div>
-
-      <Textarea
-        value={instruction.text}
-        onChange={(e) => onUpdate({ ...instruction, text: e.target.value })}
-        placeholder="Enter instruction..."
-        rows={2}
-        className="flex-1"
-      />
-
-      <Button variant="ghost" size="icon" onClick={() => onRemove(instruction.id)} className="mt-1">
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-function EditRecipeComponent() {
-  const { recipeId } = Route.useParams();
+function RecipeFormComponent() {
   const navigate = useNavigate();
-  const { data: recipe } = useSuspenseQuery(convexQuery(api.recipes.getById, { id: recipeId as Id<'recipes'> }));
   const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
-  const { mutateAsync: updateRecipe } = useMutation({
-    mutationFn: useConvexMutation(api.recipes.update),
-  });
-  const { mutateAsync: updateRecipeIngredient } = useMutation({
-    mutationFn: useConvexMutation(api.recipeIngredients.update),
+  const { mutateAsync: createRecipe } = useMutation({
+    mutationFn: useConvexMutation(api.recipes.create),
   });
   const { mutateAsync: addRecipeIngredient } = useMutation({
     mutationFn: useConvexMutation(api.recipeIngredients.add),
-  });
-  const { mutateAsync: removeRecipeIngredient } = useMutation({
-    mutationFn: useConvexMutation(api.recipeIngredients.remove),
   });
   const { mutateAsync: generateUploadUrl } = useMutation({
     mutationFn: useConvexMutation(api.recipes.generateUploadUrl),
@@ -217,23 +78,23 @@ function EditRecipeComponent() {
     }),
   );
 
-  // Initialize form with existing recipe data
   const form = useForm({
     defaultValues: {
-      title: recipe?.title || '',
-      description: recipe?.description || '',
-      prepTime: recipe?.prepTime || 15,
-      cookingTime: recipe?.cookingTime || 30,
-      servings: recipe?.servings || 4,
+      title: '',
+      description: '',
+      prepTime: 15,
+      cookingTime: 30,
+      servings: 4,
     },
     validators: {
       onChange: recipeSchema,
     },
     onSubmit: async ({ value }) => {
       setSaving(true);
+
       try {
         // Upload image if present
-        let imageId: Id<'_storage'> | undefined = recipe?.image;
+        let imageId: Id<'_storage'> | undefined;
         if (imageFile) {
           const uploadUrl = await generateUploadUrl({});
           const result = await fetch(uploadUrl, {
@@ -244,9 +105,8 @@ function EditRecipeComponent() {
           imageId = storageId;
         }
 
-        // Update recipe
-        await updateRecipe({
-          id: recipeId as Id<'recipes'>,
+        // Create recipe
+        const recipeId = await createRecipe({
           title: value.title,
           description: value.description,
           image: imageId,
@@ -260,44 +120,22 @@ function EditRecipeComponent() {
           tags,
         });
 
-        // Update ingredients
-        const existingIds = recipe?.ingredients?.map((ri) => ri._id) || [];
-        const currentIds = recipeIngredients.filter((ri) => ri._id).map((ri) => ri._id);
-
-        // Remove deleted ingredients
-        for (const id of existingIds) {
-          if (!currentIds.includes(id)) {
-            await removeRecipeIngredient({ id });
-          }
-        }
-
-        // Update or add ingredients
+        // Add ingredients
         for (let i = 0; i < recipeIngredients.length; i++) {
           const ri = recipeIngredients[i];
           if (ri.ingredientId && ri.quantity && ri.unit) {
-            if (ri._id) {
-              // Update existing
-              await updateRecipeIngredient({
-                id: ri._id,
-                quantity: ri.quantity,
-                unit: ri.unit,
-                notes: ri.notes || undefined,
-              });
-            } else {
-              // Add new
-              await addRecipeIngredient({
-                recipeId: recipeId as Id<'recipes'>,
-                ingredientId: ri.ingredientId as Id<'ingredients'>,
-                quantity: ri.quantity,
-                unit: ri.unit,
-                notes: ri.notes || undefined,
-              });
-            }
+            await addRecipeIngredient({
+              recipeId,
+              ingredientId: ri.ingredientId as Id<'ingredients'>,
+              quantity: ri.quantity,
+              unit: ri.unit,
+              notes: ri.notes || undefined,
+            });
           }
         }
 
-        toast.success('Recipe updated', {
-          description: 'Your recipe has been updated successfully.',
+        toast.success('Recipe created', {
+          description: 'Your recipe has been created successfully.',
         });
 
         navigate({ to: '/recipes/$recipeId', params: { recipeId } });
@@ -310,31 +148,6 @@ function EditRecipeComponent() {
       }
     },
   });
-
-  // Initialize state when recipe loads
-  if (recipe && tags.length === 0 && recipeIngredients.length === 0) {
-    setTags(recipe.tags || []);
-    setRecipeIngredients(
-      recipe.ingredients?.map((ri) => ({
-        id: ri._id,
-        _id: ri._id,
-        ingredientId: ri.ingredientId,
-        quantity: ri.quantity,
-        unit: ri.unit,
-        notes: ri.notes,
-        availableIngredients: ingredients,
-      })) || [],
-    );
-    setInstructions(
-      recipe.instructions
-        ? recipe.instructions.split('\n').map((text, i) => ({
-            id: `inst-${i}`,
-            text,
-          }))
-        : [],
-    );
-    setImagePreview(recipe.imageUrl || null);
-  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -438,7 +251,9 @@ function EditRecipeComponent() {
 
       if (result.success) {
         form.setFieldValue('description', result.text || '');
-        toast.success('Description generated');
+        toast.success('Description generated', {
+          description: 'AI has generated a recipe description for you.',
+        });
       } else {
         toast.error('AI unavailable', {
           description: result.error,
@@ -456,7 +271,9 @@ function EditRecipeComponent() {
   const handleEnhanceDescription = async () => {
     const description = form.getFieldValue('description');
     if (!description) {
-      toast.error('Missing description');
+      toast.error('Missing description', {
+        description: 'Please enter a description first',
+      });
       return;
     }
 
@@ -469,7 +286,9 @@ function EditRecipeComponent() {
 
       if (result.success) {
         form.setFieldValue('description', result.text || '');
-        toast.success('Description enhanced');
+        toast.success('Description enhanced', {
+          description: 'AI has improved your recipe description.',
+        });
       } else {
         toast.error('AI unavailable', {
           description: result.error,
@@ -487,7 +306,9 @@ function EditRecipeComponent() {
   const handleCustomizeDescription = async () => {
     const description = form.getFieldValue('description');
     if (!description || !customPrompt) {
-      toast.error('Missing information');
+      toast.error('Missing information', {
+        description: 'Please enter both a description and custom prompt',
+      });
       return;
     }
 
@@ -502,7 +323,9 @@ function EditRecipeComponent() {
       if (result.success) {
         form.setFieldValue('description', result.text || '');
         setCustomPrompt('');
-        toast.success('Description customized');
+        toast.success('Description customized', {
+          description: 'AI has modified your recipe description.',
+        });
       } else {
         toast.error('AI unavailable', {
           description: result.error,
@@ -526,19 +349,9 @@ function EditRecipeComponent() {
       }}
       className="space-y-6 max-w-4xl"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Edit Recipe</h1>
-          <p className="text-muted-foreground">Update your recipe details</p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate({ to: '/recipes/$recipeId', params: { recipeId } })}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Create Recipe</h1>
+        <p className="text-muted-foreground">Add a new recipe to your collection</p>
       </div>
 
       {/* Basic Info */}
@@ -798,21 +611,17 @@ function EditRecipeComponent() {
 
       {/* Submit */}
       <div className="flex gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate({ to: '/recipes/$recipeId', params: { recipeId } })}
-        >
+        <Button type="button" variant="outline" onClick={() => navigate({ to: '/recipes' })}>
           Cancel
         </Button>
         <Button type="submit" disabled={saving}>
           {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Updating...
+              Creating...
             </>
           ) : (
-            'Update Recipe'
+            'Create Recipe'
           )}
         </Button>
       </div>

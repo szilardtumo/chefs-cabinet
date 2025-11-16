@@ -229,7 +229,7 @@ export function FieldSelect({
     <Field data-invalid={hasError}>
       {label && <FieldLabel htmlFor={field.name}>{label}</FieldLabel>}
       {description && <FieldDescription>{description}</FieldDescription>}
-      <Select name={field.name} value={field.state.value} onValueChange={field.handleChange} disabled={disabled}>
+      <Select name={field.name} value={field.state.value || ''} onValueChange={field.handleChange} disabled={disabled}>
         <SelectTrigger id={field.name} onBlur={field.handleBlur}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
@@ -290,21 +290,21 @@ export function FieldCheckbox({
 
 // #endregion
 
-// #region FieldColor
+// #region FieldColorPicker
 
-type FieldColorProps = BaseFieldProps &
+type FieldColorPickerProps = BaseFieldProps &
   Omit<React.ComponentProps<typeof Input>, 'type' | 'name' | 'value' | 'onChange' | 'onBlur'> & {
     showTextInput?: boolean;
   };
 
-export function FieldColor({
+export function FieldColorPicker({
   field,
   label,
   description,
   hideError,
   showTextInput = true,
   ...inputProps
-}: FieldColorProps) {
+}: FieldColorPickerProps) {
   const hasError = field.state.meta.errors.length > 0;
 
   return (
@@ -337,13 +337,13 @@ export function FieldColor({
 
 // #endregion
 
-// #region FieldEmoji
+// #region FieldEmojiPicker
 
-type FieldEmojiProps = BaseFieldProps & {
+type FieldEmojiPickerProps = BaseFieldProps & {
   showRemove?: boolean;
 };
 
-export function FieldEmoji({ field, label, description, hideError, showRemove = true }: FieldEmojiProps) {
+export function FieldEmojiPicker({ field, label, description, hideError, showRemove = true }: FieldEmojiPickerProps) {
   const [emojiPickerOpen, setEmojiPickerOpen] = React.useState(false);
   const hasError = field.state.meta.errors.length > 0;
 
