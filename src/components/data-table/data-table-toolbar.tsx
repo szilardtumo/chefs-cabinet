@@ -1,83 +1,151 @@
-import type { Table } from '@tanstack/react-table';
-import { Search, X } from 'lucide-react';
-import * as React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+'use client';
 
-interface DataTableToolbarProps<TData> {
+import type { Column, Table } from '@tanstack/react-table';
+import { X } from 'lucide-react';
+import * as React from 'react';
+
+import { DataTableDateFilter } from '@/components/data-table/data-table-date-filter';
+import { DataTableFacetedFilter } from '@/components/data-table/data-table-faceted-filter';
+import { DataTableSliderFilter } from '@/components/data-table/data-table-slider-filter';
+import { DataTableViewOptions } from '@/components/data-table/data-table-view-options';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+
+interface DataTableToolbarProps<TData> extends React.ComponentProps<'div'> {
   table: Table<TData>;
-  searchKey?: string;
   searchPlaceholder?: string;
-  filterComponent?: React.ReactNode;
 }
 
 export function DataTableToolbar<TData>({
   table,
-  searchKey,
   searchPlaceholder = 'Search...',
-  filterComponent,
+  children,
+  className,
+  ...props
 }: DataTableToolbarProps<TData>) {
-  const isFiltered = table.getState().columnFilters.length > 0;
-  const [searchValue, setSearchValue] = React.useState('');
+  const isFiltered = table.getState().columnFilters.length > 0 || !!table.getState().globalFilter;
 
-  React.useEffect(() => {
-    if (searchKey) {
-      const column = table.getColumn(searchKey);
-      if (column) {
-        const filterValue = column.getFilterValue() as string | undefined;
-        setSearchValue(filterValue ?? '');
-      }
-    }
-  }, [table, searchKey]);
+  const globalFilterColumns = React.useMemo(
+    () => table.getAllColumns().filter((column) => column.getCanGlobalFilter()),
+    [table],
+  );
+  const filterColumns = React.useMemo(() => table.getAllColumns().filter((column) => column.getCanFilter()), [table]);
 
-  const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-    if (searchKey) {
-      const column = table.getColumn(searchKey);
-      if (column) {
-        column.setFilterValue(value || undefined);
-      }
-    }
-  };
-
-  if (!searchKey && !filterComponent) {
-    return null;
-  }
+  const onReset = React.useCallback(() => {
+    table.resetColumnFilters();
+    table.resetGlobalFilter();
+  }, [table]);
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex gap-4">
-          {searchKey && (
-            <div className="flex-1 flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={searchPlaceholder}
-                  value={searchValue}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              {isFiltered && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    table.resetColumnFilters();
-                    setSearchValue('');
-                  }}
-                  className="h-10 px-3"
-                >
-                  Reset
-                  <X className="ml-2 h-4 w-4" />
-                </Button>
+    <div
+      role="toolbar"
+      aria-orientation="horizontal"
+      className={cn('flex w-full items-start justify-between gap-2 p-1', className)}
+      {...props}
+    >
+      <div className="flex flex-1 flex-wrap items-center gap-2">
+        {globalFilterColumns.length > 0 && (
+          <Input
+            placeholder={searchPlaceholder}
+            value={table.getState().globalFilter ?? ''}
+            onChange={(event) => table.setGlobalFilter(event.target.value)}
+            className="h-8 w-40 lg:w-56"
+          />
+        )}
+        {filterColumns.map((column) => (
+          <DataTableToolbarFilter key={column.id} column={column} />
+        ))}
+        {isFiltered && (
+          <Button aria-label="Reset filters" variant="outline" size="sm" className="border-dashed" onClick={onReset}>
+            <X />
+            Reset
+          </Button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        {children}
+        <DataTableViewOptions table={table} align="end" />
+      </div>
+    </div>
+  );
+}
+interface DataTableToolbarFilterProps<TData> {
+  column: Column<TData>;
+}
+
+function DataTableToolbarFilter<TData>({ column }: DataTableToolbarFilterProps<TData>) {
+  {
+    const columnMeta = column.columnDef.meta ?? {};
+
+    const onFilterRender = React.useCallback(() => {
+      switch (columnMeta.variant) {
+        case undefined:
+        case 'text':
+          return (
+            <Input
+              placeholder={columnMeta.placeholder ?? columnMeta.label ?? column.id}
+              value={(column.getFilterValue() as string) ?? ''}
+              onChange={(event) => column.setFilterValue(event.target.value)}
+              className="h-8 w-40 lg:w-56"
+            />
+          );
+
+        case 'number':
+          return (
+            <div className="relative">
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder={columnMeta.placeholder ?? columnMeta.label ?? column.id}
+                value={(column.getFilterValue() as string) ?? ''}
+                onChange={(event) => column.setFilterValue(event.target.value)}
+                className={cn('h-8 w-[120px]', columnMeta.unit && 'pr-8')}
+              />
+              {columnMeta.unit && (
+                <span className="absolute top-0 right-0 bottom-0 flex items-center rounded-r-md bg-accent px-2 text-muted-foreground text-sm">
+                  {columnMeta.unit}
+                </span>
               )}
             </div>
-          )}
-          {filterComponent}
-        </div>
-      </CardContent>
-    </Card>
-  );
+          );
+
+        case 'range':
+          return <DataTableSliderFilter column={column} title={columnMeta.label ?? column.id} />;
+
+        case 'date':
+        case 'dateRange':
+          return (
+            <DataTableDateFilter
+              column={column}
+              title={columnMeta.label ?? column.id}
+              multiple={columnMeta.variant === 'dateRange'}
+            />
+          );
+
+        case 'select':
+        case 'multiSelect':
+          return (
+            <DataTableFacetedFilter
+              column={column}
+              title={columnMeta.label ?? column.id}
+              options={
+                columnMeta.options ??
+                Array.from(column.getFacetedUniqueValues().entries()).map(([value, count]) => ({
+                  label: value,
+                  value,
+                  count,
+                }))
+              }
+              multiple={columnMeta.variant === 'multiSelect'}
+            />
+          );
+
+        default:
+          return null;
+      }
+    }, [column, columnMeta]);
+
+    return onFilterRender();
+  }
 }

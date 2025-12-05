@@ -8,6 +8,7 @@ import { createRootRouteWithContext, HeadContent, Outlet, Scripts, useRouteConte
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { createServerFn } from '@tanstack/react-start';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
+import { NuqsAdapter } from 'nuqs/adapters/tanstack-router';
 import type * as React from 'react';
 import { DefaultCatchBoundary } from '@/components/default-catch-boundary.js';
 import { NotFound } from '@/components/not-found.js';
@@ -91,9 +92,11 @@ function RootComponent() {
   return (
     <ClerkProvider>
       <ConvexProviderWithClerk client={context.convexQueryClient.convexClient} useAuth={useAuth}>
-        <RootDocument>
-          <Outlet />
-        </RootDocument>
+        <NuqsAdapter>
+          <RootDocument>
+            <Outlet />
+          </RootDocument>
+        </NuqsAdapter>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );

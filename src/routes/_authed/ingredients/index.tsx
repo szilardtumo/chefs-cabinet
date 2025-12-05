@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useDataTable } from '@/hooks/use-data-table';
+import { cn } from '@/lib/utils';
 import { IngredientDialog, type IngredientFormData } from './-components/ingredient-dialog';
 
 export const Route = createFileRoute('/_authed/ingredients/')({
@@ -43,6 +44,7 @@ const columnHelper = createColumnHelper<IngredientWithCategory>();
 function IngredientsComponent() {
   const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
   const { data: shoppingList } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
+
   const { mutateAsync: createIngredient } = useMutation({
     mutationFn: useConvexMutation(api.ingredients.create),
   });
@@ -156,11 +158,11 @@ function IngredientsComponent() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-8 w-8 shrink-0"
+                className="relative shrink-0"
                 onClick={() => handleToggleShoppingList(ingredient)}
                 title={isInShoppingList ? 'Remove from shopping list' : 'Add to shopping list'}
               >
-                <ShoppingCart className={`h-4 w-4 ${isInShoppingList ? 'fill-black text-black' : ''}`} />
+                <ShoppingCart className={cn(isInShoppingList && 'fill-black text-black')} />
                 {isInShoppingList && <Check className="absolute right-0 top-0 size-3 text-green-500" />}
               </Button>
             );
@@ -168,7 +170,7 @@ function IngredientsComponent() {
         }),
         columnHelper.accessor('name', {
           id: 'name',
-          header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+          header: ({ column }) => <DataTableColumnHeader column={column} label="Name" />,
           cell: (info) => {
             const ingredient = info.row.original;
             return (
@@ -181,40 +183,39 @@ function IngredientsComponent() {
         }),
         columnHelper.accessor('category.name', {
           id: 'category',
-          header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
+          header: ({ column }) => <DataTableColumnHeader column={column} label="Category" />,
           cell: (info) => {
             const category = info.row.original.category;
             if (!category) return '-';
             return (
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="text-nowrap">
                 {category.emoji && <span className="mr-1">{category.emoji}</span>}
                 {info.getValue()}
               </Badge>
             );
           },
           enableColumnFilter: true,
-        }),
-        columnHelper.accessor('defaultUnit', {
-          id: 'defaultUnit',
-          header: 'Default Unit',
-          cell: (info) => {
-            return <span>{info.getValue() || '-'}</span>;
+          filterFn: 'arrIncludesSome',
+          meta: {
+            label: 'Category',
+            variant: 'multiSelect',
           },
         }),
         columnHelper.accessor('notes', {
           id: 'notes',
-          header: 'Notes',
+          header: ({ column }) => <DataTableColumnHeader column={column} label="Notes" />,
           cell: (info) => {
             return <span className="max-w-xs truncate block">{info.getValue() || '-'}</span>;
           },
+          enableSorting: false,
         }),
         columnHelper.display({
           id: 'actions',
-          header: () => <div className="text-right">Actions</div>,
+          header: ({ column }) => <DataTableColumnHeader column={column} label="Actions" className="text-right" />,
           cell: (info) => {
             const ingredient = info.row.original;
             return (
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -256,7 +257,7 @@ function IngredientsComponent() {
     data: ingredients || [],
     columns,
     getRowId: (row) => row._id,
-    enableHiding: false,
+    enableHiding: true,
   });
 
   return (
@@ -294,7 +295,7 @@ function IngredientsComponent() {
           </CardHeader>
           <CardContent>
             <DataTable table={table}>
-              <DataTableToolbar table={table} searchKey="name" searchPlaceholder="Search ingredients..." />
+              <DataTableToolbar table={table}></DataTableToolbar>
             </DataTable>
           </CardContent>
         </Card>
