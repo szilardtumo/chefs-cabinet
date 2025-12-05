@@ -1,4 +1,5 @@
 'use client';
+'use no memo';
 
 import type { Column, ColumnMeta, Table } from '@tanstack/react-table';
 import { CalendarIcon, Check, ChevronsUpDown, GripVertical, ListFilter, Trash2 } from 'lucide-react';

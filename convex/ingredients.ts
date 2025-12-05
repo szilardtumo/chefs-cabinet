@@ -130,6 +130,45 @@ export const create = authenticatedMutation({
 });
 
 /**
+ * Quickly creates a new ingredient for the currently authenticated user.
+ * Automatically assigns the "Other" category if it exists, otherwise the first available category.
+ *
+ * @param args - The arguments object containing the ingredient name.
+ * @param args.name - The name of the ingredient to create.
+ *
+ * @returns A promise that resolves to the ID of the created ingredient.
+ */
+export const quickCreate = authenticatedMutation({
+  args: {
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get all categories for the user (ordered by order field)
+    const categories = await ctx.db
+      .query('categories')
+      .withIndex('by_user_and_order', (q) => q.eq('userId', ctx.userId))
+      .order('asc')
+      .collect();
+
+    if (categories.length === 0) {
+      throw new InvalidOperationError('No categories available. Please create a category first.');
+    }
+
+    // Search for "Other" category (case-insensitive)
+    const otherCategory = categories.find((cat) => cat.name.toLowerCase() === 'other');
+
+    // Use "Other" category if found, otherwise use the first category
+    const selectedCategory = otherCategory || categories[0];
+
+    return await ctx.db.insert('ingredients', {
+      name: args.name,
+      categoryId: selectedCategory._id,
+      userId: ctx.userId,
+    });
+  },
+});
+
+/**
  * Updates an ingredient for the currently authenticated user.
  *
  * @param args - The arguments object containing the ingredient details.
