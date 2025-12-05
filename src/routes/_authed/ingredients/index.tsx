@@ -5,7 +5,7 @@ import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
-import { Check, MoreVertical, Pencil, Plus, Settings2, ShoppingCart, Trash2 } from 'lucide-react';
+import { Check, Pencil, Plus, Settings2, ShoppingCart, Trash2 } from 'lucide-react';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
@@ -24,13 +24,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useDataTable } from '@/hooks/use-data-table';
 import { cn } from '@/lib/utils';
 import { IngredientDialog, type IngredientFormData } from './-components/ingredient-dialog';
@@ -163,7 +156,7 @@ function IngredientsComponent() {
                 title={isInShoppingList ? 'Remove from shopping list' : 'Add to shopping list'}
               >
                 <ShoppingCart className={cn(isInShoppingList && 'fill-black text-black')} />
-                {isInShoppingList && <Check className="absolute right-0 top-0 size-3 text-green-500" />}
+                {isInShoppingList && <Check className="absolute right-0.5 top-0.5 size-3 text-green-500" />}
               </Button>
             );
           },
@@ -174,8 +167,8 @@ function IngredientsComponent() {
           cell: (info) => {
             const ingredient = info.row.original;
             return (
-              <div className="flex items-center gap-2">
-                {ingredient.emoji && <span className="text-lg">{ingredient.emoji}</span>}
+              <div className="flex items-center gap-1">
+                {ingredient.emoji && <span className="text-md">{ingredient.emoji}</span>}
                 {info.getValue()}
               </div>
             );
@@ -211,40 +204,33 @@ function IngredientsComponent() {
         }),
         columnHelper.display({
           id: 'actions',
-          header: ({ column }) => <DataTableColumnHeader column={column} label="Actions" className="text-right" />,
+          header: () => <div className="text-right mr-2">Actions</div>,
           cell: (info) => {
             const ingredient = info.row.original;
             return (
-              <div className="flex justify-end">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSelectedIngredient(ingredient);
-                        setEditDialogOpen(true);
-                      }}
-                    >
-                      <Pencil />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSelectedIngredient(ingredient);
-                        setDeleteDialogOpen(true);
-                      }}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => {
+                    setSelectedIngredient(ingredient);
+                    setEditDialogOpen(true);
+                  }}
+                  title="Edit ingredient"
+                >
+                  <Pencil />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => {
+                    setSelectedIngredient(ingredient);
+                    setDeleteDialogOpen(true);
+                  }}
+                  title="Delete ingredient"
+                >
+                  <Trash2 />
+                </Button>
               </div>
             );
           },
@@ -333,10 +319,7 @@ function IngredientsComponent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction variant="destructive" onClick={handleDeleteConfirm}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
