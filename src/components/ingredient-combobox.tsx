@@ -33,7 +33,11 @@ export function IngredientCombobox({
 
   const { data: allIngredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
 
-  const { mutateAsync: quickCreateIngredient, isPending: isCreating } = useMutation({
+  const {
+    mutateAsync: quickCreateIngredient,
+    isPending: isCreating,
+    variables: quickCreateVariables,
+  } = useMutation({
     mutationFn: useConvexAction(api.ingredients.quickCreate),
   });
 
@@ -46,7 +50,7 @@ export function IngredientCombobox({
         keys: ['name'],
         threshold: 0.3, // Lower threshold = stricter matching (0.0 = exact match, 1.0 = match anything)
         includeScore: true,
-        ignoreLocation: true,
+        isCaseSensitive: false,
       }),
     [allIngredients],
   );
@@ -61,7 +65,7 @@ export function IngredientCombobox({
   }, [fuse, inputValue, allIngredients]);
 
   // We can create a new ingredient if there is no exact match
-  const canCreate = searchResults.every((result) => result.score! > 0);
+  const canCreate = searchResults.every((result) => result.score! > Number.EPSILON);
 
   const displayedItems = useMemo(() => {
     const selected = searchResults.filter((result) => selectedItemsSet.has(result.item._id));
@@ -74,15 +78,16 @@ export function IngredientCombobox({
     if (!value) return;
 
     onSelect(value as Id<'ingredients'>);
-    setInputValue('');
-    setOpen(false);
+
+    // Reset the input only if it wasn't changed by the user since the selection
+    // It is only important when creating a new ingredient (async operation)
+    setInputValue((prev) => (prev === value ? '' : prev));
   };
 
   const handleCreateItem = async () => {
     // Combobox resets the input value by default
     // This is a workaround to keep the input value when creating a new ingredient
-    await Promise.resolve();
-    setInputValue(inputValue);
+    queueMicrotask(() => setInputValue(inputValue));
 
     try {
       const newIngredientId = await quickCreateIngredient({
@@ -117,9 +122,7 @@ export function IngredientCombobox({
           <ComboboxInput asChild>
             <InputGroupInput placeholder="Search ingredients to add..." />
           </ComboboxInput>
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
+          <InputGroupAddon>{isCreating ? <Spinner /> : <SearchIcon />}</InputGroupAddon>
           <InputGroupAddon align="inline-end">
             <ComboboxTrigger asChild>
               <InputGroupButton size="icon-xs">
@@ -156,8 +159,15 @@ export function IngredientCombobox({
           ))}
           {canCreate && (
             <ComboboxItem className="italic" value="create" onSelect={handleCreateItem} disabled={isCreating}>
-              {isCreating ? <Spinner /> : <Plus className="size-4" />}
-              <span className="ml-2">Create "{inputValue.trim()}"</span>
+              {isCreating ? (
+                <>
+                  <Spinner className="mr-2" /> Creating "{quickCreateVariables?.name || 'ingredient'}"
+                </>
+              ) : (
+                <>
+                  <Plus className="size-4 mr-2" /> Create "{inputValue.trim()}"
+                </>
+              )}
             </ComboboxItem>
           )}
         </ComboboxContent>
