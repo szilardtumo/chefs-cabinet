@@ -23,6 +23,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui/item';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/_authed/shopping/')({
   component: ShoppingListComponent,
@@ -129,52 +133,42 @@ function ShoppingListComponent() {
       </div>
 
       {/* Progress */}
-      {totalItems > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progress</span>
-                <span className="font-medium">{Math.round((checkedItems / totalItems) * 100)}%</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-3">
-                <div
-                  className="bg-primary h-3 rounded-full transition-all"
-                  style={{
-                    width: `${(checkedItems / totalItems) * 100}%`,
-                  }}
-                />
-              </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Progress</span>
+              <span className="font-medium">{Math.round((checkedItems / totalItems) * 100) || 0}%</span>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <Progress value={(checkedItems / totalItems) * 100 || 0} />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add Ingredient Search */}
       <IngredientCombobox selectedItems={itemIds} onSelect={handleAddIngredient} />
 
       {/* Actions */}
-      {checkedItems > 0 && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              Clear Checked Items
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Clear Checked Items</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to remove all checked items from your shopping list? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearChecked}>Clear Items</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" size="sm" disabled={checkedItems === 0}>
+            Clear Checked Items
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Checked Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove all checked items from your shopping list? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearChecked}>Clear Items</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Items */}
       {totalItems === 0 ? (
@@ -189,32 +183,42 @@ function ShoppingListComponent() {
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-2">
-              {sortedItems.map((item) => (
-                <div
-                  key={item._id}
-                  className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
-                >
-                  <Checkbox checked={item.checked} onCheckedChange={() => handleToggle(item._id)} />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className={`font-medium ${item.checked ? 'line-through text-muted-foreground' : ''}`}>
-                        {item.ingredient?.emoji && <span className="mr-1">{item.ingredient.emoji}</span>}
-                        {item.ingredient?.name}
-                      </p>
-                      {item.category && (
-                        <Badge variant="secondary" className="text-xs">
-                          {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
-                          {item.category.name}
-                        </Badge>
-                      )}
-                    </div>
-                    {item.notes && <p className="text-sm text-muted-foreground">{item.notes}</p>}
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleRemove(item._id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+              {sortedItems.map((item) => {
+                return (
+                  <Item key={item._id} variant="outline" className="cursor-pointer hover:bg-accent" asChild>
+                    <Label htmlFor={item._id}>
+                      <ItemMedia>
+                        <Checkbox id={item._id} checked={item.checked} onCheckedChange={() => handleToggle(item._id)} />
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle>
+                          {item.ingredient?.emoji && <span className="mr-1">{item.ingredient.emoji}</span>}
+                          <span className={cn(item.checked && 'line-through text-muted-foreground')}>
+                            {item.ingredient?.name}
+                          </span>
+                          {item.category && (
+                            <Badge variant="secondary" className="ml-2">
+                              {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
+                              {item.category.name}
+                            </Badge>
+                          )}
+                        </ItemTitle>
+                        {item.notes && <ItemDescription>{item.notes}</ItemDescription>}
+                      </ItemContent>
+                      <ItemActions>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="hover:text-destructive"
+                          onClick={() => handleRemove(item._id)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </ItemActions>
+                    </Label>
+                  </Item>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
