@@ -1,5 +1,5 @@
-import { customCtx, customMutation, customQuery } from 'convex-helpers/server/customFunctions';
-import { mutation, query } from '../_generated/server';
+import { customAction, customCtx, customMutation, customQuery } from 'convex-helpers/server/customFunctions';
+import { action, mutation, query } from '../_generated/server';
 import { UnauthenticatedError } from './errors';
 
 /**
@@ -23,6 +23,17 @@ export const authenticatedQuery = customQuery(
  */
 export const authenticatedMutation = customMutation(
   mutation,
+  customCtx(async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new UnauthenticatedError();
+    }
+    return { userId: identity.subject };
+  }),
+);
+
+export const authenticatedAction = customAction(
+  action,
   customCtx(async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {

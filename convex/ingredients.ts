@@ -1,7 +1,12 @@
+import { generateObject } from 'ai';
 import { v } from 'convex/values';
-import type { Doc } from './_generated/dataModel';
-import { InvalidOperationError, NotFoundError } from './errors';
-import { authenticatedMutation, authenticatedQuery } from './helpers';
+import { z } from 'zod';
+import { api } from './_generated/api';
+import type { Doc, Id } from './_generated/dataModel';
+import type { ActionCtx } from './_generated/server';
+import { createGoogleAI } from './lib/ai';
+import { InvalidOperationError, NotFoundError } from './lib/errors';
+import { authenticatedAction, authenticatedMutation, authenticatedQuery } from './lib/helpers';
 
 export type Ingredient = Doc<'ingredients'>;
 
@@ -130,40 +135,102 @@ export const create = authenticatedMutation({
 });
 
 /**
+ * Uses AI to determine the best category for an ingredient.
+ *
+ * This function must be called from an authenticated action.
+ *
+ * @param args.name - The name of the ingredient to categorize.
+ * @param ctx - The action context.
+ *
+ * Returns the category ID if a suitable category exists, or null if a new category should be created.
+ */
+async function findBestCategory(args: { name: string }, ctx: ActionCtx): Promise<Id<'categories'>> {
+  const categories = await ctx.runQuery(api.categories.getAll, {});
+
+  try {
+    const google = await createGoogleAI();
+
+    const prompt = `You are helping categorize ingredients in a recipe app. Given an ingredient name and a list of existing categories, determine the best category for this ingredient.
+
+Ingredient to categorize: "${args.name}"
+
+Existing categories:
+${JSON.stringify(categories, null, 2)}
+
+Rules:
+1. If the ingredient fits well into an existing category, return that category's ID.
+2. Only suggest creating a new category if the ingredient truly doesn't fit into any existing category AND the new category would be useful (not overly granular).
+3. Avoid creating categories that are too specific (e.g., don't create "Red Bell Peppers" if "Vegetables" exists).
+4. If you suggest a new category, make sure it's a general, useful category that could contain multiple similar ingredients.
+5. If the ingredient doesn't fit into any particular category, return the "Other" category if exists, otherwise create a new "Other" category.
+`;
+
+    const schema = z.discriminatedUnion('action', [
+      z.object({
+        action: z.literal('useExisting'),
+        categoryId: z.string(),
+      }),
+      z.object({
+        action: z.literal('createNew'),
+        newCategory: z.object({
+          name: z.string(),
+          emoji: z.emoji(),
+          color: z.string().regex(/^#([0-9a-fA-F]{6})$/),
+        }),
+      }),
+    ]);
+
+    const { object } = await generateObject({
+      model: google('gemini-2.5-flash-lite'),
+      schema,
+      prompt,
+    });
+
+    if (object.action === 'createNew') {
+      const newCategoryId = await ctx.runMutation(api.categories.create, object.newCategory);
+      return newCategoryId;
+    } else {
+      return object.categoryId as Id<'categories'>;
+    }
+  } catch (error) {
+    console.error('AI category assignment failed:', error);
+
+    // Fallback to "Other" category
+    const otherCategory = categories.find((cat) => cat.name.toLowerCase() === 'other');
+    if (otherCategory) {
+      return otherCategory._id;
+    }
+
+    const newCategoryId = await ctx.runMutation(api.categories.create, {
+      name: 'Other',
+      emoji: '📦',
+      color: '#6b7280',
+    });
+
+    return newCategoryId;
+  }
+}
+
+/**
  * Quickly creates a new ingredient for the currently authenticated user.
- * Automatically assigns the "Other" category if it exists, otherwise the first available category.
+ * Uses AI to automatically assign the best category, creating a new one only if necessary.
  *
  * @param args - The arguments object containing the ingredient name.
  * @param args.name - The name of the ingredient to create.
  *
  * @returns A promise that resolves to the ID of the created ingredient.
  */
-export const quickCreate = authenticatedMutation({
+export const quickCreate = authenticatedAction({
   args: {
     name: v.string(),
   },
-  handler: async (ctx, args) => {
-    // Get all categories for the user (ordered by order field)
-    const categories = await ctx.db
-      .query('categories')
-      .withIndex('by_user_and_order', (q) => q.eq('userId', ctx.userId))
-      .order('asc')
-      .collect();
+  handler: async (ctx, args): Promise<Id<'ingredients'>> => {
+    // Use AI to find the best category
+    const categoryId = await findBestCategory(args, ctx);
 
-    if (categories.length === 0) {
-      throw new InvalidOperationError('No categories available. Please create a category first.');
-    }
-
-    // Search for "Other" category (case-insensitive)
-    const otherCategory = categories.find((cat) => cat.name.toLowerCase() === 'other');
-
-    // Use "Other" category if found, otherwise use the first category
-    const selectedCategory = otherCategory || categories[0];
-
-    return await ctx.db.insert('ingredients', {
+    return await ctx.runMutation(api.ingredients.create, {
       name: args.name,
-      categoryId: selectedCategory._id,
-      userId: ctx.userId,
+      categoryId,
     });
   },
 });
@@ -238,6 +305,16 @@ export const remove = authenticatedMutation({
 
     if (recipeIngredient) {
       throw new InvalidOperationError('Cannot delete ingredient used in recipes');
+    }
+
+    // Delete all shopping list items that reference this ingredient
+    const shoppingListItems = await ctx.db
+      .query('shoppingListItems')
+      .withIndex('by_ingredient', (q) => q.eq('ingredientId', args.id))
+      .collect();
+
+    for (const item of shoppingListItems) {
+      await ctx.db.delete(item._id);
     }
 
     await ctx.db.delete(args.id);

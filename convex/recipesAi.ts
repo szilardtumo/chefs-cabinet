@@ -21,7 +21,7 @@ Cooking time: ${args.cookingTime} minutes
 Write a brief, compelling description (2-3 sentences) that highlights the flavors, textures, and what makes this dish special. Keep it concise and inviting.`;
 
     const { text } = await generateText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash-lite'),
       prompt,
     });
 
@@ -44,7 +44,7 @@ Current description: ${args.currentDescription}
 Make it more detailed, engaging, and appetizing. Add more sensory details about flavors, textures, and aromas. Keep it concise but compelling (3-4 sentences max).`;
 
     const { text } = await generateText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash-lite'),
       prompt,
     });
 
@@ -70,7 +70,7 @@ User request: ${args.customPrompt}
 Provide the modified description that addresses the user's request while maintaining the quality and appeal of the recipe.`;
 
     const { text } = await generateText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash-lite'),
       prompt,
     });
 

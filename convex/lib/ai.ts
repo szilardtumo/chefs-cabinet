@@ -8,7 +8,8 @@ import { AIError } from './errors';
 export async function createGoogleAI() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new AIError('Gemini API key not configured. Please add GEMINI_API_KEY to your environment variables.');
+    console.error('Gemini API key not configured. Please add GEMINI_API_KEY to your environment variables.');
+    throw new AIError('AI features are not available.');
   }
 
   const { createGoogleGenerativeAI } = await import('@ai-sdk/google');

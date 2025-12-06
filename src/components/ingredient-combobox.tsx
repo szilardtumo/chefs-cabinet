@@ -1,6 +1,6 @@
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
 import { Check, ChevronDown, Plus, SearchIcon } from 'lucide-react';
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/combobox';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Badge } from './ui/badge';
+import { Spinner } from './ui/spinner';
 
 export function IngredientCombobox({
   selectedItems,
@@ -32,8 +33,8 @@ export function IngredientCombobox({
 
   const { data: allIngredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
 
-  const { mutateAsync: quickCreateIngredient } = useMutation({
-    mutationFn: useConvexMutation(api.ingredients.quickCreate),
+  const { mutateAsync: quickCreateIngredient, isPending: isCreating } = useMutation({
+    mutationFn: useConvexAction(api.ingredients.quickCreate),
   });
 
   const selectedItemsSet = new Set(selectedItems);
@@ -74,9 +75,15 @@ export function IngredientCombobox({
 
     onSelect(value as Id<'ingredients'>);
     setInputValue('');
+    setOpen(false);
   };
 
   const handleCreateItem = async () => {
+    // Combobox resets the input value by default
+    // This is a workaround to keep the input value when creating a new ingredient
+    await Promise.resolve();
+    setInputValue(inputValue);
+
     try {
       const newIngredientId = await quickCreateIngredient({
         name: inputValue.trim(),
@@ -102,7 +109,6 @@ export function IngredientCombobox({
       value={selectedItems}
       manualFiltering
       openOnFocus
-      autoHighlight
       loop
       multiple
     >
@@ -149,9 +155,9 @@ export function IngredientCombobox({
             </ComboboxItem>
           ))}
           {canCreate && (
-            <ComboboxItem className="italic" value="create" onSelect={handleCreateItem}>
-              <Plus className="size-4 mr-2" />
-              Create &quot;{inputValue.trim()}&quot;
+            <ComboboxItem className="italic" value="create" onSelect={handleCreateItem} disabled={isCreating}>
+              {isCreating ? <Spinner /> : <Plus className="size-4" />}
+              <span className="ml-2">Create "{inputValue.trim()}"</span>
             </ComboboxItem>
           )}
         </ComboboxContent>

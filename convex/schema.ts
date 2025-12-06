@@ -85,5 +85,6 @@ export default defineSchema({
     order: v.number(),
   })
     .index('by_list', ['shoppingListId'])
-    .index('by_list_and_order', ['shoppingListId', 'order']),
+    .index('by_list_and_order', ['shoppingListId', 'order'])
+    .index('by_ingredient', ['ingredientId']),
 });
