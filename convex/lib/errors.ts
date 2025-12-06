@@ -52,3 +52,13 @@ export class ValidationError extends Error {
     this.name = 'ValidationError';
   }
 }
+
+/**
+ * Thrown when an AI error occurs
+ */
+export class AIError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AIError';
+  }
+}

@@ -1,4 +1,4 @@
-import { authenticatedMutation, authenticatedQuery } from './helpers';
+import { authenticatedMutation, authenticatedQuery } from './lib/helpers';
 
 /**
  * Retrieves the single shopping list for the currently authenticated user.

@@ -8,13 +8,14 @@
  * @module
  */
 
-import type * as ai from "../ai.js";
 import type * as categories from "../categories.js";
-import type * as errors from "../errors.js";
-import type * as helpers from "../helpers.js";
 import type * as ingredients from "../ingredients.js";
+import type * as lib_ai from "../lib/ai.js";
+import type * as lib_errors from "../lib/errors.js";
+import type * as lib_helpers from "../lib/helpers.js";
 import type * as recipeIngredients from "../recipeIngredients.js";
 import type * as recipes from "../recipes.js";
+import type * as recipesAi from "../recipesAi.js";
 import type * as seed from "../seed.js";
 import type * as shoppingListItems from "../shoppingListItems.js";
 import type * as shoppingLists from "../shoppingLists.js";
@@ -34,13 +35,14 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  ai: typeof ai;
   categories: typeof categories;
-  errors: typeof errors;
-  helpers: typeof helpers;
   ingredients: typeof ingredients;
+  "lib/ai": typeof lib_ai;
+  "lib/errors": typeof lib_errors;
+  "lib/helpers": typeof lib_helpers;
   recipeIngredients: typeof recipeIngredients;
   recipes: typeof recipes;
+  recipesAi: typeof recipesAi;
   seed: typeof seed;
   shoppingListItems: typeof shoppingListItems;
   shoppingLists: typeof shoppingLists;

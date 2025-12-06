@@ -1,6 +1,6 @@
 import type { Id } from './_generated/dataModel';
 
-import { authenticatedMutation } from './helpers';
+import { authenticatedMutation } from './lib/helpers';
 
 // Default categories with emojis and colors
 const defaultCategories = [

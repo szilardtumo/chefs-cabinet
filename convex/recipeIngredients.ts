@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
-import { NotFoundError } from './errors';
-import { authenticatedMutation } from './helpers';
+import { NotFoundError } from './lib/errors';
+import { authenticatedMutation } from './lib/helpers';
 
 /**
  * Adds an ingredient to a recipe for the currently authenticated user.

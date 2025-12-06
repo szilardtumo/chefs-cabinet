@@ -11,7 +11,7 @@
     "start": "vite start"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.64",
+    "@ai-sdk/google": "^2.0.0",
     "@clerk/tanstack-react-start": "^0.26.9",
     "@convex-dev/react-query": "0.0.0-alpha.11",
     "@diceui/combobox": "^1.2.2",

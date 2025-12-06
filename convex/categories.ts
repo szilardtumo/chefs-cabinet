@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
-import { InvalidOperationError, NotFoundError, UnauthorizedError } from './errors';
-import { authenticatedMutation, authenticatedQuery } from './helpers';
+import { InvalidOperationError, NotFoundError, UnauthorizedError } from './lib/errors';
+import { authenticatedMutation, authenticatedQuery } from './lib/helpers';
 
 /**
  * Retrieves all categories for the currently authenticated user.

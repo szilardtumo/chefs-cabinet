@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { isEqual, omitBy } from 'es-toolkit';
-import { NotFoundError } from './errors';
-import { authenticatedMutation, authenticatedQuery } from './helpers';
+import { NotFoundError } from './lib/errors';
+import { authenticatedMutation, authenticatedQuery } from './lib/helpers';
 
 /**
  * Retrieves all recipes for the currently authenticated user.
