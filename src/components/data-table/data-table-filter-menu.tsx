@@ -311,7 +311,6 @@ function DataTableFilterItem<TData>({
     if (!column) return null;
 
     return (
-      // biome-ignore lint/a11y/useSemanticElements: TODO:
       <div
         key={filter.filterId}
         role="listitem"

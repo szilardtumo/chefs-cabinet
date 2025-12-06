@@ -30,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { type Ingredient, SortableIngredientRow } from './-components/sortable-ingredient-row';
 import { type Instruction, SortableInstructionRow } from './-components/sortable-instruction-row';
 
@@ -69,9 +70,9 @@ function EditRecipeComponent() {
   const { mutateAsync: generateUploadUrl } = useMutation({
     mutationFn: useConvexMutation(api.recipes.generateUploadUrl),
   });
-  const generateDescription = useAction(api.ai.generateRecipeDescription);
-  const enhanceDescription = useAction(api.ai.enhanceRecipeDescription);
-  const customizeDescription = useAction(api.ai.customizeRecipeDescription);
+  const generateDescription = useAction(api.recipesAi.generateRecipeDescription);
+  const enhanceDescription = useAction(api.recipesAi.enhanceRecipeDescription);
+  const customizeDescription = useAction(api.recipesAi.customizeRecipeDescription);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -309,14 +310,8 @@ function EditRecipeComponent() {
         cookingTime: form.getFieldValue('cookingTime') + form.getFieldValue('prepTime'),
       });
 
-      if (result.success) {
-        form.setFieldValue('description', result.text || '');
-        toast.success('Description generated');
-      } else {
-        toast.error('AI unavailable', {
-          description: result.error,
-        });
-      }
+      form.setFieldValue('description', result || '');
+      toast.success('Description generated');
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -340,14 +335,8 @@ function EditRecipeComponent() {
         title: form.getFieldValue('title'),
       });
 
-      if (result.success) {
-        form.setFieldValue('description', result.text || '');
-        toast.success('Description enhanced');
-      } else {
-        toast.error('AI unavailable', {
-          description: result.error,
-        });
-      }
+      form.setFieldValue('description', result || '');
+      toast.success('Description enhanced');
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -372,15 +361,9 @@ function EditRecipeComponent() {
         title: form.getFieldValue('title'),
       });
 
-      if (result.success) {
-        form.setFieldValue('description', result.text || '');
-        setCustomPrompt('');
-        toast.success('Description customized');
-      } else {
-        toast.error('AI unavailable', {
-          description: result.error,
-        });
-      }
+      form.setFieldValue('description', result || '');
+      setCustomPrompt('');
+      toast.success('Description customized');
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -572,7 +555,7 @@ function EditRecipeComponent() {
                   id={field.name}
                   name={field.name}
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                   placeholder="Describe your recipe..."
                   rows={4}

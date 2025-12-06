@@ -1,5 +1,5 @@
 import type { Id } from '@convex/_generated/dataModel';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { BookOpen, Clock, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,4 +70,3 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     </Link>
   );
 }
-

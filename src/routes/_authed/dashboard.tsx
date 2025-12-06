@@ -117,8 +117,8 @@ function DashboardComponent() {
                   <CardContent>
                     <p className="text-sm text-muted-foreground line-clamp-2">{recipe.description}</p>
                     <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
-                      <span>⏱️ {recipe.cookingTime + recipe.prepTime} min</span>
-                      <span>🍽️ {recipe.servings} servings</span>
+                      <span>⏱️ {(recipe.cookingTime ?? 0) + (recipe.prepTime ?? 0)} min</span>
+                      <span>🍽️ {recipe.servings ?? '?'} servings</span>
                     </div>
                   </CardContent>
                 </Link>

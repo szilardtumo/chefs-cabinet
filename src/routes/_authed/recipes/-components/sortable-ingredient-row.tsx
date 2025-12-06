@@ -1,7 +1,7 @@
 import type { Id } from '@convex/_generated/dataModel';
-import { GripVertical, Trash2 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -40,7 +40,10 @@ export function SortableIngredientRow({ ingredient, onUpdate, onRemove }: Sortab
       </button>
 
       <div className="flex-1 grid grid-cols-4 gap-2">
-        <Select value={ingredient.ingredientId} onValueChange={(value) => onUpdate({ ...ingredient, ingredientId: value })}>
+        <Select
+          value={ingredient.ingredientId}
+          onValueChange={(value) => onUpdate({ ...ingredient, ingredientId: value })}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Ingredient" />
           </SelectTrigger>
@@ -80,4 +83,3 @@ export function SortableIngredientRow({ ingredient, onUpdate, onRemove }: Sortab
     </div>
   );
 }
-

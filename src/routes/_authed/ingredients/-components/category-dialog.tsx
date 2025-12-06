@@ -118,4 +118,3 @@ export function CategoryDialog({ open, onOpenChange, category, onSave }: Categor
     </Dialog>
   );
 }
-

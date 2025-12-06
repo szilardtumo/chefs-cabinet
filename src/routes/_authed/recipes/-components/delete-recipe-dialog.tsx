@@ -1,4 +1,3 @@
-import type { Id } from '@convex/_generated/dataModel';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,24 +16,23 @@ type DeleteRecipeDialogProps = {
   recipeTitle?: string;
 };
 
-export function DeleteRecipeDialog({
-  open,
-  onOpenChange,
-  onConfirm,
-  recipeTitle,
-}: DeleteRecipeDialogProps) {
+export function DeleteRecipeDialog({ open, onOpenChange, onConfirm, recipeTitle }: DeleteRecipeDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete {recipeTitle ? `"${recipeTitle}"` : 'this recipe'}? This action cannot be undone.
+            Are you sure you want to delete {recipeTitle ? `"${recipeTitle}"` : 'this recipe'}? This action cannot be
+            undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
             Delete
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -42,4 +40,3 @@ export function DeleteRecipeDialog({
     </AlertDialog>
   );
 }
-

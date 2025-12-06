@@ -1,15 +1,8 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
-interface DataTableSkeletonProps extends React.ComponentProps<"div"> {
+interface DataTableSkeletonProps extends React.ComponentProps<'div'> {
   columnCount: number;
   rowCount?: number;
   filterCount?: number;
@@ -23,7 +16,7 @@ export function DataTableSkeleton({
   columnCount,
   rowCount = 10,
   filterCount = 0,
-  cellWidths = ["auto"],
+  cellWidths = ['auto'],
   withViewOptions = true,
   withPagination = true,
   shrinkZero = false,
@@ -32,37 +25,33 @@ export function DataTableSkeleton({
 }: DataTableSkeletonProps) {
   const cozyCellWidths = Array.from(
     { length: columnCount },
-    (_, index) => cellWidths[index % cellWidths.length] ?? "auto",
+    (_, index) => cellWidths[index % cellWidths.length] ?? 'auto',
   );
 
   return (
-    <div
-      className={cn("flex w-full flex-col gap-2.5 overflow-auto", className)}
-      {...props}
-    >
+    <div className={cn('flex w-full flex-col gap-2.5 overflow-auto', className)} {...props}>
       <div className="flex w-full items-center justify-between gap-2 overflow-auto p-1">
         <div className="flex flex-1 items-center gap-2">
           {filterCount > 0
-            ? Array.from({ length: filterCount }).map((_, i) => (
-                <Skeleton key={i} className="h-7 w-18 border-dashed" />
-              ))
+            ? // biome-ignore lint/suspicious/noArrayIndexKey: third party component
+              Array.from({ length: filterCount }).map((_, i) => <Skeleton key={i} className="h-7 w-18 border-dashed" />)
             : null}
         </div>
-        {withViewOptions ? (
-          <Skeleton className="ml-auto hidden h-7 w-18 lg:flex" />
-        ) : null}
+        {withViewOptions ? <Skeleton className="ml-auto hidden h-7 w-18 lg:flex" /> : null}
       </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {Array.from({ length: 1 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: third party component
               <TableRow key={i} className="hover:bg-transparent">
                 {Array.from({ length: columnCount }).map((_, j) => (
                   <TableHead
+                    // biome-ignore lint/suspicious/noArrayIndexKey: third party component
                     key={j}
                     style={{
                       width: cozyCellWidths[j],
-                      minWidth: shrinkZero ? cozyCellWidths[j] : "auto",
+                      minWidth: shrinkZero ? cozyCellWidths[j] : 'auto',
                     }}
                   >
                     <Skeleton className="h-6 w-full" />
@@ -73,13 +62,15 @@ export function DataTableSkeleton({
           </TableHeader>
           <TableBody>
             {Array.from({ length: rowCount }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: third party component
               <TableRow key={i} className="hover:bg-transparent">
                 {Array.from({ length: columnCount }).map((_, j) => (
                   <TableCell
+                    // biome-ignore lint/suspicious/noArrayIndexKey: third party component
                     key={j}
                     style={{
                       width: cozyCellWidths[j],
-                      minWidth: shrinkZero ? cozyCellWidths[j] : "auto",
+                      minWidth: shrinkZero ? cozyCellWidths[j] : 'auto',
                     }}
                   >
                     <Skeleton className="h-6 w-full" />

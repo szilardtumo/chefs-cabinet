@@ -1,6 +1,6 @@
-import { GripVertical, Trash2 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -48,4 +48,3 @@ export function SortableInstructionRow({ instruction, index, onUpdate, onRemove 
     </div>
   );
 }
-

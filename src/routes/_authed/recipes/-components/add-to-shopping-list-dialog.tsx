@@ -21,12 +21,7 @@ type AddToShoppingListDialogProps = {
   recipeTitle: string;
 };
 
-export function AddToShoppingListDialog({
-  open,
-  onOpenChange,
-  recipeId,
-  recipeTitle,
-}: AddToShoppingListDialogProps) {
+export function AddToShoppingListDialog({ open, onOpenChange, recipeId, recipeTitle }: AddToShoppingListDialogProps) {
   const { data: list } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
   const { mutateAsync: createDefault } = useMutation({
     mutationFn: useConvexMutation(api.shoppingLists.createDefault),
@@ -86,4 +81,3 @@ export function AddToShoppingListDialog({
     </Dialog>
   );
 }
-
