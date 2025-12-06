@@ -5,6 +5,7 @@ import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { sortBy } from 'es-toolkit';
 import { ShoppingCart, Trash2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { IngredientCombobox } from '@/components/ingredient-combobox';
@@ -114,8 +115,12 @@ function ShoppingListComponent() {
 
   const itemIds = list.items?.map((item) => item.ingredientId);
 
-  // Sort items by category name
-  const sortedItems = sortBy(list.items, [(item) => item.category?.name || 'Other']);
+  // Sort items by checked status (unchecked first), then by category name
+  // Selected/checked items appear at the bottom
+  const sortedItems = sortBy(list.items, [
+    (item) => item.checked, // false (unchecked) comes before true (checked)
+    (item) => item.category?.name || 'Other',
+  ]);
 
   const totalItems = list.items?.length || 0;
   const checkedItems = list.items?.filter((i) => i.checked).length || 0;
@@ -183,42 +188,57 @@ function ShoppingListComponent() {
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-2">
-              {sortedItems.map((item) => {
-                return (
-                  <Item key={item._id} variant="outline" className="cursor-pointer hover:bg-accent" asChild>
-                    <Label htmlFor={item._id}>
-                      <ItemMedia>
-                        <Checkbox id={item._id} checked={item.checked} onCheckedChange={() => handleToggle(item._id)} />
-                      </ItemMedia>
-                      <ItemContent>
-                        <ItemTitle>
-                          {item.ingredient?.emoji && <span className="mr-1">{item.ingredient.emoji}</span>}
-                          <span className={cn(item.checked && 'line-through text-muted-foreground')}>
-                            {item.ingredient?.name}
-                          </span>
-                          {item.category && (
-                            <Badge variant="secondary" className="ml-2">
-                              {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
-                              {item.category.name}
-                            </Badge>
-                          )}
-                        </ItemTitle>
-                        {item.notes && <ItemDescription>{item.notes}</ItemDescription>}
-                      </ItemContent>
-                      <ItemActions>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="hover:text-destructive"
-                          onClick={() => handleRemove(item._id)}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </ItemActions>
-                    </Label>
-                  </Item>
-                );
-              })}
+              <AnimatePresence>
+                {sortedItems.map((item) => {
+                  return (
+                    <motion.div
+                      key={item._id}
+                      className="overflow-hidden"
+                      layout
+                      initial={{ opacity: 0, y: -30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0 }}
+                    >
+                      <Item variant="outline" className="cursor-pointer hover:bg-accent" asChild>
+                        <Label htmlFor={item._id}>
+                          <ItemMedia>
+                            <Checkbox
+                              id={item._id}
+                              checked={item.checked}
+                              onCheckedChange={() => handleToggle(item._id)}
+                            />
+                          </ItemMedia>
+                          <ItemContent>
+                            <ItemTitle>
+                              {item.ingredient?.emoji && <span className="mr-1">{item.ingredient.emoji}</span>}
+                              <span className={cn(item.checked && 'line-through text-muted-foreground')}>
+                                {item.ingredient?.name}
+                              </span>
+                              {item.category && (
+                                <Badge variant="secondary" className="ml-2">
+                                  {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
+                                  {item.category.name}
+                                </Badge>
+                              )}
+                            </ItemTitle>
+                            {item.notes && <ItemDescription>{item.notes}</ItemDescription>}
+                          </ItemContent>
+                          <ItemActions>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="hover:text-destructive"
+                              onClick={() => handleRemove(item._id)}
+                            >
+                              <Trash2 />
+                            </Button>
+                          </ItemActions>
+                        </Label>
+                      </Item>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </CardContent>
         </Card>
