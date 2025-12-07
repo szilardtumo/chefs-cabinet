@@ -150,19 +150,26 @@ async function findBestCategory(args: { name: string }, ctx: ActionCtx): Promise
   try {
     const google = await createGoogleAI();
 
-    const prompt = `You are helping categorize ingredients in a recipe app. Given an ingredient name and a list of existing categories, determine the best category for this ingredient.
+    const categoryList = categories.map((c) => `- ID: "${c._id}", Name: "${c.name}"`).join('\n');
 
-Ingredient to categorize: "${args.name}"
+    const prompt = `You are categorizing kitchen ingredients for a recipe app.
 
-Existing categories:
-${JSON.stringify(categories, null, 2)}
+Task: Assign the ingredient "${args.name}" to the most appropriate category.
 
-Rules:
-1. If the ingredient fits well into an existing category, return that category's ID.
-2. Only suggest creating a new category if the ingredient truly doesn't fit into any existing category AND the new category would be useful (not overly granular).
-3. Avoid creating categories that are too specific (e.g., don't create "Red Bell Peppers" if "Vegetables" exists).
-4. If you suggest a new category, make sure it's a general, useful category that could contain multiple similar ingredients.
-5. If the ingredient doesn't fit into any particular category, return the "Other" category if exists, otherwise create a new "Other" category.
+Available categories:
+${categoryList}
+
+Instructions:
+1. Choose an existing category that best matches the ingredient. Most ingredients should fit into one of the existing categories.
+2. If the ingredient doesn't fit well into any specific category, use a general/fallback category like "Other", "Miscellaneous", or "Uncategorized" if one exists.
+3. Only create a new category if:
+   - No existing category is appropriate (including fallback categories)
+   - The new category would be broadly useful (not overly specific like "Red Vegetables")
+   - No similar category name already exists
+
+Response format:
+- To use an existing category: respond with action "useExisting" and provide the category ID exactly as shown above.
+- To create a new category: respond with action "createNew" and provide a short clear name, an appropriate emoji, and a hex color code (e.g., #ff5733).
 `;
 
     const schema = z.discriminatedUnion('action', [
