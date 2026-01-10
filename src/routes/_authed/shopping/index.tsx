@@ -2,7 +2,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { sortBy } from 'es-toolkit';
 import { Info, ShoppingCart } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -44,7 +44,14 @@ function ShoppingListComponent() {
     mutationFn: useConvexMutation(api.shoppingListItems.add),
   });
   const { mutateAsync: toggleChecked } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.toggleChecked),
+    mutationFn: useConvexMutation(api.shoppingListItems.toggleChecked).withOptimisticUpdate((localStore, args) => {
+      const currentList = localStore.getQuery(api.shoppingLists.get, {});
+      const currentItem = currentList?.items?.find((item) => item._id === args.id);
+      if (currentItem) {
+        currentItem.checked = !currentItem.checked;
+      }
+      localStore.setQuery(api.shoppingLists.get, {}, currentList);
+    }),
   });
   const { mutateAsync: clearChecked } = useMutation({
     mutationFn: useConvexMutation(api.shoppingListItems.removeChecked),
@@ -190,13 +197,9 @@ function ShoppingListComponent() {
                       <ItemContent className="overflow-x-auto no-scrollbar">
                         <ItemTitle className="w-full gap-1.5">
                           {item.ingredient?.emoji && <span>{item.ingredient.emoji}</span>}
-                          <Link to="/ingredients" search={{ q: item.ingredient?.name ?? '' }}>
-                            <span
-                              className={cn('hover:underline', item.checked && 'line-through text-muted-foreground')}
-                            >
-                              {item.ingredient?.name}
-                            </span>
-                          </Link>
+                          <span className={cn(item.checked && 'line-through text-muted-foreground')}>
+                            {item.ingredient?.name}
+                          </span>
                           {(item.notes || item.ingredient?.notes) && (
                             <Popover>
                               <PopoverTrigger asChild>
