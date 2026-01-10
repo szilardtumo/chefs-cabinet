@@ -4,7 +4,7 @@ import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
 import { Check, ChevronDown, Plus, SearchIcon } from 'lucide-react';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffectEvent, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import {
   Combobox,
@@ -88,7 +88,8 @@ export function IngredientCombobox({
     });
   };
 
-  const handleCreateItem = async () => {
+  // inputValue is not updated for some reason...
+  const handleCreateItem = useEffectEvent(async () => {
     try {
       const newIngredientId = await quickCreateIngredient({
         name: inputValue.trim(),
@@ -103,7 +104,7 @@ export function IngredientCombobox({
         description: error instanceof Error ? error.message : 'Failed to create ingredient',
       });
     }
-  };
+  });
 
   return (
     <Combobox

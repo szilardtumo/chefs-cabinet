@@ -144,68 +144,84 @@ export const create = authenticatedMutation({
  *
  * Returns the category ID if a suitable category exists, or null if a new category should be created.
  */
-async function findBestCategory(args: { name: string }, ctx: ActionCtx): Promise<Id<'categories'>> {
+async function generateIngredientDetails(
+  args: { name: string },
+  ctx: ActionCtx,
+): Promise<{ name: string; emoji?: string; defaultUnit?: string; categoryId: Id<'categories'> }> {
   const categories = await ctx.runQuery(api.categories.getAll, {});
 
   try {
     const google = await createGoogleAI();
 
     const categoryList = categories.map((c) => `- ID: "${c._id}", Name: "${c.name}"`).join('\n');
+    const categoryIds = categories.map((c) => c._id as string);
 
-    const prompt = `You are categorizing kitchen ingredients for a recipe app.
+    const prompt = `Generate details for a kitchen ingredient in a recipe app.
 
-Task: Assign the ingredient "${args.name}" to the most appropriate category.
+Ingredient name: "${args.name}"
 
 Available categories:
 ${categoryList}
 
 Instructions:
-1. Choose an existing category that best matches the ingredient. Most ingredients should fit into one of the existing categories.
-2. If the ingredient doesn't fit well into any specific category, use a general/fallback category like "Other", "Miscellaneous", or "Uncategorized" if one exists.
-3. Only create a new category if:
-   - No existing category is appropriate (including fallback categories)
-   - The new category would be broadly useful (not overly specific like "Red Vegetables")
-   - No similar category name already exists
+1. categoryId: Select an existing category ID from above. Only set to null if absolutely no category fits.
+2. name: The name of the ingredient as provided in the input, with correct spelling and capitalization. Words should be capitalized.
+3. emoji: Single emoji representing this ingredient (e.g. "🍎" for apple, "🥛" for milk)
+4. defaultUnit: Common metric unit for this ingredient, or imperial unit if metric unit is not appropriate (e.g. "g", "ml", "pcs", "tbsp"). Leave empty if unclear.
+5. If categoryId is null, provide newCategoryName, newCategoryEmoji, and newCategoryColor (hex like "#ff5500")`;
 
-Response format:
-- To use an existing category: respond with action "useExisting" and provide the category ID exactly as shown above.
-- To create a new category: respond with action "createNew" and provide a short clear name, an appropriate emoji, and a hex color code (e.g., #ff5733).
-`;
+    const categoryIdSchema =
+      categoryIds.length > 0 ? z.enum(categoryIds as [string, ...string[]]).nullable() : z.null();
 
-    const schema = z.discriminatedUnion('action', [
-      z.object({
-        action: z.literal('useExisting'),
-        categoryId: z.string(),
-      }),
-      z.object({
-        action: z.literal('createNew'),
-        newCategory: z.object({
-          name: z.string(),
-          emoji: z.emoji(),
-          color: z.string().regex(/^#([0-9a-fA-F]{6})$/),
-        }),
-      }),
-    ]);
+    const schema = z.object({
+      name: z.string().describe('Name of the ingredient'),
+      emoji: z.string().describe('Single emoji for the ingredient'),
+      defaultUnit: z.string().optional().describe('Default measurement unit (e.g. "g", "ml", "pcs")'),
+      categoryId: categoryIdSchema.describe('ID of existing category from list above, or null to create new'),
+      newCategoryName: z.string().optional().describe('Name for new category (only if categoryId is null)'),
+      newCategoryEmoji: z.string().optional().describe('Emoji for new category (only if categoryId is null)'),
+      newCategoryColor: z
+        .string()
+        .optional()
+        .describe('Hex color for new category like "#ff5500" (only if categoryId is null)'),
+    });
 
     const { object } = await generateObject({
-      model: google('gemini-2.5-flash-lite'),
+      model: google('gemini-2.5-flash'),
       schema,
       prompt,
     });
 
-    if (object.action === 'createNew') {
-      const newCategoryId = await ctx.runMutation(api.categories.create, object.newCategory);
-      return newCategoryId;
+    let categoryId: Id<'categories'>;
+
+    if (object.categoryId === null && object.newCategoryName) {
+      categoryId = await ctx.runMutation(api.categories.create, {
+        name: object.newCategoryName,
+        emoji: object.newCategoryEmoji ?? '📦',
+        color: object.newCategoryColor ?? '#6b7280',
+      });
+    } else if (object.categoryId) {
+      categoryId = object.categoryId as Id<'categories'>;
     } else {
-      return object.categoryId as Id<'categories'>;
+      throw new Error('Incorrect category selection from AI response');
     }
+
+    return {
+      name: object.name,
+      emoji: object.emoji,
+      defaultUnit: object.defaultUnit,
+      categoryId,
+    };
   } catch (error) {
     console.error('AI category assignment failed:', error);
 
     // Fallback to "Other" category
     const otherCategory = categories.find((cat) => cat.name.toLowerCase() === 'other');
     if (otherCategory) {
-      return otherCategory._id;
+      return {
+        name: args.name,
+        categoryId: otherCategory._id,
+      };
     }
 
     const newCategoryId = await ctx.runMutation(api.categories.create, {
@@ -214,7 +230,10 @@ Response format:
       color: '#6b7280',
     });
 
-    return newCategoryId;
+    return {
+      name: args.name,
+      categoryId: newCategoryId,
+    };
   }
 }
 
@@ -233,12 +252,9 @@ export const quickCreate = authenticatedAction({
   },
   handler: async (ctx, args): Promise<Id<'ingredients'>> => {
     // Use AI to find the best category
-    const categoryId = await findBestCategory(args, ctx);
+    const ingredientDetails = await generateIngredientDetails(args, ctx);
 
-    return await ctx.runMutation(api.ingredients.create, {
-      name: args.name,
-      categoryId,
-    });
+    return await ctx.runMutation(api.ingredients.create, ingredientDetails);
   },
 });
 
