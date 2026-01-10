@@ -175,9 +175,11 @@ function ComboboxItem({
     <ComboboxPrimitive.Item
       data-slot="combobox-item"
       className={cn(
-        'relative flex w-full cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm outline-hidden data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50',
+        'relative flex w-full cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm outline-hidden touch-manipulation data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50',
         className,
       )}
+      // Prevent focus shift on touch that would close popover before selection
+      onMouseDown={(e) => e.preventDefault()}
       {...props}
     >
       {children}

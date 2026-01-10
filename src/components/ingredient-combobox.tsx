@@ -4,7 +4,7 @@ import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
 import { Check, ChevronDown, Plus, SearchIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import {
   Combobox,
@@ -26,7 +26,7 @@ export function IngredientCombobox({
   onSelect,
 }: {
   selectedItems: Id<'ingredients'>[];
-  onSelect: (ingredientId: Id<'ingredients'>) => void;
+  onSelect: (ingredientId: Id<'ingredients'>) => Promise<void>;
 }) {
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
@@ -40,6 +40,8 @@ export function IngredientCombobox({
   } = useMutation({
     mutationFn: useConvexAction(api.ingredients.quickCreate),
   });
+
+  const [isPending, startTransition] = useTransition();
 
   const selectedItemsSet = new Set(selectedItems);
 
@@ -74,21 +76,19 @@ export function IngredientCombobox({
     return [...unselected, ...selected].map((result) => result.item);
   }, [searchResults, selectedItemsSet]);
 
-  const handleSelectItem = (value: string) => {
+  const handleSelectItem = (value: string, keepOpen = false) => {
     if (!value) return;
 
-    onSelect(value as Id<'ingredients'>);
+    if (!keepOpen) {
+      setOpen(false);
+    }
 
-    // Reset the input only if it wasn't changed by the user since the selection
-    // It is only important when creating a new ingredient (async operation)
-    setInputValue((prev) => (prev === value ? '' : prev));
+    startTransition(async () => {
+      await onSelect(value as Id<'ingredients'>);
+    });
   };
 
   const handleCreateItem = async () => {
-    // Combobox resets the input value by default
-    // This is a workaround to keep the input value when creating a new ingredient
-    queueMicrotask(() => setInputValue(inputValue));
-
     try {
       const newIngredientId = await quickCreateIngredient({
         name: inputValue.trim(),
@@ -97,7 +97,7 @@ export function IngredientCombobox({
         description: `${inputValue.trim()} has been created.`,
       });
 
-      handleSelectItem(newIngredientId);
+      handleSelectItem(newIngredientId, true);
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to create ingredient',
@@ -113,16 +113,16 @@ export function IngredientCombobox({
       onInputValueChange={setInputValue}
       value={selectedItems}
       manualFiltering
-      openOnFocus
       loop
       multiple
+      autoHighlight
     >
-      <ComboboxAnchor asChild>
+      <ComboboxAnchor onClick={() => setOpen(true)} asChild>
         <InputGroup className="px-0">
           <ComboboxInput asChild>
             <InputGroupInput placeholder="Search ingredients to add..." />
           </ComboboxInput>
-          <InputGroupAddon>{isCreating ? <Spinner /> : <SearchIcon />}</InputGroupAddon>
+          <InputGroupAddon>{isCreating || isPending ? <Spinner /> : <SearchIcon />}</InputGroupAddon>
           <InputGroupAddon align="inline-end">
             <ComboboxTrigger asChild>
               <InputGroupButton size="icon-xs">
