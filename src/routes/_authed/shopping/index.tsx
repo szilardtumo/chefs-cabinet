@@ -2,9 +2,9 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { sortBy } from 'es-toolkit';
-import { ShoppingCart, Trash2 } from 'lucide-react';
+import { Info, ShoppingCart } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -24,8 +24,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui/item';
+import { Item, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
@@ -44,9 +45,6 @@ function ShoppingListComponent() {
   });
   const { mutateAsync: toggleChecked } = useMutation({
     mutationFn: useConvexMutation(api.shoppingListItems.toggleChecked),
-  });
-  const { mutateAsync: removeItem } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.remove),
   });
   const { mutateAsync: clearChecked } = useMutation({
     mutationFn: useConvexMutation(api.shoppingListItems.removeChecked),
@@ -85,19 +83,6 @@ function ShoppingListComponent() {
 
   const handleToggle = async (itemId: Id<'shoppingListItems'>) => {
     await toggleChecked({ id: itemId });
-  };
-
-  const handleRemove = async (itemId: Id<'shoppingListItems'>) => {
-    try {
-      await removeItem({ id: itemId });
-      toast.success('Item removed', {
-        description: 'The item has been removed from your list.',
-      });
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
   };
 
   const handleClearChecked = async () => {
@@ -185,63 +170,64 @@ function ShoppingListComponent() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <AnimatePresence>
-                {sortedItems.map((item) => {
-                  return (
-                    <motion.div
-                      key={item._id}
-                      className="overflow-hidden"
-                      layout
-                      initial={{ opacity: 0, y: -30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, height: 0 }}
-                    >
-                      <Item variant="outline" className="cursor-pointer hover:bg-accent" asChild>
-                        <Label htmlFor={item._id}>
-                          <ItemMedia>
-                            <Checkbox
-                              id={item._id}
-                              checked={item.checked}
-                              onCheckedChange={() => handleToggle(item._id)}
-                            />
-                          </ItemMedia>
-                          <ItemContent>
-                            <ItemTitle>
-                              {item.ingredient?.emoji && <span className="mr-1">{item.ingredient.emoji}</span>}
-                              <span className={cn(item.checked && 'line-through text-muted-foreground')}>
-                                {item.ingredient?.name}
-                              </span>
-                              {item.category && (
-                                <Badge variant="secondary" className="ml-2">
-                                  {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
-                                  {item.category.name}
-                                </Badge>
-                              )}
-                            </ItemTitle>
-                            {item.notes && <ItemDescription>{item.notes}</ItemDescription>}
-                          </ItemContent>
-                          <ItemActions>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="hover:text-destructive"
-                              onClick={() => handleRemove(item._id)}
+        <div className="space-y-2">
+          <AnimatePresence>
+            {sortedItems.map((item) => {
+              return (
+                <motion.div
+                  key={item._id}
+                  className="overflow-hidden"
+                  layout
+                  initial={{ opacity: 0, y: -30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  <Item variant="outline" className="cursor-pointer hover:bg-accent py-3 flex-nowrap" asChild>
+                    <Label htmlFor={item._id}>
+                      <ItemMedia>
+                        <Checkbox id={item._id} checked={item.checked} onCheckedChange={() => handleToggle(item._id)} />
+                      </ItemMedia>
+                      <ItemContent className="overflow-x-auto no-scrollbar">
+                        <ItemTitle className="w-full gap-1.5">
+                          {item.ingredient?.emoji && <span>{item.ingredient.emoji}</span>}
+                          <Link to="/ingredients" search={{ q: item.ingredient?.name ?? '' }}>
+                            <span
+                              className={cn('hover:underline', item.checked && 'line-through text-muted-foreground')}
                             >
-                              <Trash2 />
-                            </Button>
-                          </ItemActions>
-                        </Label>
-                      </Item>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
-          </CardContent>
-        </Card>
+                              {item.ingredient?.name}
+                            </span>
+                          </Link>
+                          {(item.notes || item.ingredient?.notes) && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-4 text-muted-foreground cursor-default hover:text-foreground"
+                                >
+                                  <Info />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent side="top" className="w-fit py-3 text-sm text-muted-foreground">
+                                {[item.notes, item.ingredient?.notes].filter(Boolean).join(', ')}
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                          {item.category && (
+                            <Badge variant="secondary" className="ml-auto text-nowrap">
+                              {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
+                              {item.category.name}
+                            </Badge>
+                          )}
+                        </ItemTitle>
+                      </ItemContent>
+                    </Label>
+                  </Item>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
       )}
     </div>
   );

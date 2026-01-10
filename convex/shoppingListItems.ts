@@ -90,7 +90,7 @@ export const addFromRecipe = authenticatedMutation({
     const addedItems = [];
     for (const ri of recipeIngredients) {
       order++;
-      const notes = `${ri.quantity} ${ri.unit}${ri.notes ? ` - ${ri.notes}` : ''}`;
+      const notes = `${ri.quantity} ${ri.unit}`;
 
       const itemId = await ctx.db.insert('shoppingListItems', {
         shoppingListId: args.shoppingListId,
