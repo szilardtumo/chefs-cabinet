@@ -151,7 +151,8 @@ async function generateIngredientDetails(
   const categories = await ctx.runQuery(api.categories.getAll, {});
 
   try {
-    const google = await createGoogleAI();
+    const identity = await ctx.auth.getUserIdentity();
+    const google = await createGoogleAI(identity);
 
     const categoryList = categories.map((c) => `- ID: "${c._id}", Name: "${c.name}"`).join('\n');
     const categoryIds = categories.map((c) => c._id as string);

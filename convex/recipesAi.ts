@@ -1,16 +1,17 @@
 import { generateText } from 'ai';
 import { v } from 'convex/values';
-import { action } from './_generated/server';
 import { createGoogleAI } from './lib/ai';
+import { authenticatedAction } from './lib/helpers';
 
-export const generateRecipeDescription = action({
+export const generateRecipeDescription = authenticatedAction({
   args: {
     title: v.string(),
     ingredients: v.array(v.string()),
     cookingTime: v.number(),
   },
-  handler: async (_ctx, args) => {
-    const google = await createGoogleAI();
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const google = await createGoogleAI(identity!);
 
     const ingredientsList = args.ingredients.join(', ');
     const prompt = `Generate an engaging and appetizing recipe description for a dish called "${args.title}". 
@@ -29,13 +30,14 @@ Write a brief, compelling description (2-3 sentences) that highlights the flavor
   },
 });
 
-export const enhanceRecipeDescription = action({
+export const enhanceRecipeDescription = authenticatedAction({
   args: {
     currentDescription: v.string(),
     title: v.string(),
   },
-  handler: async (_ctx, args) => {
-    const google = await createGoogleAI();
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const google = await createGoogleAI(identity!);
 
     const prompt = `Enhance and improve this recipe description for "${args.title}":
 
@@ -52,14 +54,15 @@ Make it more detailed, engaging, and appetizing. Add more sensory details about 
   },
 });
 
-export const customizeRecipeDescription = action({
+export const customizeRecipeDescription = authenticatedAction({
   args: {
     currentDescription: v.string(),
     customPrompt: v.string(),
     title: v.string(),
   },
-  handler: async (_ctx, args) => {
-    const google = await createGoogleAI();
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const google = await createGoogleAI(identity!);
 
     const prompt = `Modify this recipe description for "${args.title}" based on the following request:
 
