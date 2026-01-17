@@ -1,11 +1,10 @@
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { convexQuery, useConvexAction } from '@convex-dev/react-query';
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { convexQuery } from '@convex-dev/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
 import { Check, ChevronDown, Plus, SearchIcon } from 'lucide-react';
 import { useEffectEvent, useMemo, useState, useTransition } from 'react';
-import { toast } from 'sonner';
 import {
   Combobox,
   ComboboxAnchor,
@@ -24,22 +23,16 @@ import { Spinner } from './ui/spinner';
 export function IngredientCombobox({
   selectedItems,
   onSelect,
+  onCreate,
 }: {
   selectedItems: Id<'ingredients'>[];
   onSelect: (ingredientId: Id<'ingredients'>) => Promise<void>;
+  onCreate: (ingredientName: string) => Promise<void>;
 }) {
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
 
   const { data: allIngredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
-
-  const {
-    mutateAsync: quickCreateIngredient,
-    isPending: isCreating,
-    variables: quickCreateVariables,
-  } = useMutation({
-    mutationFn: useConvexAction(api.ingredients.quickCreate),
-  });
 
   const [isPending, startTransition] = useTransition();
 
@@ -76,12 +69,8 @@ export function IngredientCombobox({
     return [...unselected, ...selected].map((result) => result.item);
   }, [searchResults, selectedItemsSet]);
 
-  const handleSelectItem = (value: string, keepOpen = false) => {
+  const handleSelectItem = (value: string) => {
     if (!value) return;
-
-    if (!keepOpen) {
-      setOpen(false);
-    }
 
     startTransition(async () => {
       await onSelect(value as Id<'ingredients'>);
@@ -90,20 +79,13 @@ export function IngredientCombobox({
 
   // inputValue is not updated for some reason...
   const handleCreateItem = useEffectEvent(async () => {
-    try {
-      const newIngredientId = await quickCreateIngredient({
-        name: inputValue.trim(),
-      });
-      toast.success('Ingredient created', {
-        description: `${inputValue.trim()} has been created.`,
-      });
+    if (!inputValue.trim()) return;
 
-      handleSelectItem(newIngredientId, true);
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to create ingredient',
-      });
-    }
+    setOpen(false);
+
+    startTransition(async () => {
+      await onCreate(inputValue.trim());
+    });
   });
 
   return (
@@ -123,7 +105,7 @@ export function IngredientCombobox({
           <ComboboxInput asChild>
             <InputGroupInput placeholder="Search ingredients to add..." />
           </ComboboxInput>
-          <InputGroupAddon>{isCreating || isPending ? <Spinner /> : <SearchIcon />}</InputGroupAddon>
+          <InputGroupAddon>{isPending ? <Spinner /> : <SearchIcon />}</InputGroupAddon>
           <InputGroupAddon align="inline-end">
             <ComboboxTrigger asChild>
               <InputGroupButton size="icon-xs">
@@ -159,16 +141,8 @@ export function IngredientCombobox({
             </ComboboxItem>
           ))}
           {canCreate && (
-            <ComboboxItem className="italic" value="create" onSelect={handleCreateItem} disabled={isCreating}>
-              {isCreating ? (
-                <>
-                  <Spinner className="mr-2" /> Creating "{quickCreateVariables?.name || 'ingredient'}"
-                </>
-              ) : (
-                <>
-                  <Plus className="size-4 mr-2" /> Create "{inputValue.trim()}"
-                </>
-              )}
+            <ComboboxItem className="italic" value="create" onSelect={handleCreateItem}>
+              <Plus className="size-4 mr-2" /> Create "{inputValue.trim()}"
             </ComboboxItem>
           )}
         </ComboboxContent>

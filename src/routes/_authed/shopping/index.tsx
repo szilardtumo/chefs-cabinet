@@ -1,6 +1,6 @@
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import { convexQuery, useConvexAction, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { sortBy } from 'es-toolkit';
@@ -57,6 +57,10 @@ function ShoppingListComponent() {
     mutationFn: useConvexMutation(api.shoppingListItems.removeChecked),
   });
 
+  const { mutateAsync: quickCreateIngredient } = useMutation({
+    mutationFn: useConvexAction(api.ingredients.quickCreate),
+  });
+
   // Create default list if it doesn't exist
   useEffect(() => {
     if (list === null) {
@@ -81,6 +85,17 @@ function ShoppingListComponent() {
       toast.success('Ingredient added', {
         description: 'The ingredient has been added to your list.',
       });
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  };
+
+  const handleCreateIngredient = async (ingredientName: string) => {
+    try {
+      const ingredientId = await quickCreateIngredient({ name: ingredientName });
+      await handleAddIngredient(ingredientId);
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -144,7 +159,7 @@ function ShoppingListComponent() {
       </Card>
 
       {/* Add Ingredient Search */}
-      <IngredientCombobox selectedItems={itemIds} onSelect={handleAddIngredient} />
+      <IngredientCombobox selectedItems={itemIds} onSelect={handleAddIngredient} onCreate={handleCreateIngredient} />
 
       {/* Actions */}
       <AlertDialog>
