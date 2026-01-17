@@ -3,7 +3,7 @@ import type { Doc, Id } from '@convex/_generated/dataModel';
 import { convexQuery, useConvexAction, useConvexMutation } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { Sparkles } from 'lucide-react';
+import { GripVertical, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -11,9 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldFileUpload, FieldInput, FieldTagsInput, FieldTextarea } from '@/components/ui/form-fields';
 import { Input } from '@/components/ui/input';
+import { Item, ItemActions, ItemContent, ItemMedia } from '@/components/ui/item';
 import { Separator } from '@/components/ui/separator';
+import { Sortable, SortableContent, SortableItem, SortableItemHandle } from '@/components/ui/sortable';
 import { Spinner } from '@/components/ui/spinner';
 import { useStorageUpload } from '@/hooks/use-storage-upload';
+import { generateId } from '@/lib/id';
 
 // Helper function to convert image URL to File object
 async function urlToFile(url: string, filename: string): Promise<File> {
@@ -38,7 +41,12 @@ const recipeSchema = z.object({
       notes: z.string(),
     }),
   ),
-  instructions: z.array(z.string()),
+  instructions: z.array(
+    z.object({
+      id: z.string(),
+      text: z.string(),
+    }),
+  ),
 });
 
 type RecipeFormProps = {
@@ -94,7 +102,11 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
       tags: initialValues?.tags ?? [],
       imageFiles: initialImageFiles,
       ingredients: [] as z.infer<typeof recipeSchema>['ingredients'], // TODO: Add initial ingredients
-      instructions: initialValues?.instructions ?? [],
+      instructions:
+        initialValues?.instructions?.map((text) => ({
+          id: generateId(),
+          text,
+        })) ?? [],
     },
     validators: {
       onChange: recipeSchema,
@@ -132,7 +144,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
           prepTime: value.prepTime,
           cookingTime: value.cookingTime,
           servings: value.servings,
-          instructions: value.instructions,
+          instructions: value.instructions.map((instruction) => instruction.text),
           tags: value.tags,
         };
 
@@ -368,6 +380,69 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Instructions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Instructions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form.Field name="instructions" mode="array">
+            {(field) => {
+              const instructions = field.state.value;
+
+              return (
+                <div className="space-y-4">
+                  <Sortable
+                    value={instructions}
+                    onMove={(e) => field.moveValue(e.activeIndex, e.overIndex)}
+                    getItemValue={(item) => item.id}
+                    orientation="vertical"
+                  >
+                    <SortableContent className="space-y-2">
+                      {instructions.map((instruction, index) => (
+                        <SortableItem key={instruction.id} value={instruction.id}>
+                          <Item variant="outline" size="sm" className="items-start">
+                            <ItemMedia>
+                              <SortableItemHandle asChild>
+                                <Button variant="ghost" size="icon">
+                                  <GripVertical />
+                                </Button>
+                              </SortableItemHandle>
+                            </ItemMedia>
+                            <ItemContent>
+                              <form.Field name={`instructions[${index}].text`}>
+                                {(field) => (
+                                  <FieldTextarea field={field} placeholder={`Step ${index + 1}...`} rows={3} />
+                                )}
+                              </form.Field>
+                            </ItemContent>
+                            <ItemActions>
+                              <Button variant="ghost" size="icon" onClick={() => field.removeValue(index)}>
+                                <Trash2 />
+                              </Button>
+                            </ItemActions>
+                          </Item>
+                        </SortableItem>
+                      ))}
+                    </SortableContent>
+                  </Sortable>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => field.pushValue({ id: generateId(), text: '' })}
+                    className="w-full"
+                  >
+                    <Plus />
+                    Add Instruction
+                  </Button>
+                </div>
+              );
+            }}
+          </form.Field>
         </CardContent>
       </Card>
 

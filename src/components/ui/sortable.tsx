@@ -342,9 +342,9 @@ function SortableItem(props: SortableItemProps) {
     throw new Error(`\`${ITEM_NAME}\` must be used within \`${CONTENT_NAME}\` or \`${OVERLAY_NAME}\``);
   }
 
-  if (value === '') {
-    throw new Error(`\`${ITEM_NAME}\` value cannot be an empty string`);
-  }
+  // if (value === '') {
+  //   throw new Error(`\`${ITEM_NAME}\` value cannot be an empty string`);
+  // }
 
   const context = useSortableContext(ITEM_NAME);
   const id = React.useId();
