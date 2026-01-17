@@ -7,7 +7,8 @@ export const generateRecipeDescription = authenticatedAction({
   args: {
     title: v.string(),
     ingredients: v.array(v.string()),
-    cookingTime: v.number(),
+    cookingTime: v.optional(v.number()),
+    prepTime: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -18,6 +19,7 @@ export const generateRecipeDescription = authenticatedAction({
       
 The recipe includes these ingredients: ${ingredientsList}
 Cooking time: ${args.cookingTime} minutes
+Prep time: ${args.prepTime} minutes
 
 Write a brief, compelling description (2-3 sentences) that highlights the flavors, textures, and what makes this dish special. Keep it concise and inviting.`;
 

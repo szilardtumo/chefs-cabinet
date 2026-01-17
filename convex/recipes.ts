@@ -97,12 +97,12 @@ export const create = authenticatedMutation({
   args: {
     title: v.string(),
     description: v.string(),
-    image: v.optional(v.id('_storage')),
-    cookingTime: v.optional(v.number()),
     prepTime: v.optional(v.number()),
+    cookingTime: v.optional(v.number()),
     servings: v.optional(v.number()),
-    instructions: v.string(),
+    image: v.optional(v.id('_storage')),
     tags: v.array(v.string()),
+    instructions: v.array(v.string()),
     aiPrompt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -113,7 +113,6 @@ export const create = authenticatedMutation({
       {
         timestamp: Date.now(),
         type: 'created' as const,
-        aiGenerated: !!aiPrompt,
         aiPrompt,
       },
     ];
@@ -134,12 +133,12 @@ export const update = authenticatedMutation({
     id: v.id('recipes'),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
-    image: v.optional(v.id('_storage')),
-    cookingTime: v.optional(v.number()),
     prepTime: v.optional(v.number()),
+    cookingTime: v.optional(v.number()),
     servings: v.optional(v.number()),
-    instructions: v.optional(v.string()),
+    image: v.optional(v.id('_storage')),
     tags: v.optional(v.array(v.string())),
+    instructions: v.optional(v.array(v.string())),
     aiPrompt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {

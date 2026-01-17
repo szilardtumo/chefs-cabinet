@@ -40,7 +40,7 @@ export default defineSchema({
     cookingTime: v.optional(v.number()),
     prepTime: v.optional(v.number()),
     servings: v.optional(v.number()),
-    instructions: v.string(),
+    instructions: v.array(v.string()),
     tags: v.array(v.string()),
     history: v.array(
       v.object({

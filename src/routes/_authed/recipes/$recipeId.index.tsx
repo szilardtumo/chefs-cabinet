@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { AddToShoppingListDialog } from './-components/add-to-shopping-list-dialog';
 import { DeleteRecipeDialog } from './-components/delete-recipe-dialog';
 
-export const Route = createFileRoute('/_authed/recipes/$recipeId')({
+export const Route = createFileRoute('/_authed/recipes/$recipeId/')({
   component: RecipeDetailComponent,
 });
 
@@ -45,8 +45,6 @@ function RecipeDetailComponent() {
       });
     }
   };
-
-  const totalTime = (recipe.prepTime || 0) + (recipe.cookingTime || 0);
 
   return (
     <>
@@ -104,46 +102,38 @@ function RecipeDetailComponent() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <ChefHat className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">Total Time</p>
-                    <p className="text-sm text-muted-foreground">{totalTime} minutes</p>
+                    <p className="text-sm font-medium">Prep Time</p>
+                    <p className="text-sm text-muted-foreground">
+                      {recipe.prepTime !== undefined
+                        ? Intl.NumberFormat('en-US', { style: 'unit', unit: 'minute' }).format(recipe.prepTime)
+                        : 'N/A'}
+                    </p>
                   </div>
                 </div>
                 <Separator />
-                {recipe.prepTime !== undefined && (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <ChefHat className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Prep Time</p>
-                        <p className="text-sm text-muted-foreground">{recipe.prepTime} minutes</p>
-                      </div>
-                    </div>
-                    <Separator />
-                  </>
-                )}
-                {recipe.cookingTime !== undefined && (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Cook Time</p>
-                        <p className="text-sm text-muted-foreground">{recipe.cookingTime} minutes</p>
-                      </div>
-                    </div>
-                    <Separator />
-                  </>
-                )}
-                {recipe.servings !== undefined && (
-                  <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Servings</p>
-                      <p className="text-sm text-muted-foreground">{recipe.servings} people</p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Cook Time</p>
+                    <p className="text-sm text-muted-foreground">
+                      {recipe.cookingTime !== undefined
+                        ? Intl.NumberFormat('en-US', { style: 'unit', unit: 'minute' }).format(recipe.cookingTime)
+                        : 'N/A'}
+                    </p>
                   </div>
-                )}
+                </div>
+                <Separator />
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Servings</p>
+                    <p className="text-sm text-muted-foreground">
+                      {recipe.servings !== undefined ? recipe.servings : 'N/A'}
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -192,22 +182,19 @@ function RecipeDetailComponent() {
             <CardTitle>Instructions</CardTitle>
           </CardHeader>
           <CardContent>
-            {!recipe.instructions || recipe.instructions.trim().length === 0 ? (
+            {recipe.instructions.length === 0 ? (
               <p className="text-muted-foreground">No instructions added yet</p>
             ) : (
               <ol className="space-y-4">
-                {recipe.instructions
-                  .split('\n')
-                  .filter((line) => line.trim().length > 0)
-                  .map((instruction, index) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: index is the correct key
-                    <li key={index} className="flex gap-4">
-                      <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold">
-                        {index + 1}
-                      </div>
-                      <p className="flex-1 pt-1">{instruction.trim()}</p>
-                    </li>
-                  ))}
+                {recipe.instructions.map((instruction, index) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: index is the correct key
+                  <li key={index} className="flex gap-4">
+                    <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold">
+                      {index + 1}
+                    </div>
+                    <p className="flex-1 pt-1">{instruction.trim()}</p>
+                  </li>
+                ))}
               </ol>
             )}
           </CardContent>
@@ -245,7 +232,6 @@ function RecipeDetailComponent() {
           </Card>
         )}
       </div>
-
       <AddToShoppingListDialog
         open={shoppingListDialogOpen}
         onOpenChange={setShoppingListDialogOpen}

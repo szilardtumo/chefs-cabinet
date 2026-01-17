@@ -96,14 +96,25 @@
 
 import type { AnyFieldApi } from '@tanstack/react-form';
 import EmojiPicker from 'emoji-picker-react';
-import { Smile } from 'lucide-react';
+import { Smile, Upload, X } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
+import {
+  FileUpload,
+  FileUploadDropzone,
+  FileUploadItem,
+  FileUploadItemDelete,
+  FileUploadItemMetadata,
+  FileUploadItemPreview,
+  FileUploadList,
+  FileUploadTrigger,
+} from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TagsInput } from '@/components/ui/tags-input';
 import { Textarea } from '@/components/ui/textarea';
 
 // #region Helper Functions
@@ -146,6 +157,8 @@ type FieldInputProps = BaseFieldProps &
 export function FieldInput({ field, label, description, hideError, type = 'text', ...inputProps }: FieldInputProps) {
   const hasError = field.state.meta.errors.length > 0;
 
+  const value = type === 'number' && Number.isNaN(field.state.value) ? '' : (field.state.value ?? '');
+
   return (
     <Field data-invalid={hasError}>
       {label && <FieldLabel htmlFor={field.name}>{label}</FieldLabel>}
@@ -154,11 +167,11 @@ export function FieldInput({ field, label, description, hideError, type = 'text'
         id={field.name}
         name={field.name}
         type={type}
-        value={field.state.value}
+        value={value}
         onChange={(e) => {
           // Handle number inputs differently
           if (type === 'number') {
-            field.handleChange(e.target.valueAsNumber);
+            field.handleChange(Number.isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber);
           } else {
             field.handleChange(e.target.value);
           }
@@ -330,6 +343,106 @@ export function FieldColorPicker({
           />
         )}
       </div>
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
+    </Field>
+  );
+}
+
+// #endregion
+
+// #region FieldFileUpload
+
+type FieldFileUploadProps = BaseFieldProps &
+  Omit<React.ComponentProps<typeof FileUpload>, 'value' | 'onValueChange' | 'name' | 'defaultValue' | 'onChange'>;
+
+export function FieldFileUpload({
+  field,
+  label,
+  description,
+  hideError,
+  maxFiles = 1,
+  maxSize,
+  accept,
+  multiple = false,
+  ...fileUploadProps
+}: FieldFileUploadProps) {
+  const hasError = field.state.meta.errors.length > 0;
+  const files = (field.state.value as File[]) || [];
+
+  return (
+    <Field data-invalid={hasError}>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      {description && <FieldDescription>{description}</FieldDescription>}
+      <FileUpload
+        value={files}
+        onValueChange={(newFiles) => {
+          field.handleChange(newFiles);
+        }}
+        accept={accept}
+        maxFiles={maxFiles}
+        maxSize={maxSize}
+        multiple={multiple}
+        invalid={hasError}
+        {...fileUploadProps}
+      >
+        <FileUploadDropzone className="min-h-32">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <Upload className="size-8 text-muted-foreground" />
+            <div>
+              <p className="font-medium text-sm">{files.length > 0 ? 'Replace file' : 'Drag & drop file here'}</p>
+              {maxSize && (
+                <p className="text-muted-foreground text-xs">
+                  Or click to browse (up to {Math.round(maxSize / (1024 * 1024))}MB)
+                </p>
+              )}
+            </div>
+            <FileUploadTrigger asChild>
+              <Button variant="outline" size="sm" type="button">
+                Choose File
+              </Button>
+            </FileUploadTrigger>
+          </div>
+        </FileUploadDropzone>
+        <FileUploadList>
+          {files.map((file) => (
+            <FileUploadItem key={file.name} value={file}>
+              <FileUploadItemPreview className="size-20" />
+              <FileUploadItemMetadata />
+              <FileUploadItemDelete asChild>
+                <Button variant="ghost" size="icon" className="size-7" type="button">
+                  <X />
+                </Button>
+              </FileUploadItemDelete>
+            </FileUploadItem>
+          ))}
+        </FileUploadList>
+      </FileUpload>
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
+    </Field>
+  );
+}
+
+// #endregion
+
+// #region FieldTagsInput
+
+type FieldTagsInputProps = BaseFieldProps & Omit<React.ComponentProps<typeof TagsInput>, 'value' | 'onValueChange'>;
+
+export function FieldTagsInput({ field, label, description, hideError, ...tagsInputProps }: FieldTagsInputProps) {
+  const hasError = field.state.meta.errors.length > 0;
+  const tags = (field.state.value as string[]) || [];
+
+  return (
+    <Field data-invalid={hasError}>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      {description && <FieldDescription>{description}</FieldDescription>}
+      <TagsInput
+        value={tags}
+        onValueChange={(newTags) => {
+          field.handleChange(newTags);
+        }}
+        {...tagsInputProps}
+      />
       {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
   );
