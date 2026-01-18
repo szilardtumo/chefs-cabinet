@@ -135,19 +135,23 @@ export const create = authenticatedMutation({
 });
 
 /**
- * Uses AI to determine the best category for an ingredient.
+ * Uses AI to determine the best category for ingredients.
  *
  * This function must be called from an authenticated action.
  *
- * @param args.name - The name of the ingredient to categorize.
+ * @param args.names - Array of ingredient names to categorize.
  * @param ctx - The action context.
  *
- * Returns the category ID if a suitable category exists, or null if a new category should be created.
+ * Returns an array of ingredient details with category IDs.
  */
 async function generateIngredientDetails(
-  args: { name: string },
+  args: { names: string[] },
   ctx: ActionCtx,
-): Promise<{ name: string; emoji?: string; defaultUnit?: string; categoryId: Id<'categories'> }> {
+): Promise<{ name: string; emoji?: string; defaultUnit?: string; categoryId: Id<'categories'> }[]> {
+  if (args.names.length === 0) {
+    return [];
+  }
+
   const categories = await ctx.runQuery(api.categories.getAll, {});
 
   try {
@@ -157,35 +161,40 @@ async function generateIngredientDetails(
     const categoryList = categories.map((c) => `- ID: "${c._id}", Name: "${c.name}"`).join('\n');
     const categoryIds = categories.map((c) => c._id as string);
 
-    const prompt = `Generate details for a kitchen ingredient in a recipe app.
+    const prompt = `Generate details for kitchen ingredients in a recipe app.
 
-Ingredient name: "${args.name}"
+Ingredient names: 
+${args.names.map((name, index) => `${index + 1}. "${name}"`).join('\n')}
 
 Available categories:
 ${categoryList}
 
 Instructions:
+For each ingredient, provide:
 1. categoryId: Select an existing category ID from above. Only set to null if absolutely no category fits.
 2. name: The name of the ingredient as provided in the input, with correct spelling and capitalization. Words should be capitalized.
 3. emoji: Single emoji representing this ingredient (e.g. "🍎" for apple, "🥛" for milk)
 4. defaultUnit: Common metric unit for this ingredient, or imperial unit if metric unit is not appropriate (e.g. "g", "ml", "pcs", "tbsp"). Leave empty if unclear.
-5. If categoryId is null, provide newCategoryName, newCategoryEmoji, and newCategoryColor (hex like "#ff5500")`;
+5. If categoryId is null, provide newCategoryName, newCategoryEmoji, and newCategoryColor (hex like "#ff5500")
+Process all ingredients in a single response.`;
 
     const categoryIdSchema =
       categoryIds.length > 0 ? z.enum(categoryIds as [string, ...string[]]).nullable() : z.null();
 
-    const schema = z.object({
-      name: z.string().describe('Name of the ingredient'),
-      emoji: z.string().describe('Single emoji for the ingredient'),
-      defaultUnit: z.string().optional().describe('Default measurement unit (e.g. "g", "ml", "pcs")'),
-      categoryId: categoryIdSchema.describe('ID of existing category from list above, or null to create new'),
-      newCategoryName: z.string().optional().describe('Name for new category (only if categoryId is null)'),
-      newCategoryEmoji: z.string().optional().describe('Emoji for new category (only if categoryId is null)'),
-      newCategoryColor: z
-        .string()
-        .optional()
-        .describe('Hex color for new category like "#ff5500" (only if categoryId is null)'),
-    });
+    const schema = z.array(
+      z.object({
+        name: z.string().describe('Name of the ingredient'),
+        emoji: z.string().describe('Single emoji for the ingredient'),
+        defaultUnit: z.string().optional().describe('Default measurement unit (e.g. "g", "ml", "pcs")'),
+        categoryId: categoryIdSchema.describe('ID of existing category from list above, or null to create new'),
+        newCategoryName: z.string().optional().describe('Name for new category (only if categoryId is null)'),
+        newCategoryEmoji: z.string().optional().describe('Emoji for new category (only if categoryId is null)'),
+        newCategoryColor: z
+          .string()
+          .optional()
+          .describe('Hex color for new category like "#ff5500" (only if categoryId is null)'),
+      }),
+    );
 
     const { object } = await generateObject({
       model: google('gemini-2.5-flash'),
@@ -193,69 +202,80 @@ Instructions:
       prompt,
     });
 
-    let categoryId: Id<'categories'>;
+    // Process results and create categories as needed
+    const results = await Promise.all(
+      object.map(async (ingredient) => {
+        let categoryId: Id<'categories'>;
 
-    if (object.categoryId === null && object.newCategoryName) {
-      categoryId = await ctx.runMutation(api.categories.create, {
-        name: object.newCategoryName,
-        emoji: object.newCategoryEmoji ?? '📦',
-        color: object.newCategoryColor ?? '#6b7280',
-      });
-    } else if (object.categoryId) {
-      categoryId = object.categoryId as Id<'categories'>;
-    } else {
-      throw new Error('Incorrect category selection from AI response');
-    }
+        if (ingredient.categoryId === null && ingredient.newCategoryName) {
+          categoryId = await ctx.runMutation(api.categories.create, {
+            name: ingredient.newCategoryName,
+            emoji: ingredient.newCategoryEmoji ?? '📦',
+            color: ingredient.newCategoryColor ?? '#6b7280',
+          });
+        } else if (ingredient.categoryId) {
+          categoryId = ingredient.categoryId as Id<'categories'>;
+        } else {
+          throw new Error('Incorrect category selection from AI response');
+        }
 
-    return {
-      name: object.name,
-      emoji: object.emoji,
-      defaultUnit: object.defaultUnit,
-      categoryId,
-    };
+        return {
+          name: ingredient.name,
+          emoji: ingredient.emoji,
+          defaultUnit: ingredient.defaultUnit,
+          categoryId,
+        };
+      }),
+    );
+
+    return results;
   } catch (error) {
     console.error('AI category assignment failed:', error);
 
-    // Fallback to "Other" category
+    // Fallback: create ingredients with "Other" category
     const otherCategory = categories.find((cat) => cat.name.toLowerCase() === 'other');
+    let fallbackCategoryId: Id<'categories'>;
+
     if (otherCategory) {
-      return {
-        name: args.name,
-        categoryId: otherCategory._id,
-      };
+      fallbackCategoryId = otherCategory._id;
+    } else {
+      fallbackCategoryId = await ctx.runMutation(api.categories.create, {
+        name: 'Other',
+        emoji: '📦',
+        color: '#6b7280',
+      });
     }
 
-    const newCategoryId = await ctx.runMutation(api.categories.create, {
-      name: 'Other',
-      emoji: '📦',
-      color: '#6b7280',
-    });
-
-    return {
-      name: args.name,
-      categoryId: newCategoryId,
-    };
+    return args.names.map((name) => ({
+      name,
+      categoryId: fallbackCategoryId,
+    }));
   }
 }
 
 /**
- * Quickly creates a new ingredient for the currently authenticated user.
- * Uses AI to automatically assign the best category, creating a new one only if necessary.
+ * Quickly creates ingredients for the currently authenticated user.
+ * Uses AI to automatically assign the best categories, creating new ones only if necessary.
  *
- * @param args - The arguments object containing the ingredient name.
- * @param args.name - The name of the ingredient to create.
+ * @param args - The arguments object containing the ingredient names.
+ * @param args.names - Array of ingredient names to create.
  *
- * @returns A promise that resolves to the ID of the created ingredient.
+ * @returns A promise that resolves to the list of IDs of the created ingredients.
  */
 export const quickCreate = authenticatedAction({
   args: {
-    name: v.string(),
+    names: v.array(v.string()),
   },
-  handler: async (ctx, args): Promise<Id<'ingredients'>> => {
-    // Use AI to find the best category
-    const ingredientDetails = await generateIngredientDetails(args, ctx);
+  handler: async (ctx, args): Promise<Id<'ingredients'>[]> => {
+    // Use AI to find the best categories for all ingredients in a single call
+    const ingredientDetailsList = await generateIngredientDetails({ names: args.names }, ctx);
 
-    return await ctx.runMutation(api.ingredients.create, ingredientDetails);
+    // Create all ingredients
+    const ingredientIds = await Promise.all(
+      ingredientDetailsList.map((details) => ctx.runMutation(api.ingredients.create, details)),
+    );
+
+    return ingredientIds;
   },
 });
 

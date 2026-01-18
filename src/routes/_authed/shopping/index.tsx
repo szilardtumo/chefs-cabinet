@@ -94,7 +94,7 @@ function ShoppingListComponent() {
 
   const handleCreateIngredient = async (ingredientName: string) => {
     try {
-      const ingredientId = await quickCreateIngredient({ name: ingredientName });
+      const [ingredientId] = await quickCreateIngredient({ names: [ingredientName] });
       await handleAddIngredient(ingredientId);
     } catch (error) {
       toast.error('Error', {

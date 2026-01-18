@@ -20,15 +20,21 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '
 import { Badge } from './ui/badge';
 import { Spinner } from './ui/spinner';
 
+interface IngredientComboboxProps
+  extends Omit<React.ComponentProps<typeof Combobox>, 'selectedItems' | 'onSelect' | 'onCreate'> {
+  selectedItems: Id<'ingredients'>[];
+  onSelect: (ingredientId: Id<'ingredients'>) => Promise<void>;
+  onCreate: (ingredientName: string) => Promise<void>;
+  placeholder?: string;
+}
+
 export function IngredientCombobox({
   selectedItems,
   onSelect,
   onCreate,
-}: {
-  selectedItems: Id<'ingredients'>[];
-  onSelect: (ingredientId: Id<'ingredients'>) => Promise<void>;
-  onCreate: (ingredientName: string) => Promise<void>;
-}) {
+  placeholder = 'Search ingredients to add...',
+  ...props
+}: IngredientComboboxProps) {
   const [inputValue, setInputValue] = useState('');
   const [open, setOpen] = useState(false);
 
@@ -99,11 +105,12 @@ export function IngredientCombobox({
       loop
       multiple
       autoHighlight
+      {...props}
     >
       <ComboboxAnchor onClick={() => setOpen(true)} asChild>
         <InputGroup className="px-0">
           <ComboboxInput asChild>
-            <InputGroupInput placeholder="Search ingredients to add..." />
+            <InputGroupInput placeholder={placeholder} />
           </ComboboxInput>
           <InputGroupAddon>{isPending ? <Spinner /> : <SearchIcon />}</InputGroupAddon>
           <InputGroupAddon align="inline-end">

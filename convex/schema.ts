@@ -56,8 +56,8 @@ export default defineSchema({
   recipeIngredients: defineTable({
     recipeId: v.id('recipes'),
     ingredientId: v.id('ingredients'),
-    quantity: v.number(),
-    unit: v.string(),
+    quantity: v.optional(v.number()),
+    unit: v.optional(v.string()),
     notes: v.optional(v.string()),
     order: v.number(),
   })
