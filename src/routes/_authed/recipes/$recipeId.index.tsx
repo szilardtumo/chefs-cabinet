@@ -6,6 +6,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, ChefHat, Clock, History, Pencil, ShoppingCart, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { IngredientCartButton } from '@/components/ingredient-cart-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,7 @@ function RecipeDetailComponent() {
       id: recipeId as Id<'recipes'>,
     }),
   );
+
   const { mutateAsync: deleteRecipe } = useMutation({
     mutationFn: useConvexMutation(api.recipes.remove),
   });
@@ -162,13 +164,15 @@ function RecipeDetailComponent() {
             ) : (
               <ul className="space-y-2">
                 {recipe.ingredients.map((ri) => (
-                  <li key={ri._id} className="flex items-center gap-2">
-                    {ri.ingredient?.emoji && <span className="text-lg">{ri.ingredient.emoji}</span>}
-                    <span className="font-medium">
-                      {ri.quantity} {ri.unit}
-                    </span>
-                    <span>{ri.ingredient?.name}</span>
-                    {ri.notes && <span className="text-muted-foreground text-sm">({ri.notes})</span>}
+                  <li key={ri._id} className="flex items-center gap-1">
+                    <IngredientCartButton ingredientId={ri.ingredientId} />
+                    <div>
+                      <span className="italic">
+                        {ri.quantity} {ri.quantity !== undefined ? ri.unit : ''}
+                      </span>{' '}
+                      {ri.ingredient?.name} {ri.ingredient?.emoji}{' '}
+                      {ri.notes && <span className="text-muted-foreground text-sm italic">({ri.notes})</span>}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -185,15 +189,10 @@ function RecipeDetailComponent() {
             {recipe.instructions.length === 0 ? (
               <p className="text-muted-foreground">No instructions added yet</p>
             ) : (
-              <ol className="space-y-4">
+              <ol className="list-decimal list-inside space-y-2">
                 {recipe.instructions.map((instruction, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: index is the correct key
-                  <li key={index} className="flex gap-4">
-                    <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold">
-                      {index + 1}
-                    </div>
-                    <p className="flex-1 pt-1">{instruction.trim()}</p>
-                  </li>
+                  <li key={index}>{instruction}</li>
                 ))}
               </ol>
             )}

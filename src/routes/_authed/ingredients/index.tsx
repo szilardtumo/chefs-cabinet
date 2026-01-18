@@ -1,18 +1,18 @@
 'use no memo';
 
 import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
 import type { IngredientWithCategory } from '@convex/ingredients';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
-import { Check, Pencil, Plus, Settings2, ShoppingCart, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Settings2, Trash2 } from 'lucide-react';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
+import { IngredientCartButton } from '@/components/ingredient-cart-button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDataTable } from '@/hooks/use-data-table';
-import { cn } from '@/lib/utils';
 import { IngredientDialog, type IngredientFormData } from './-components/ingredient-dialog';
 
 export const Route = createFileRoute('/_authed/ingredients/')({
@@ -38,7 +37,6 @@ const columnHelper = createColumnHelper<IngredientWithCategory>();
 
 function IngredientsComponent() {
   const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
-  const { data: shoppingList } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
 
   const { mutateAsync: createIngredient } = useMutation({
     mutationFn: useConvexMutation(api.ingredients.create),
@@ -48,12 +46,6 @@ function IngredientsComponent() {
   });
   const { mutateAsync: deleteIngredient } = useMutation({
     mutationFn: useConvexMutation(api.ingredients.remove),
-  });
-  const { mutateAsync: addToShoppingList } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.add),
-  });
-  const { mutateAsync: removeFromShoppingList } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.removeByIngredient),
   });
 
   const [selectedIngredient, setSelectedIngredient] = useState<IngredientWithCategory | null>(null);
@@ -99,47 +91,6 @@ function IngredientsComponent() {
     }
   }, [selectedIngredient, deleteIngredient]);
 
-  const isIngredientInShoppingList = useCallback(
-    (ingredientId: Id<'ingredients'>) => {
-      if (!shoppingList?.items) return false;
-      return shoppingList.items.some((item) => item.ingredientId === ingredientId);
-    },
-    [shoppingList],
-  );
-
-  const handleToggleShoppingList = useCallback(
-    async (ingredient: IngredientWithCategory) => {
-      if (!shoppingList?._id) return;
-
-      try {
-        const isInList = isIngredientInShoppingList(ingredient._id);
-
-        if (isInList) {
-          await removeFromShoppingList({
-            shoppingListId: shoppingList._id,
-            ingredientId: ingredient._id,
-          });
-          toast.success('Removed from shopping list', {
-            description: `${ingredient.name} has been removed from your shopping list.`,
-          });
-        } else {
-          await addToShoppingList({
-            shoppingListId: shoppingList._id,
-            ingredientId: ingredient._id,
-          });
-          toast.success('Added to shopping list', {
-            description: `${ingredient.name} has been added to your shopping list.`,
-          });
-        }
-      } catch (error) {
-        toast.error('Error', {
-          description: error instanceof Error ? error.message : 'An unknown error occurred',
-        });
-      }
-    },
-    [shoppingList, addToShoppingList, removeFromShoppingList, isIngredientInShoppingList],
-  );
-
   // Column definitions
   const columns = useMemo(
     () =>
@@ -147,20 +98,7 @@ function IngredientsComponent() {
         columnHelper.display({
           id: 'shoppingList',
           cell: (info) => {
-            const ingredient = info.row.original;
-            const isInShoppingList = isIngredientInShoppingList(ingredient._id);
-            return (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative shrink-0"
-                onClick={() => handleToggleShoppingList(ingredient)}
-                title={isInShoppingList ? 'Remove from shopping list' : 'Add to shopping list'}
-              >
-                <ShoppingCart className={cn(isInShoppingList && 'fill-black text-black')} />
-                {isInShoppingList && <Check className="absolute right-0.5 top-0.5 size-3 text-green-500" />}
-              </Button>
-            );
+            return <IngredientCartButton ingredientId={info.row.original._id} />;
           },
         }),
         columnHelper.accessor('name', {
@@ -238,7 +176,7 @@ function IngredientsComponent() {
           },
         }),
       ] as ColumnDef<IngredientWithCategory>[],
-    [isIngredientInShoppingList, handleToggleShoppingList],
+    [],
   );
 
   const { table } = useDataTable({
