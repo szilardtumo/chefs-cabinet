@@ -59,7 +59,15 @@ const recipeSchema = z.object({
 type RecipeFormProps = {
   mode: 'create' | 'edit';
   recipeId?: Id<'recipes'>;
-  initialValues?: Partial<Doc<'recipes'> & { ingredients: Doc<'recipeIngredients'>[] }>;
+  initialValues?: Partial<
+    Doc<'recipes'> & {
+      ingredients: Array<
+        Partial<Doc<'recipeIngredients'>> & {
+          newIngredientName?: string;
+        }
+      >;
+    }
+  >;
   onSuccess?: (recipeId: Id<'recipes'>) => void;
   onCancel?: () => void;
 };
@@ -111,6 +119,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
       ingredients: (initialValues?.ingredients?.map((ingredient) => ({
         id: generateId(),
         ingredientId: ingredient.ingredientId,
+        newIngredientName: ingredient.newIngredientName,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
         notes: ingredient.notes,

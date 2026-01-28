@@ -2,11 +2,17 @@ import { api } from '@convex/_generated/api';
 import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { BookOpen, Plus, Search } from 'lucide-react';
+import { BookOpen, ChevronDown, Pencil, Plus, Search, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { RecipeCard } from '@/components/recipe-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 
 export const Route = createFileRoute('/_authed/recipes/')({
@@ -32,12 +38,27 @@ function RecipesComponent() {
           <h1 className="text-3xl font-bold tracking-tight">Recipes</h1>
           <p className="text-muted-foreground">Your collection of delicious recipes</p>
         </div>
-        <Button asChild>
-          <Link to="/recipes/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Recipe
-          </Link>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button>
+              <Plus />
+              Add Recipe
+              <ChevronDown />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link to="/recipes/import">
+                <Sparkles /> Import from source
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/recipes/new">
+                <Pencil /> Create from scratch
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Search */}
