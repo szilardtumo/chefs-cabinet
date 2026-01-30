@@ -105,6 +105,8 @@ export const seedUserData = authenticatedMutation({
           name: ingredient.name,
           defaultUnit: ingredient.defaultUnit,
           emoji: ingredient.emoji,
+          usageScore: 0,
+          lastUsageAt: Date.now(),
         });
         ingredientCount++;
       }

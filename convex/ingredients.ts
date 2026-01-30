@@ -130,6 +130,8 @@ export const create = authenticatedMutation({
     return await ctx.db.insert('ingredients', {
       ...args,
       userId: ctx.userId,
+      usageScore: 0,
+      lastUsageAt: Date.now(),
     });
   },
 });

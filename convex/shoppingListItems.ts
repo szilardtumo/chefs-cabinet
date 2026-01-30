@@ -1,4 +1,5 @@
 import { v } from 'convex/values';
+import { increaseUsageScore } from '@/lib/usage-score';
 import { NotFoundError } from './lib/errors';
 import { authenticatedMutation } from './lib/helpers';
 
@@ -230,6 +231,11 @@ export const removeChecked = authenticatedMutation({
     const checkedItems = items.filter((item) => item.checked);
 
     for (const item of checkedItems) {
+      const ingredient = await ctx.db.get(item.ingredientId);
+      if (ingredient) {
+        const updated = increaseUsageScore(ingredient.usageScore, ingredient.lastUsageAt);
+        await ctx.db.patch(item.ingredientId, updated);
+      }
       await ctx.db.delete(item._id);
     }
 

@@ -22,6 +22,8 @@ export default defineSchema({
     defaultUnit: v.optional(v.string()),
     notes: v.optional(v.string()),
     emoji: v.optional(v.string()),
+    usageScore: v.number(),
+    lastUsageAt: v.number(),
   })
     .index('by_user', ['userId'])
     .index('by_category', ['categoryId'])

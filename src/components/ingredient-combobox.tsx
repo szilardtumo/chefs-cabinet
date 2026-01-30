@@ -17,6 +17,7 @@ import {
   ComboboxTrigger,
 } from '@/components/ui/combobox';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
+import { getLiveUsageScore } from '@/lib/usage-score';
 import { Badge } from './ui/badge';
 import { Spinner } from './ui/spinner';
 
@@ -59,7 +60,14 @@ export function IngredientCombobox({
   // Fuzzy search results, with unselected items first
   const searchResults = useMemo(() => {
     if (inputValue.trim().length === 0) {
-      return allIngredients.map((ingredient) => ({ item: ingredient, score: 0 }));
+      // No search query: sort by usage score (highest first)
+      return [...allIngredients]
+        .map((ingredient) => ({
+          item: ingredient,
+          score: 0,
+          usageScore: getLiveUsageScore(ingredient.usageScore, ingredient.lastUsageAt),
+        }))
+        .sort((a, b) => b.usageScore - a.usageScore);
     }
 
     return fuse.search(inputValue.trim());
