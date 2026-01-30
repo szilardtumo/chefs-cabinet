@@ -1,8 +1,14 @@
 import { v } from 'convex/values';
 import { increaseUsageScore } from '@/lib/usage-score';
+import type { Doc } from './_generated/dataModel';
+import type { Ingredient } from './ingredients';
 import { NotFoundError } from './lib/errors';
 import { authenticatedMutation } from './lib/helpers';
 
+export type ShoppingListItem = Doc<'shoppingListItems'>;
+export type ShoppingListItemWithIngredient = ShoppingListItem & {
+  ingredient: Ingredient | null;
+};
 /**
  * Adds an ingredient to a shopping list for the currently authenticated user.
  *

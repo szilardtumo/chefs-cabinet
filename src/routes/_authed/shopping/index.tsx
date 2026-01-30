@@ -1,12 +1,13 @@
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import type { ShoppingListItemWithIngredient } from '@convex/shoppingListItems';
 import { convexQuery, useConvexAction, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { sortBy } from 'es-toolkit';
-import { Info, ShoppingCart } from 'lucide-react';
+import { Info, MoreHorizontal, NotebookPen, ShoppingCart, Trash } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { IngredientCombobox } from '@/components/ingredient-combobox';
 import {
@@ -24,11 +25,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Item, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { ShoppingItemNotesDialog } from './_components/ShoppingItemNotesDialog';
 
 export const Route = createFileRoute('/_authed/shopping/')({
   component: ShoppingListComponent,
@@ -56,10 +64,15 @@ function ShoppingListComponent() {
   const { mutateAsync: clearChecked } = useMutation({
     mutationFn: useConvexMutation(api.shoppingListItems.removeChecked),
   });
+  const { mutateAsync: removeItem } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingListItems.remove),
+  });
 
   const { mutateAsync: quickCreateIngredient } = useMutation({
     mutationFn: useConvexAction(api.ingredients.quickCreate),
   });
+
+  const [currentItem, setCurrentItem] = useState<ShoppingListItemWithIngredient | null>(null);
 
   // Create default list if it doesn't exist
   useEffect(() => {
@@ -105,6 +118,19 @@ function ShoppingListComponent() {
 
   const handleToggle = async (itemId: Id<'shoppingListItems'>) => {
     await toggleChecked({ id: itemId });
+  };
+
+  const handleRemoveItem = async (itemId: Id<'shoppingListItems'>) => {
+    try {
+      await removeItem({ id: itemId });
+      toast.success('Ingredient removed', {
+        description: 'The ingredient has been removed from your list.',
+      });
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
   };
 
   const handleClearChecked = async () => {
@@ -231,12 +257,29 @@ function ShoppingListComponent() {
                               </PopoverContent>
                             </Popover>
                           )}
-                          {item.category && (
-                            <Badge variant="secondary" className="ml-auto text-nowrap">
-                              {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
-                              {item.category.name}
-                            </Badge>
-                          )}
+                          <div className="ml-auto flex items-center gap-2">
+                            {item.category && (
+                              <Badge variant="secondary" className="text-nowrap">
+                                {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
+                                {item.category.name}
+                              </Badge>
+                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="size-5 text-muted-foreground hover:text-foreground">
+                                  <MoreHorizontal />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onSelect={() => setCurrentItem(item)}>
+                                  <NotebookPen /> Add notes
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => handleRemoveItem(item._id)}>
+                                  <Trash /> Remove
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </ItemTitle>
                       </ItemContent>
                     </Label>
@@ -247,6 +290,7 @@ function ShoppingListComponent() {
           </AnimatePresence>
         </div>
       )}
+      <ShoppingItemNotesDialog item={currentItem} onClose={() => setCurrentItem(null)} />
     </div>
   );
 }
