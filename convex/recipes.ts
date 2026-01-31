@@ -269,8 +269,9 @@ export const updateRecipeMutation = internalMutation({
     }
 
     // Update recipe
-    await ctx.db.patch(id, {
-      ...changes,
+    await ctx.db.replace(id, {
+      ...updates,
+      userId: recipe.userId,
       history: [...recipe.history, newHistoryEntry],
     });
 
