@@ -3,8 +3,7 @@ import type { Doc, Id } from '@convex/_generated/dataModel';
 import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { Edit, GripVertical, Plus, Repeat2, Sparkles, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Edit, GripVertical, Plus, Repeat2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { CategoryTag } from '@/components/category-tag';
@@ -13,10 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldFileUpload, FieldInput, FieldTagsInput, FieldTextarea } from '@/components/ui/form-fields';
-import { Input } from '@/components/ui/input';
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui/item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
 import { Sortable, SortableContent, SortableItem, SortableItemHandle } from '@/components/ui/sortable';
 import { Spinner } from '@/components/ui/spinner';
 import { useStorageUpload } from '@/hooks/use-storage-upload';
@@ -83,18 +80,6 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
   });
 
   const { uploadFile } = useStorageUpload();
-
-  const generateDescriptionMutation = useMutation({
-    mutationFn: useConvexAction(api.recipesAi.generateRecipeDescription),
-  });
-  const enhanceDescriptionMutation = useMutation({
-    mutationFn: useConvexAction(api.recipesAi.enhanceRecipeDescription),
-  });
-  const customizeDescriptionMutation = useMutation({
-    mutationFn: useConvexAction(api.recipesAi.customizeRecipeDescription),
-  });
-
-  const [customPrompt, setCustomPrompt] = useState('');
 
   const { data: initialImageFiles = [] } = useQuery({
     queryKey: ['initialImageFile', initialValues?.image],
@@ -205,97 +190,6 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
     },
   });
 
-  const handleGenerateDescription = async () => {
-    const title = form.getFieldValue('title');
-    if (!title) {
-      toast.error('Missing title', {
-        description: 'Please enter a recipe title first',
-      });
-      return;
-    }
-
-    try {
-      const ingredientNames = form
-        .getFieldValue('ingredients')
-        .filter((ri) => ri.ingredientId)
-        .map((ri) => {
-          const ing = ingredients?.find((i) => i._id === ri.ingredientId);
-          return ing?.name || '';
-        })
-        .filter(Boolean);
-
-      const result = await generateDescriptionMutation.mutateAsync({
-        title,
-        ingredients: ingredientNames,
-        cookingTime: form.getFieldValue('cookingTime'),
-        prepTime: form.getFieldValue('prepTime'),
-      });
-
-      form.setFieldValue('description', result || '');
-      toast.success('Description generated', {
-        description: 'AI has generated a recipe description for you.',
-      });
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
-  };
-
-  const handleEnhanceDescription = async () => {
-    const description = form.getFieldValue('description');
-    if (!description) {
-      toast.error('Missing description', {
-        description: 'Please enter a description first',
-      });
-      return;
-    }
-
-    try {
-      const result = await enhanceDescriptionMutation.mutateAsync({
-        currentDescription: description,
-        title: form.getFieldValue('title'),
-      });
-
-      form.setFieldValue('description', result || '');
-      toast.success('Description enhanced', {
-        description: 'AI has improved your recipe description.',
-      });
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
-  };
-
-  const handleCustomizeDescription = async () => {
-    const description = form.getFieldValue('description');
-    if (!description || !customPrompt) {
-      toast.error('Missing information', {
-        description: 'Please enter both a description and custom prompt',
-      });
-      return;
-    }
-
-    try {
-      const result = await customizeDescriptionMutation.mutateAsync({
-        currentDescription: description,
-        customPrompt,
-        title: form.getFieldValue('title'),
-      });
-
-      form.setFieldValue('description', result || '');
-      setCustomPrompt('');
-      toast.success('Description customized', {
-        description: 'AI has modified your recipe description.',
-      });
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
-  };
-
   return (
     <form
       onSubmit={(e) => {
@@ -344,70 +238,6 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
           <form.Field name="tags">
             {(field) => <FieldTagsInput field={field} label="Tags" placeholder="Add a tag..." withAddButton />}
           </form.Field>
-        </CardContent>
-      </Card>
-
-      {/* AI Description */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            AI-Powered Description
-            <Sparkles className="size-4" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form.Field name="description">
-            {(field) => (
-              <FieldTextarea field={field} label="Description" placeholder="Describe your recipe..." rows={4} />
-            )}
-          </form.Field>
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleGenerateDescription}
-              disabled={generateDescriptionMutation.isPending}
-            >
-              {generateDescriptionMutation.isPending ? <Spinner /> : <Sparkles />}
-              Generate with AI
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleEnhanceDescription}
-              disabled={enhanceDescriptionMutation.isPending}
-            >
-              {enhanceDescriptionMutation.isPending ? <Spinner /> : <Sparkles />}
-              Enhance
-            </Button>
-          </div>
-
-          <Separator />
-
-          <div>
-            <label
-              htmlFor="customPrompt"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Custom AI Modification
-            </label>
-            <div className="flex gap-2 mt-2">
-              <Input
-                id="customPrompt"
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                placeholder="e.g., Make it kid-friendly, add more details..."
-              />
-              <Button
-                type="button"
-                onClick={handleCustomizeDescription}
-                disabled={customizeDescriptionMutation.isPending || !customPrompt}
-              >
-                {customizeDescriptionMutation.isPending ? <Spinner /> : 'Apply'}
-              </Button>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

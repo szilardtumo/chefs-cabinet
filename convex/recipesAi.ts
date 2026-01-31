@@ -1,94 +1,10 @@
-import { generateObject, generateText } from 'ai';
+import { generateText, Output } from 'ai';
 import { v } from 'convex/values';
 import { z } from 'zod';
 import { api } from './_generated/api';
 import type { IngredientWithCategory } from './ingredients';
 import { createGoogleAI } from './lib/ai';
 import { authenticatedAction } from './lib/helpers';
-
-export const generateRecipeDescription = authenticatedAction({
-  args: {
-    title: v.string(),
-    ingredients: v.array(v.string()),
-    cookingTime: v.optional(v.number()),
-    prepTime: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    const google = await createGoogleAI(identity!);
-
-    const ingredientsList = args.ingredients.join(', ');
-    const prompt = `Generate an engaging and appetizing recipe description for a dish called "${args.title}". 
-      
-The recipe includes these ingredients: ${ingredientsList}
-Cooking time: ${args.cookingTime} minutes
-Prep time: ${args.prepTime} minutes
-
-Write a brief, compelling description (2-3 sentences) that highlights the flavors, textures, and what makes this dish special. Keep it concise and inviting.
-
-Return only the generated description.`;
-
-    const { text } = await generateText({
-      model: google('gemini-2.5-flash-lite'),
-      prompt,
-    });
-
-    return text;
-  },
-});
-
-export const enhanceRecipeDescription = authenticatedAction({
-  args: {
-    currentDescription: v.string(),
-    title: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    const google = await createGoogleAI(identity!);
-
-    const prompt = `Enhance and improve this recipe description for "${args.title}":
-
-Current description: ${args.currentDescription}
-
-Make it more detailed, engaging, and appetizing. Add more sensory details about flavors, textures, and aromas. Keep it concise but compelling (3-4 sentences max).
-
-Return only the enhanced description.`;
-
-    const { text } = await generateText({
-      model: google('gemini-2.5-flash-lite'),
-      prompt,
-    });
-
-    return text;
-  },
-});
-
-export const customizeRecipeDescription = authenticatedAction({
-  args: {
-    currentDescription: v.string(),
-    customPrompt: v.string(),
-    title: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    const google = await createGoogleAI(identity!);
-
-    const prompt = `Modify this recipe description for "${args.title}" based on the following request:
-
-Current description: ${args.currentDescription}
-
-User request: ${args.customPrompt}
-
-Provide the modified description that addresses the user's request while maintaining the quality and appeal of the recipe.`;
-
-    const { text } = await generateText({
-      model: google('gemini-2.5-flash-lite'),
-      prompt,
-    });
-
-    return text;
-  },
-});
 
 /**
  * Parses a recipe from a URL or raw text using AI.
@@ -166,18 +82,24 @@ INSTRUCTIONS:
   - Combine steps when they naturally belong together
 
 SOURCE:
-  ${sourceType === 'URL' ? `URL: ${sourceContent}` : `Raw recipe text: ${sourceContent}`}
+  ${sourceType === 'URL' ? `URL (parse this webpage for the recipe): ${sourceContent}` : `Raw recipe text: ${sourceContent}`}
 
 Return: title, description, prepTime, cookingTime, servings, tags, ingredients, instructions.`;
 
-    const { object } = await generateObject({
-      model: google('gemini-2.5-flash'),
-      schema: parsedRecipeSchema,
+    const { output, providerMetadata } = await generateText({
+      model: google('gemini-3-pro-preview'),
+      output: Output.object({ schema: parsedRecipeSchema }),
+      tools: {
+        google_search: google.tools.googleSearch({}),
+        url_context: google.tools.urlContext({}),
+      },
       prompt,
     });
 
+    console.log(providerMetadata);
+
     // Match ingredients to existing ones
-    const matchedIngredients = object.ingredients.map((ingredient) => {
+    const matchedIngredients = output.ingredients.map((ingredient) => {
       const baseName = ingredient.ingredientName.toLowerCase().trim();
       const matchedIngredient = existingIngredients.find(
         (ingredient) => ingredient.name.toLowerCase().trim() === baseName,
@@ -197,7 +119,7 @@ Return: title, description, prepTime, cookingTime, servings, tags, ingredients, 
     });
 
     return {
-      ...object,
+      ...output,
       ingredients: matchedIngredients,
     };
   },

@@ -1,4 +1,4 @@
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { v } from 'convex/values';
 import { z } from 'zod';
 import { api } from './_generated/api';
@@ -198,15 +198,15 @@ Process all ingredients in a single response.`;
       }),
     );
 
-    const { object } = await generateObject({
+    const { output } = await generateText({
       model: google('gemini-2.5-flash'),
-      schema,
+      output: Output.object({ schema }),
       prompt,
     });
 
     // Process results and create categories as needed
     const results = await Promise.all(
-      object.map(async (ingredient) => {
+      output.map(async (ingredient) => {
         let categoryId: Id<'categories'>;
 
         if (ingredient.categoryId === null && ingredient.newCategoryName) {
