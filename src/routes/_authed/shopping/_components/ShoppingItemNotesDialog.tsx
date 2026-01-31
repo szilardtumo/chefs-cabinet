@@ -32,7 +32,7 @@ export function ShoppingItemNotesDialog({ item, onClose }: ShoppingItemNotesDial
   }, [item]);
 
   const handleSaveNotes = async () => {
-    if (!item || !notesValue.trim()) {
+    if (!item) {
       return;
     }
 
@@ -70,6 +70,9 @@ export function ShoppingItemNotesDialog({ item, onClose }: ShoppingItemNotesDial
           className="min-h-28"
         />
         <DialogFooter>
+          <Button variant="ghost" className="hidden sm:block sm:mr-auto" onClick={() => setNotesValue('')}>
+            Clear
+          </Button>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

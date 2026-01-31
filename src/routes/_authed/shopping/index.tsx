@@ -275,7 +275,7 @@ function ShoppingListComponent() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onSelect={() => setCurrentItem(item)}>
-                                  <NotebookPen /> Add notes
+                                  <NotebookPen /> {item.notes ? 'Edit' : 'Add'} notes
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => handleRemoveItem(item._id)}>
                                   <Trash /> Remove
