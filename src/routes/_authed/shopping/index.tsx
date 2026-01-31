@@ -238,7 +238,7 @@ function ShoppingListComponent() {
                       <ItemContent className="overflow-x-auto no-scrollbar">
                         <ItemTitle className="w-full gap-1.5">
                           {item.ingredient?.emoji && <span>{item.ingredient.emoji}</span>}
-                          <span className={cn(item.checked && 'line-through text-muted-foreground')}>
+                          <span className={cn(item.checked && 'line-through text-muted-foreground', 'line-clamp-2')}>
                             {item.ingredient?.name}
                           </span>
                           {(item.notes || item.ingredient?.notes) && (
@@ -259,14 +259,17 @@ function ShoppingListComponent() {
                           )}
                           <div className="ml-auto flex items-center gap-2">
                             {item.category && (
-                              <Badge variant="secondary" className="text-nowrap">
+                              <Badge variant="secondary" className="line-clamp-1">
                                 {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
                                 {item.category.name}
                               </Badge>
                             )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="size-5 text-muted-foreground hover:text-foreground">
+                                <Button
+                                  variant="ghost"
+                                  className="shrink-0 size-5 text-muted-foreground hover:text-foreground"
+                                >
                                   <MoreHorizontal />
                                 </Button>
                               </DropdownMenuTrigger>
