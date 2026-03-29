@@ -249,135 +249,140 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
         </CardHeader>
         <CardContent>
           <form.Field name="ingredients" mode="array">
-            {(field) => {
-              const ingredientsList = field.state.value as z.infer<typeof recipeSchema>['ingredients'];
+            {(arrayField) => {
+              const ingredientsList = arrayField.state.value as z.infer<typeof recipeSchema>['ingredients'];
 
               return (
                 <div className="space-y-4">
                   <Sortable
                     value={ingredientsList}
-                    onMove={(e) => field.moveValue(e.activeIndex, e.overIndex)}
+                    onMove={(e) => arrayField.moveValue(e.activeIndex, e.overIndex)}
                     getItemValue={(item) => (item as z.infer<typeof recipeSchema>['ingredients'][number]).id}
                     orientation="vertical"
                   >
                     <SortableContent className="space-y-2">
-                      {ingredientsList.map((item, index) => {
-                        const isNew = item.newIngredientName;
-                        const ingredient = item.ingredientId
-                          ? ingredients?.find((ing) => ing._id === item.ingredientId)
-                          : item.newIngredientName
-                            ? {
-                                emoji: undefined,
-                                name: item.newIngredientName,
-                                category: undefined,
-                              }
-                            : undefined;
+                      {ingredientsList.map(({ id }, index) => (
+                        <form.Field key={id} name={`ingredients[${index}]`}>
+                          {(itemField) => {
+                            const item = itemField.state.value;
+                            const isNew = item.newIngredientName;
+                            const ingredient = item.ingredientId
+                              ? ingredients?.find((ing) => ing._id === item.ingredientId)
+                              : item.newIngredientName
+                                ? {
+                                    emoji: undefined,
+                                    name: item.newIngredientName,
+                                    category: undefined,
+                                  }
+                                : undefined;
 
-                        return (
-                          <SortableItem key={item.id} value={item.id}>
-                            <Item variant="outline" size="sm" className="items-start">
-                              <ItemMedia>
-                                <SortableItemHandle asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <GripVertical />
-                                  </Button>
-                                </SortableItemHandle>
-                              </ItemMedia>
-                              <ItemContent className="">
-                                <ItemTitle className="w-full flex-col items-start sm:flex-row sm:items-center">
-                                  {ingredient ? (
-                                    <div className="flex-1 flex items-center gap-2">
-                                      {isNew ? <Badge size="sm">New</Badge> : <span>{ingredient.emoji}</span>}
-                                      {ingredient.name}
-                                      {ingredient.category && <CategoryTag category={ingredient.category} />}
-                                    </div>
-                                  ) : (
-                                    <IngredientCombobox
-                                      className="flex-1"
-                                      placeholder="Select ingredient..."
-                                      selectedItems={[]}
-                                      onSelect={async (ingredientId) => {
-                                        field.replaceValue(index, {
-                                          id: item.id,
-                                          ingredientId,
-                                          unit: ingredients?.find((ing) => ing._id === ingredientId)?.defaultUnit,
-                                        });
-                                      }}
-                                      onCreate={async (ingredientName) => {
-                                        field.replaceValue(index, {
-                                          id: item.id,
-                                          newIngredientName: ingredientName,
-                                        });
-                                      }}
-                                    />
-                                  )}
-                                  <div className="grid grid-cols-[80px_80px] gap-2">
-                                    <form.Field name={`ingredients[${index}].quantity`}>
-                                      {(field) => <FieldInput field={field} type="number" placeholder="0" />}
-                                    </form.Field>
-                                    <form.Field name={`ingredients[${index}].unit`}>
-                                      {(field) => <FieldInput field={field} placeholder="g, tsp..." />}
-                                    </form.Field>
-                                  </div>
-                                </ItemTitle>
-                                <ItemDescription className="overflow-visible">
-                                  <form.Field name={`ingredients[${index}].notes`}>
-                                    {(field) => (
-                                      <>
-                                        <Popover>
-                                          <PopoverTrigger className="p-1 flex items-center gap-2 hover:underline">
-                                            <span className="line-clamp-1 text-left">
-                                              {field.state.value || 'Click to add notes...'}
-                                            </span>
-                                            <Edit className="size-4 shrink-0" />
-                                          </PopoverTrigger>
-                                          <PopoverContent side="top" align="start">
-                                            <FieldInput
-                                              field={field}
-                                              label="Edit Notes"
-                                              placeholder="e.g., large, fresh..."
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                  e.preventDefault();
-                                                  // Dispatch Escape key event to close the popover
-                                                  document.dispatchEvent(
-                                                    new KeyboardEvent('keydown', { key: 'Escape' }),
-                                                  );
-                                                }
-                                              }}
-                                            />
-                                          </PopoverContent>
-                                        </Popover>
-                                      </>
-                                    )}
-                                  </form.Field>
-                                </ItemDescription>
-                              </ItemContent>
-                              <ItemActions className="flex-col sm:flex-row">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  disabled={!ingredient}
-                                  onClick={() => field.replaceValue(index, { id: item.id })}
-                                >
-                                  <Repeat2 />
-                                </Button>
+                            return (
+                              <SortableItem value={id}>
+                                <Item variant="outline" size="sm" className="items-start">
+                                  <ItemMedia>
+                                    <SortableItemHandle asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <GripVertical />
+                                      </Button>
+                                    </SortableItemHandle>
+                                  </ItemMedia>
+                                  <ItemContent className="">
+                                    <ItemTitle className="w-full flex-col items-start sm:flex-row sm:items-center">
+                                      {ingredient ? (
+                                        <div className="flex-1 flex items-center gap-2">
+                                          {isNew ? <Badge size="sm">New</Badge> : <span>{ingredient.emoji}</span>}
+                                          {ingredient.name}
+                                          {ingredient.category && <CategoryTag category={ingredient.category} />}
+                                        </div>
+                                      ) : (
+                                        <IngredientCombobox
+                                          className="flex-1"
+                                          placeholder="Select ingredient..."
+                                          selectedItems={[]}
+                                          onSelect={async (ingredientId) => {
+                                            arrayField.replaceValue(index, {
+                                              id: item.id,
+                                              ingredientId,
+                                              unit: ingredients?.find((ing) => ing._id === ingredientId)?.defaultUnit,
+                                            });
+                                          }}
+                                          onCreate={async (ingredientName) => {
+                                            arrayField.replaceValue(index, {
+                                              id: item.id,
+                                              newIngredientName: ingredientName,
+                                            });
+                                          }}
+                                        />
+                                      )}
+                                      <div className="grid grid-cols-[80px_80px] gap-2">
+                                        <form.Field name={`ingredients[${index}].quantity`}>
+                                          {(field) => <FieldInput field={field} type="number" placeholder="0" />}
+                                        </form.Field>
+                                        <form.Field name={`ingredients[${index}].unit`}>
+                                          {(field) => <FieldInput field={field} placeholder="g, tsp..." />}
+                                        </form.Field>
+                                      </div>
+                                    </ItemTitle>
+                                    <ItemDescription className="overflow-visible">
+                                      <form.Field name={`ingredients[${index}].notes`}>
+                                        {(field) => (
+                                          <>
+                                            <Popover>
+                                              <PopoverTrigger className="p-1 flex items-center gap-2 hover:underline">
+                                                <span className="line-clamp-1 text-left">
+                                                  {field.state.value || 'Click to add notes...'}
+                                                </span>
+                                                <Edit className="size-4 shrink-0" />
+                                              </PopoverTrigger>
+                                              <PopoverContent side="top" align="start">
+                                                <FieldInput
+                                                  field={field}
+                                                  label="Edit Notes"
+                                                  placeholder="e.g., large, fresh..."
+                                                  onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                      e.preventDefault();
+                                                      // Dispatch Escape key event to close the popover
+                                                      document.dispatchEvent(
+                                                        new KeyboardEvent('keydown', { key: 'Escape' }),
+                                                      );
+                                                    }
+                                                  }}
+                                                />
+                                              </PopoverContent>
+                                            </Popover>
+                                          </>
+                                        )}
+                                      </form.Field>
+                                    </ItemDescription>
+                                  </ItemContent>
+                                  <ItemActions className="flex-col sm:flex-row">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      disabled={!ingredient}
+                                      onClick={() => arrayField.replaceValue(index, { id: item.id })}
+                                    >
+                                      <Repeat2 />
+                                    </Button>
 
-                                <Button variant="ghost" size="icon" onClick={() => field.removeValue(index)}>
-                                  <Trash2 />
-                                </Button>
-                              </ItemActions>
-                            </Item>
-                          </SortableItem>
-                        );
-                      })}
+                                    <Button variant="ghost" size="icon" onClick={() => arrayField.removeValue(index)}>
+                                      <Trash2 />
+                                    </Button>
+                                  </ItemActions>
+                                </Item>
+                              </SortableItem>
+                            );
+                          }}
+                        </form.Field>
+                      ))}
                     </SortableContent>
                   </Sortable>
 
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => field.pushValue({ id: generateId() })}
+                    onClick={() => arrayField.pushValue({ id: generateId() })}
                     className="w-full"
                   >
                     <Plus />
