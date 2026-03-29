@@ -3,6 +3,7 @@ import type { Doc, Id } from '@convex/_generated/dataModel';
 import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { capitalize } from 'es-toolkit';
 import { Edit, GripVertical, Plus, Repeat2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -158,7 +159,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
               id: undefined,
             })),
           instructions: value.instructions.map((instruction) => instruction.text),
-          tags: value.tags,
+          tags: value.tags.map(capitalize),
         };
 
         if (mode === 'create') {
