@@ -4,7 +4,7 @@ import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { capitalize } from 'es-toolkit';
-import { Edit, GripVertical, Plus, Repeat2, Trash2 } from 'lucide-react';
+import { Edit, GripVertical, Plus, Repeat2, RotateCcw, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { CategoryTag } from '@/components/category-tag';
@@ -12,13 +12,18 @@ import { IngredientCombobox } from '@/components/ingredient-combobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FieldLabel } from '@/components/ui/field';
 import { FieldFileUpload, FieldInput, FieldTagsInput, FieldTextarea } from '@/components/ui/form-fields';
+import { ImagePreview } from '@/components/ui/image-preview';
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui/item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sortable, SortableContent, SortableItem, SortableItemHandle } from '@/components/ui/sortable';
 import { Spinner } from '@/components/ui/spinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UnsplashCoverPhotoPicker } from '@/components/unsplash-cover-photo-picker';
 import { useStorageUpload } from '@/hooks/use-storage-upload';
 import { generateId } from '@/lib/id';
+import { isStorageId } from '@/lib/storage';
 import { zodConvexId } from '@/utils/validation';
 
 // Helper function to convert image URL to File object
@@ -35,6 +40,7 @@ const recipeSchema = z.object({
   cookingTime: z.number().min(1, 'Cooking time must be a positive number').or(z.undefined()),
   servings: z.number().int().min(1, 'Servings must be a positive integer').or(z.undefined()),
   imageFiles: z.array(z.instanceof(File)).max(1, 'Only one image is allowed'),
+  imageUrl: z.url().or(z.undefined()),
   tags: z.array(z.string()),
   ingredients: z.array(
     z.object({
@@ -64,6 +70,7 @@ type RecipeFormProps = {
           newIngredientName?: string;
         }
       >;
+      imageUrl?: string;
     }
   >;
   onSuccess?: (recipeId: Id<'recipes'>) => void;
@@ -85,8 +92,8 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
   const { data: initialImageFiles = [] } = useQuery({
     queryKey: ['initialImageFile', initialValues?.image],
     queryFn: async () => {
-      if (initialValues?.image) {
-        return [await urlToFile(initialValues.image, 'Existing Image')];
+      if (isStorageId(initialValues?.image) && initialValues?.imageUrl) {
+        return [await urlToFile(initialValues.imageUrl, 'Existing Image')];
       }
       return [];
     },
@@ -102,6 +109,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
       servings: initialValues?.servings,
       tags: initialValues?.tags ?? [],
       imageFiles: initialImageFiles,
+      imageUrl: isStorageId(initialValues?.image) ? undefined : initialValues?.image,
       ingredients: (initialValues?.ingredients?.map((ingredient) => ({
         id: generateId(),
         ingredientId: ingredient.ingredientId,
@@ -121,13 +129,14 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
     },
     onSubmit: async ({ value }) => {
       try {
-        // Upload image if present
         const imageFiles = form.getFieldValue('imageFiles');
-        let imageId: Id<'_storage'> | undefined = initialValues?.image;
+        const imageUrl = form.getFieldValue('imageUrl');
 
-        if (imageFiles.length > 0) {
-          // Check if it's a new file by comparing file name and size
-          // The converted file will have a different name than the original
+        let image: Id<'_storage'> | string | null = null;
+
+        if (imageUrl) {
+          image = imageUrl;
+        } else if (imageFiles.length > 0) {
           const currentFile = imageFiles[0];
           const isNewFile =
             !initialImageFiles[0] ||
@@ -136,19 +145,16 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
             currentFile.lastModified !== initialImageFiles[0].lastModified;
 
           if (isNewFile) {
-            // New image uploaded
-            imageId = await uploadFile(currentFile);
+            image = await uploadFile(currentFile);
+          } else if (isStorageId(initialValues?.image)) {
+            image = initialValues?.image;
           }
-          // If it's the same file as initial, keep the existing imageId
-        } else if (mode === 'edit' && initialValues?.image) {
-          // User removed the image in edit mode
-          imageId = undefined;
         }
 
         const data = {
           title: value.title,
           description: value.description,
-          image: imageId,
+          image,
           prepTime: value.prepTime,
           cookingTime: value.cookingTime,
           servings: value.servings,
@@ -224,15 +230,76 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
             </form.Field>
           </div>
 
-          <form.Field name="imageFiles">
-            {(field) => (
-              <FieldFileUpload
-                field={field}
-                label="Recipe Image"
-                accept="image/*"
-                maxFiles={1}
-                maxSize={10 * 1024 * 1024}
-              />
+          <form.Field
+            name="imageFiles"
+            listeners={{
+              onChange: ({ value, fieldApi }) => value && fieldApi.form.setFieldValue('imageUrl', undefined),
+            }}
+          >
+            {(imageFilesField) => (
+              <form.Field name="imageUrl">
+                {(imageUrlField) => (
+                  <>
+                    <div className="flex items-end gap-2">
+                      <FieldLabel>Recipe Image</FieldLabel>
+                      <Button
+                        variant="outline"
+                        className="ml-auto"
+                        onClick={() => {
+                          form.resetField('imageFiles');
+                          form.resetField('imageUrl');
+                        }}
+                      >
+                        <RotateCcw /> Reset
+                      </Button>
+
+                      {(imageFilesField.state.value.length > 0 || imageUrlField.state.value) && (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            imageFilesField.setValue([]);
+                            imageUrlField.setValue(undefined);
+                          }}
+                        >
+                          <X /> Remove
+                        </Button>
+                      )}
+                    </div>
+                    <ImagePreview
+                      src={imageFilesField.state.value[0] || imageUrlField.state.value}
+                      className="aspect-video max-h-60 rounded-lg"
+                    />
+
+                    <Tabs defaultValue="upload">
+                      <TabsList className="w-full">
+                        <TabsTrigger value="upload" className="w-full">
+                          Upload image
+                        </TabsTrigger>
+                        <TabsTrigger value="unsplash" className="w-full">
+                          Browse from Unsplash
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="upload">
+                        <FieldFileUpload
+                          field={imageFilesField}
+                          accept="image/*"
+                          maxFiles={1}
+                          maxSize={10 * 1024 * 1024}
+                          hideFileList
+                        />
+                      </TabsContent>
+                      <TabsContent value="unsplash">
+                        <UnsplashCoverPhotoPicker
+                          onPhotoSelected={(photo) => {
+                            imageFilesField.setValue([]);
+                            imageUrlField.handleChange(photo.imageUrl);
+                          }}
+                        />
+                      </TabsContent>
+                    </Tabs>
+                  </>
+                )}
+              </form.Field>
             )}
           </form.Field>
 

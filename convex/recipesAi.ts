@@ -86,7 +86,7 @@ SOURCE:
 
 Return: title, description, prepTime, cookingTime, servings, tags, ingredients, instructions.`;
 
-    const { output, providerMetadata } = await generateText({
+    const { output } = await generateText({
       model: google('gemini-3-pro-preview'),
       output: Output.object({ schema: parsedRecipeSchema }),
       tools: {
@@ -95,8 +95,6 @@ Return: title, description, prepTime, cookingTime, servings, tags, ingredients, 
       },
       prompt,
     });
-
-    console.log(providerMetadata);
 
     // Match ingredients to existing ones
     const matchedIngredients = output.ingredients.map((ingredient) => {

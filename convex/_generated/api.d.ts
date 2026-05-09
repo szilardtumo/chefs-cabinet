@@ -20,6 +20,7 @@ import type * as recipesAi from "../recipesAi.js";
 import type * as seed from "../seed.js";
 import type * as shoppingListItems from "../shoppingListItems.js";
 import type * as shoppingLists from "../shoppingLists.js";
+import type * as unsplash from "../unsplash.js";
 
 import type {
   ApiFromModules,
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   shoppingListItems: typeof shoppingListItems;
   shoppingLists: typeof shoppingLists;
+  unsplash: typeof unsplash;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

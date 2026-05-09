@@ -38,7 +38,7 @@ export default defineSchema({
     userId: v.string(),
     title: v.string(),
     description: v.string(),
-    image: v.optional(v.id('_storage')),
+    image: v.optional(v.union(v.id('_storage'), v.string())),
     cookingTime: v.optional(v.number()),
     prepTime: v.optional(v.number()),
     servings: v.optional(v.number()),

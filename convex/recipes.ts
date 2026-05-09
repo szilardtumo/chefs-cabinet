@@ -1,5 +1,6 @@
 import { type Infer, v } from 'convex/values';
 import { isEqual, omitBy } from 'es-toolkit';
+import { isStorageId } from '@/lib/storage';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { ActionCtx } from './_generated/server';
@@ -23,9 +24,9 @@ export const getAll = authenticatedQuery({
     // Get image URLs if they exist
     const recipesWithImages = await Promise.all(
       recipes.map(async (recipe) => {
-        let imageUrl = null;
+        let imageUrl: string | null = null;
         if (recipe.image) {
-          imageUrl = await ctx.storage.getUrl(recipe.image);
+          imageUrl = isStorageId(recipe.image) ? ((await ctx.storage.getUrl(recipe.image)) ?? null) : recipe.image;
         }
         return {
           ...recipe,
@@ -58,10 +59,9 @@ export const getById = authenticatedQuery({
       throw new NotFoundError('recipes', args.id);
     }
 
-    // Get image URL
-    let imageUrl = null;
+    let imageUrl: string | null = null;
     if (recipe.image) {
-      imageUrl = await ctx.storage.getUrl(recipe.image);
+      imageUrl = isStorageId(recipe.image) ? ((await ctx.storage.getUrl(recipe.image)) ?? null) : recipe.image;
     }
 
     // Get recipe ingredients
@@ -103,7 +103,7 @@ const recipeSchema = v.object({
   prepTime: v.optional(v.number()),
   cookingTime: v.optional(v.number()),
   servings: v.optional(v.number()),
-  image: v.optional(v.id('_storage')),
+  image: v.optional(v.union(v.id('_storage'), v.string(), v.null())),
   tags: v.array(v.string()),
   instructions: v.array(v.string()),
   ingredients: v.array(recipeIngredientSchema),
@@ -174,6 +174,7 @@ export const createRecipeMutation = internalMutation({
     const recipeId = await ctx.db.insert('recipes', {
       history,
       ...recipeData,
+      image: recipeData.image ?? undefined,
     });
 
     ingredients.forEach(async (ingredient, index) => {
@@ -268,9 +269,15 @@ export const updateRecipeMutation = internalMutation({
       });
     }
 
+    const oldImage = recipe.image;
+    if (oldImage && isStorageId(oldImage) && oldImage !== updates.image) {
+      await ctx.storage.delete(oldImage);
+    }
+
     // Update recipe
     await ctx.db.replace(id, {
       ...updates,
+      image: updates.image ?? undefined,
       userId: recipe.userId,
       history: [...recipe.history, newHistoryEntry],
     });
@@ -351,8 +358,8 @@ export const remove = authenticatedMutation({
     // Delete the recipe
     await ctx.db.delete(args.id);
 
-    // Clean up image if it exists
-    if (recipe.image) {
+    // Clean up the recipe image if it is stored in Convex Storage
+    if (recipe.image && isStorageId(recipe.image)) {
       await ctx.storage.delete(recipe.image);
     }
   },

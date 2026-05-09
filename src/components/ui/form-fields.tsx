@@ -353,7 +353,9 @@ export function FieldColorPicker({
 // #region FieldFileUpload
 
 type FieldFileUploadProps = BaseFieldProps &
-  Omit<React.ComponentProps<typeof FileUpload>, 'value' | 'onValueChange' | 'name' | 'defaultValue' | 'onChange'>;
+  Omit<React.ComponentProps<typeof FileUpload>, 'value' | 'onValueChange' | 'name' | 'defaultValue' | 'onChange'> & {
+    hideFileList?: boolean;
+  };
 
 export function FieldFileUpload({
   field,
@@ -364,6 +366,7 @@ export function FieldFileUpload({
   maxSize,
   accept,
   multiple = false,
+  hideFileList,
   ...fileUploadProps
 }: FieldFileUploadProps) {
   const hasError = field.state.meta.errors.length > 0;
@@ -403,19 +406,21 @@ export function FieldFileUpload({
             </FileUploadTrigger>
           </div>
         </FileUploadDropzone>
-        <FileUploadList>
-          {files.map((file) => (
-            <FileUploadItem key={file.name} value={file}>
-              <FileUploadItemPreview className="size-20" />
-              <FileUploadItemMetadata />
-              <FileUploadItemDelete asChild>
-                <Button variant="ghost" size="icon" className="size-7" type="button">
-                  <X />
-                </Button>
-              </FileUploadItemDelete>
-            </FileUploadItem>
-          ))}
-        </FileUploadList>
+        {!hideFileList && (
+          <FileUploadList>
+            {files.map((file) => (
+              <FileUploadItem key={file.name} value={file}>
+                <FileUploadItemPreview className="size-20" />
+                <FileUploadItemMetadata />
+                <FileUploadItemDelete asChild>
+                  <Button variant="ghost" size="icon" className="size-7" type="button">
+                    <X />
+                  </Button>
+                </FileUploadItemDelete>
+              </FileUploadItem>
+            ))}
+          </FileUploadList>
+        )}
       </FileUpload>
       {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
