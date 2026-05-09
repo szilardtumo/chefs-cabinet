@@ -1,9 +1,10 @@
 import { api } from '@convex/_generated/api';
 import type { Ingredient } from '@convex/ingredients';
-import { convexQuery } from '@convex-dev/react-query';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,13 +30,18 @@ export type IngredientFormData = z.infer<typeof ingredientSchema>;
 
 type IngredientDialogProps = {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   ingredient?: Ingredient;
-  onSave: (data: IngredientFormData) => Promise<void>;
 };
 
-export function IngredientDialog({ open, onOpenChange, ingredient, onSave }: IngredientDialogProps) {
+export function IngredientDialog({ open, onClose, ingredient }: IngredientDialogProps) {
   const { data: categories } = useSuspenseQuery(convexQuery(api.categories.getAll, {}));
+  const { mutateAsync: createIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.ingredients.create),
+  });
+  const { mutateAsync: updateIngredient } = useMutation({
+    mutationFn: useConvexMutation(api.ingredients.update),
+  });
 
   const form = useForm({
     defaultValues: {
@@ -49,8 +55,24 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSave }: Ing
       onSubmit: ingredientSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSave(value);
-      onOpenChange(false);
+      try {
+        if (ingredient) {
+          await updateIngredient({ id: ingredient._id, ...value });
+          toast.success('Ingredient updated', {
+            description: 'The ingredient has been updated successfully.',
+          });
+        } else {
+          await createIngredient(value);
+          toast.success('Ingredient added', {
+            description: 'The ingredient has been added successfully.',
+          });
+        }
+        onClose();
+      } catch (error) {
+        toast.error('Error', {
+          description: error instanceof Error ? error.message : 'An unknown error occurred',
+        });
+      }
     },
   });
 
@@ -68,7 +90,14 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSave }: Ing
   }, [ingredient, open, form.setFieldValue]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={() => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{ingredient ? 'Edit Ingredient' : 'Add Ingredient'}</DialogTitle>
@@ -118,7 +147,7 @@ export function IngredientDialog({ open, onOpenChange, ingredient, onSave }: Ing
           </form.Field>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit">{ingredient ? 'Update' : 'Add'}</Button>

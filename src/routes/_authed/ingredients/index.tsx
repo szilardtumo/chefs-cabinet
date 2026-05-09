@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDataTable } from '@/hooks/use-data-table';
-import { IngredientDialog, type IngredientFormData } from './-components/ingredient-dialog';
+import { IngredientDialog } from './-components/ingredient-dialog';
 
 export const Route = createFileRoute('/_authed/ingredients/')({
   component: IngredientsComponent,
@@ -38,12 +38,6 @@ const columnHelper = createColumnHelper<IngredientWithCategory>();
 function IngredientsComponent() {
   const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
 
-  const { mutateAsync: createIngredient } = useMutation({
-    mutationFn: useConvexMutation(api.ingredients.create),
-  });
-  const { mutateAsync: updateIngredient } = useMutation({
-    mutationFn: useConvexMutation(api.ingredients.update),
-  });
   const { mutateAsync: deleteIngredient } = useMutation({
     mutationFn: useConvexMutation(api.ingredients.remove),
   });
@@ -51,28 +45,6 @@ function IngredientsComponent() {
   const [selectedIngredient, setSelectedIngredient] = useState<IngredientWithCategory | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  const handleSave = async (data: IngredientFormData) => {
-    try {
-      if (selectedIngredient) {
-        await updateIngredient({ id: selectedIngredient._id, ...data });
-        toast.success('Ingredient updated', {
-          description: 'The ingredient has been updated successfully.',
-        });
-      } else {
-        await createIngredient(data);
-        toast.success('Ingredient added', {
-          description: 'The ingredient has been added successfully.',
-        });
-      }
-      setEditDialogOpen(false);
-      setSelectedIngredient(null);
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
-  };
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!selectedIngredient) return;
@@ -230,14 +202,11 @@ function IngredientsComponent() {
       <Suspense>
         <IngredientDialog
           open={editDialogOpen}
-          onOpenChange={(open) => {
-            setEditDialogOpen(open);
-            if (!open) {
-              setSelectedIngredient(null);
-            }
+          onClose={() => {
+            setEditDialogOpen(false);
+            setSelectedIngredient(null);
           }}
           ingredient={selectedIngredient || undefined}
-          onSave={handleSave}
         />
       </Suspense>
 

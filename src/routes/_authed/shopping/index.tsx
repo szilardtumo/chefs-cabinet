@@ -5,7 +5,7 @@ import { convexQuery, useConvexAction, useConvexMutation } from '@convex-dev/rea
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { sortBy } from 'es-toolkit';
-import { Info, MoreHorizontal, NotebookPen, ShoppingCart, Trash } from 'lucide-react';
+import { Edit, Info, MoreHorizontal, NotebookPen, ShoppingCart, Trash } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -36,6 +36,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { IngredientDialog } from '../ingredients/-components/ingredient-dialog';
 import { ShoppingItemNotesDialog } from './_components/ShoppingItemNotesDialog';
 
 export const Route = createFileRoute('/_authed/shopping/')({
@@ -73,6 +74,8 @@ function ShoppingListComponent() {
   });
 
   const [currentItem, setCurrentItem] = useState<ShoppingListItemWithIngredient | null>(null);
+  const [editIngredientDialogOpen, setEditIngredientDialogOpen] = useState(false);
+  const [editNotesDialogOpen, setEditNotesDialogOpen] = useState(false);
 
   // Create default list if it doesn't exist
   useEffect(() => {
@@ -274,7 +277,20 @@ function ShoppingListComponent() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onSelect={() => setCurrentItem(item)}>
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    setCurrentItem(item);
+                                    setEditIngredientDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit /> Edit ingredient
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    setCurrentItem(item);
+                                    setEditNotesDialogOpen(true);
+                                  }}
+                                >
                                   <NotebookPen /> {item.notes ? 'Edit' : 'Add'} notes
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => handleRemoveItem(item._id)}>
@@ -293,7 +309,22 @@ function ShoppingListComponent() {
           </AnimatePresence>
         </div>
       )}
-      <ShoppingItemNotesDialog item={currentItem} onClose={() => setCurrentItem(null)} />
+      <ShoppingItemNotesDialog
+        open={editNotesDialogOpen}
+        item={currentItem}
+        onClose={() => {
+          setCurrentItem(null);
+          setEditNotesDialogOpen(false);
+        }}
+      />
+      <IngredientDialog
+        open={editIngredientDialogOpen}
+        ingredient={currentItem?.ingredient || undefined}
+        onClose={() => {
+          setCurrentItem(null);
+          setEditIngredientDialogOpen(false);
+        }}
+      />
     </div>
   );
 }

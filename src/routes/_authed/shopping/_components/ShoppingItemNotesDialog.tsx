@@ -16,11 +16,12 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 
 interface ShoppingItemNotesDialogProps {
+  open: boolean;
   item: ShoppingListItemWithIngredient | null;
   onClose: () => void;
 }
 
-export function ShoppingItemNotesDialog({ item, onClose }: ShoppingItemNotesDialogProps) {
+export function ShoppingItemNotesDialog({ open, item, onClose }: ShoppingItemNotesDialogProps) {
   const { mutateAsync: updateItem, isPending } = useMutation({
     mutationFn: useConvexMutation(api.shoppingListItems.update),
   });
@@ -51,7 +52,7 @@ export function ShoppingItemNotesDialog({ item, onClose }: ShoppingItemNotesDial
 
   return (
     <Dialog
-      open={!!item}
+      open={open}
       onOpenChange={(open) => {
         if (!open) {
           onClose();
