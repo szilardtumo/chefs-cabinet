@@ -44,6 +44,7 @@ export default defineSchema({
     servings: v.optional(v.number()),
     instructions: v.array(v.string()),
     tags: v.array(v.string()),
+    source: v.optional(v.string()),
     history: v.array(
       v.object({
         timestamp: v.number(),

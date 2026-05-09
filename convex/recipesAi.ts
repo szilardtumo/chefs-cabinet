@@ -118,6 +118,7 @@ Return: title, description, prepTime, cookingTime, servings, tags, ingredients, 
 
     return {
       ...output,
+      source: args.url,
       ingredients: matchedIngredients,
     };
   },

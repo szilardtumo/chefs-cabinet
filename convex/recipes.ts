@@ -59,9 +59,9 @@ export const getById = authenticatedQuery({
       throw new NotFoundError('recipes', args.id);
     }
 
-    let imageUrl: string | null = null;
+    let imageUrl: string | undefined;
     if (recipe.image) {
-      imageUrl = isStorageId(recipe.image) ? ((await ctx.storage.getUrl(recipe.image)) ?? null) : recipe.image;
+      imageUrl = isStorageId(recipe.image) ? ((await ctx.storage.getUrl(recipe.image)) ?? undefined) : recipe.image;
     }
 
     // Get recipe ingredients
@@ -105,6 +105,7 @@ const recipeSchema = v.object({
   servings: v.optional(v.number()),
   image: v.optional(v.union(v.id('_storage'), v.string(), v.null())),
   tags: v.array(v.string()),
+  source: v.optional(v.string()),
   instructions: v.array(v.string()),
   ingredients: v.array(recipeIngredientSchema),
   aiPrompt: v.optional(v.string()),

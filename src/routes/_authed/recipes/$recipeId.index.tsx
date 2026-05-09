@@ -3,9 +3,10 @@ import type { Id } from '@convex/_generated/dataModel';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, ChefHat, Clock, History, Pencil, ShoppingCart, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, ChefHat, Clock, History, LinkIcon, Pencil, ShoppingCart, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import z from 'zod';
 import { IngredientCartButton } from '@/components/ingredient-cart-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -133,6 +134,22 @@ function RecipeDetailComponent() {
                     <p className="text-sm font-medium">Servings</p>
                     <p className="text-sm text-muted-foreground">
                       {recipe.servings !== undefined ? recipe.servings : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex items-center gap-3">
+                  <LinkIcon className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Source</p>
+                    <p className="text-sm text-muted-foreground">
+                      {z.url().safeParse(recipe.source).success ? (
+                        <a className="hover:underline" href={recipe.source} target="_blank" rel="noopener noreferrer">
+                          {recipe.source}
+                        </a>
+                      ) : (
+                        recipe.source
+                      )}
                     </p>
                   </div>
                 </div>

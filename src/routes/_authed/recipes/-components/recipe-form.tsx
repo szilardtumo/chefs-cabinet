@@ -42,6 +42,7 @@ const recipeSchema = z.object({
   imageFiles: z.array(z.instanceof(File)).max(1, 'Only one image is allowed'),
   imageUrl: z.url().or(z.undefined()),
   tags: z.array(z.string()),
+  source: z.string().or(z.undefined()),
   ingredients: z.array(
     z.object({
       id: z.string(),
@@ -108,6 +109,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
       cookingTime: initialValues?.cookingTime,
       servings: initialValues?.servings,
       tags: initialValues?.tags ?? [],
+      source: initialValues?.source,
       imageFiles: initialImageFiles,
       imageUrl: isStorageId(initialValues?.image) ? undefined : initialValues?.image,
       ingredients: (initialValues?.ingredients?.map((ingredient) => ({
@@ -166,6 +168,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
             })),
           instructions: value.instructions.map((instruction) => instruction.text),
           tags: value.tags.map(capitalize),
+          source: value.source,
         };
 
         if (mode === 'create') {
@@ -305,6 +308,10 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
 
           <form.Field name="tags">
             {(field) => <FieldTagsInput field={field} label="Tags" placeholder="Add a tag..." withAddButton />}
+          </form.Field>
+
+          <form.Field name="source">
+            {(field) => <FieldInput field={field} label="Source" placeholder="e.g. https://example.com/recipe" />}
           </form.Field>
         </CardContent>
       </Card>
