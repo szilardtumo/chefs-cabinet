@@ -3,9 +3,9 @@ import type { Id } from '@convex/_generated/dataModel';
 import type { ShoppingListItemWithIngredient } from '@convex/shoppingListItems';
 import { convexQuery, useConvexAction, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { sortBy } from 'es-toolkit';
-import { Edit, Info, MoreHorizontal, NotebookPen, ShoppingCart, Trash } from 'lucide-react';
+import { ArrowRight, Edit, Info, MoreHorizontal, NotebookPen, ShoppingCart, Trash } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -29,6 +29,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Item, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item';
@@ -285,6 +286,12 @@ function ShoppingListComponent() {
                                 >
                                   <Edit /> Edit ingredient
                                 </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link to="/ingredients" search={{ q: item.ingredient?.name }}>
+                                    <ArrowRight /> Go to ingredient
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onSelect={() => {
                                     setCurrentItem(item);
