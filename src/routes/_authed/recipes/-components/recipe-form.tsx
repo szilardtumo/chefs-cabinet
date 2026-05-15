@@ -219,6 +219,17 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
             {(field) => <FieldInput field={field} label="Recipe Title" placeholder="e.g., Spaghetti Carbonara" />}
           </form.Field>
 
+          <form.Field name="description">
+            {(field) => (
+              <FieldTextarea
+                field={field}
+                label="Description"
+                placeholder="Add a short description for this recipe..."
+                rows={3}
+              />
+            )}
+          </form.Field>
+
           <div className="grid grid-cols-3 gap-4">
             <form.Field name="prepTime">
               {(field) => <FieldInput field={field} label="Prep Time (min)" type="number" />}
