@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 const navItems = [
@@ -36,6 +37,8 @@ const navItems = [
 ];
 
 export function AppSidebar() {
+  const { setOpenMobile } = useSidebar();
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -45,7 +48,7 @@ export function AppSidebar() {
             size="lg"
             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
-            <Link to="/dashboard">
+            <Link to="/dashboard" onClick={() => setOpenMobile(false)}>
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                 <ChefHat />
               </div>
@@ -61,7 +64,11 @@ export function AppSidebar() {
               {navItems.map((navItem) => (
                 <SidebarMenuItem key={navItem.label}>
                   <SidebarMenuButton asChild tooltip={navItem.label}>
-                    <Link to={navItem.to} activeProps={{ 'data-active': 'true' }}>
+                    <Link
+                      to={navItem.to}
+                      activeProps={{ 'data-active': 'true' }}
+                      onClick={() => setOpenMobile(false)}
+                    >
                       <navItem.icon /> {navItem.label}
                     </Link>
                   </SidebarMenuButton>
