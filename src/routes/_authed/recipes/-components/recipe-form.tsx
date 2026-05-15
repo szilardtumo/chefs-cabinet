@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldLabel } from '@/components/ui/field';
 import { FieldFileUpload, FieldInput, FieldTagsInput, FieldTextarea } from '@/components/ui/form-fields';
 import { ImagePreview } from '@/components/ui/image-preview';
-import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui/item';
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from '@/components/ui/item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sortable, SortableContent, SortableItem, SortableItemHandle } from '@/components/ui/sortable';
 import { Spinner } from '@/components/ui/spinner';
@@ -352,25 +352,22 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
 
                             return (
                               <SortableItem value={id}>
-                                <Item variant="outline" size="sm" className="items-start">
-                                  <ItemMedia>
-                                    <SortableItemHandle asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <GripVertical />
-                                      </Button>
-                                    </SortableItemHandle>
-                                  </ItemMedia>
+                                <Item
+                                  variant="outline"
+                                  size="sm"
+                                  className="items-start flex-nowrap overflow-x-scroll pr-3"
+                                >
                                   <ItemContent className="">
                                     <ItemTitle className="w-full flex-col items-start sm:flex-row sm:items-center">
                                       {ingredient ? (
-                                        <div className="flex-1 flex items-center gap-2">
+                                        <div className="flex-12 flex items-center gap-2">
                                           {isNew ? <Badge size="sm">New</Badge> : <span>{ingredient.emoji}</span>}
                                           {ingredient.name}
                                           {ingredient.category && <CategoryTag category={ingredient.category} />}
                                         </div>
                                       ) : (
                                         <IngredientCombobox
-                                          className="flex-1"
+                                          className="flex-12 w-full"
                                           placeholder="Select ingredient..."
                                           selectedItems={[]}
                                           onSelect={async (ingredientId) => {
@@ -388,7 +385,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                                           }}
                                         />
                                       )}
-                                      <div className="grid grid-cols-[80px_80px] gap-2">
+                                      <div className="grid grid-cols-2 gap-2 min-w-44 w-full flex-1">
                                         <form.Field name={`ingredients[${index}].quantity`}>
                                           {(field) => <FieldInput field={field} type="number" placeholder="0" />}
                                         </form.Field>
@@ -430,7 +427,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                                       </form.Field>
                                     </ItemDescription>
                                   </ItemContent>
-                                  <ItemActions className="flex-col sm:flex-row">
+                                  <ItemActions className="flex-col-reverse sm:flex-row gap-0">
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -443,6 +440,12 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                                     <Button variant="ghost" size="icon" onClick={() => arrayField.removeValue(index)}>
                                       <Trash2 />
                                     </Button>
+
+                                    <SortableItemHandle asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <GripVertical />
+                                      </Button>
+                                    </SortableItemHandle>
                                   </ItemActions>
                                 </Item>
                               </SortableItem>
@@ -490,14 +493,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                     <SortableContent className="space-y-2">
                       {instructions.map((instruction, index) => (
                         <SortableItem key={instruction.id} value={instruction.id}>
-                          <Item variant="outline" size="sm" className="items-start">
-                            <ItemMedia>
-                              <SortableItemHandle asChild>
-                                <Button variant="ghost" size="icon">
-                                  <GripVertical />
-                                </Button>
-                              </SortableItemHandle>
-                            </ItemMedia>
+                          <Item variant="outline" size="sm" className="items-start pr-3">
                             <ItemContent>
                               <form.Field name={`instructions[${index}].text`}>
                                 {(field) => (
@@ -505,7 +501,12 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                                 )}
                               </form.Field>
                             </ItemContent>
-                            <ItemActions>
+                            <ItemActions className="flex-col gap-0">
+                              <SortableItemHandle asChild>
+                                <Button variant="ghost" size="icon">
+                                  <GripVertical />
+                                </Button>
+                              </SortableItemHandle>
                               <Button variant="ghost" size="icon" onClick={() => field.removeValue(index)}>
                                 <Trash2 />
                               </Button>

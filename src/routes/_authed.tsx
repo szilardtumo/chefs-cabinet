@@ -36,7 +36,7 @@ function AuthedLayout() {
           <AppBreadcrumb className="flex-1" />
           <UserButton />
         </header>
-        <main className="p-8">
+        <main className="p-4 sm:p-8">
           <Outlet />
         </main>
       </SidebarInset>
