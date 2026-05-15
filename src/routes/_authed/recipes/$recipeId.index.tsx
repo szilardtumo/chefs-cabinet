@@ -142,7 +142,7 @@ function RecipeDetailComponent() {
                   <LinkIcon className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Source</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground wrap-anywhere">
                       {z.url().safeParse(recipe.source).success ? (
                         <a className="hover:underline" href={recipe.source} target="_blank" rel="noopener noreferrer">
                           {recipe.source}
