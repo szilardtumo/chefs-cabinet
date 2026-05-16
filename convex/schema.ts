@@ -84,6 +84,7 @@ export default defineSchema({
     ingredientId: v.id('ingredients'),
     recipeId: v.optional(v.id('recipes')),
     checked: v.boolean(),
+    skipped: v.boolean(),
     notes: v.optional(v.string()),
     order: v.number(),
   })

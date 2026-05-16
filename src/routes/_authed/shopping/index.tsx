@@ -5,7 +5,7 @@ import { convexQuery, useConvexAction, useConvexMutation } from '@convex-dev/rea
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { sortBy } from 'es-toolkit';
-import { ArrowRight, Edit, Info, MoreHorizontal, NotebookPen, ShoppingCart, Trash } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, Edit, Info, MoreHorizontal, NotebookPen, ShoppingCart, Trash } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -59,6 +59,17 @@ function ShoppingListComponent() {
       const currentItem = currentList?.items?.find((item) => item._id === args.id);
       if (currentItem) {
         currentItem.checked = !currentItem.checked;
+        currentItem.skipped = false;
+      }
+      localStore.setQuery(api.shoppingLists.get, {}, currentList);
+    }),
+  });
+  const { mutateAsync: toggleSkipped } = useMutation({
+    mutationFn: useConvexMutation(api.shoppingListItems.toggleSkipped).withOptimisticUpdate((localStore, args) => {
+      const currentList = localStore.getQuery(api.shoppingLists.get, {});
+      const currentItem = currentList?.items?.find((item) => item._id === args.id);
+      if (currentItem) {
+        currentItem.skipped = !currentItem.skipped;
       }
       localStore.setQuery(api.shoppingLists.get, {}, currentList);
     }),
@@ -124,6 +135,10 @@ function ShoppingListComponent() {
     await toggleChecked({ id: itemId });
   };
 
+  const handleToggleSkipped = async (itemId: Id<'shoppingListItems'>) => {
+    await toggleSkipped({ id: itemId });
+  };
+
   const handleRemoveItem = async (itemId: Id<'shoppingListItems'>) => {
     try {
       await removeItem({ id: itemId });
@@ -152,10 +167,9 @@ function ShoppingListComponent() {
 
   const itemIds = list.items?.map((item) => item.ingredientId);
 
-  // Sort items by checked status (unchecked first), then by category name
-  // Selected/checked items appear at the bottom
+  // Sort items: unchecked first, then skipped, then checked — each group sorted by category name
   const sortedItems = sortBy(list.items, [
-    (item) => item.checked, // false (unchecked) comes before true (checked)
+    (item) => (item.checked ? 2 : item.skipped ? 1 : 0),
     (item) => item.category?.name || 'Other',
   ]);
 
@@ -231,7 +245,7 @@ function ShoppingListComponent() {
                   className="overflow-hidden"
                   layout
                   initial={{ opacity: 0, y: -30 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  animate={{ opacity: item.skipped ? 0.5 : 1, y: 0 }}
                   exit={{ opacity: 0, height: 0 }}
                 >
                   <Item variant="outline" className="cursor-pointer hover:bg-accent py-3 flex-nowrap" asChild>
@@ -278,6 +292,12 @@ function ShoppingListComponent() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {!item.checked && (
+                                  <DropdownMenuItem onSelect={() => handleToggleSkipped(item._id)}>
+                                    {item.skipped ? <ArrowUp /> : <ArrowDown />}
+                                    {item.skipped ? 'Unskip' : 'Skip'}
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                   onSelect={() => {
                                     setCurrentItem(item);

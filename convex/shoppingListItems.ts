@@ -44,6 +44,7 @@ export const add = authenticatedMutation({
     const itemId = await ctx.db.insert('shoppingListItems', {
       ...args,
       checked: false,
+      skipped: false,
       order: maxOrder + 1,
     });
 
@@ -104,6 +105,7 @@ export const addFromRecipe = authenticatedMutation({
         recipeId: args.recipeId,
         ingredientId: ri.ingredientId,
         checked: false,
+        skipped: false,
         notes,
         order,
       });
@@ -141,6 +143,38 @@ export const toggleChecked = authenticatedMutation({
 
     await ctx.db.patch(args.id, {
       checked: !item.checked,
+      skipped: false,
+    });
+
+    return args.id;
+  },
+});
+
+/**
+ * Toggles the skipped status of a shopping list item for the currently authenticated user.
+ *
+ * @param args.id - The ID of the shopping list item to toggle the skipped status of.
+ *
+ * @returns A promise that resolves to the ID of the updated shopping list item.
+ */
+export const toggleSkipped = authenticatedMutation({
+  args: {
+    id: v.id('shoppingListItems'),
+  },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.id);
+    if (!item) {
+      throw new NotFoundError('shoppingListItems', args.id);
+    }
+
+    // Verify user owns the list
+    const list = await ctx.db.get(item.shoppingListId);
+    if (!list || list.userId !== ctx.userId) {
+      throw new NotFoundError('shoppingLists', item.shoppingListId);
+    }
+
+    await ctx.db.patch(args.id, {
+      skipped: !item.skipped,
     });
 
     return args.id;
