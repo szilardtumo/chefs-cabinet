@@ -18,6 +18,7 @@ export const add = authenticatedMutation({
     quantity: v.number(),
     unit: v.string(),
     notes: v.optional(v.string()),
+    group: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Verify user owns the recipe
@@ -58,6 +59,7 @@ export const update = authenticatedMutation({
     quantity: v.optional(v.number()),
     unit: v.optional(v.string()),
     notes: v.optional(v.string()),
+    group: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const recipeIngredient = await ctx.db.get(args.id);

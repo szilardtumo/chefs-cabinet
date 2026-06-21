@@ -1,5 +1,5 @@
 import { type Infer, v } from 'convex/values';
-import { isEqual, omitBy } from 'es-toolkit';
+import { groupBy, isEqual, omitBy } from 'es-toolkit';
 import { isStorageId } from '@/lib/storage';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -85,7 +85,9 @@ export const getById = authenticatedQuery({
     return {
       ...recipe,
       imageUrl,
-      ingredients: ingredientsWithDetails,
+      ingredientGroups: Object.entries(groupBy(ingredientsWithDetails, (item) => item.group ?? '')).map(
+        ([title, ingredients]) => ({ title, ingredients }),
+      ),
     };
   },
 });
@@ -95,6 +97,7 @@ const recipeIngredientSchema = v.object({
   quantity: v.optional(v.number()),
   unit: v.optional(v.string()),
   notes: v.optional(v.string()),
+  group: v.optional(v.string()),
 });
 
 const recipeSchema = v.object({
@@ -106,7 +109,12 @@ const recipeSchema = v.object({
   image: v.optional(v.union(v.id('_storage'), v.string(), v.null())),
   tags: v.array(v.string()),
   source: v.optional(v.string()),
-  instructions: v.array(v.string()),
+  instructions: v.array(
+    v.object({
+      title: v.optional(v.string()),
+      steps: v.array(v.string()),
+    }),
+  ),
   ingredients: v.array(recipeIngredientSchema),
   aiPrompt: v.optional(v.string()),
 });
@@ -117,6 +125,7 @@ type IngredientInput = {
   quantity?: number;
   unit?: string;
   notes?: string;
+  group?: string;
 };
 
 /**
@@ -178,13 +187,13 @@ export const createRecipeMutation = internalMutation({
       image: recipeData.image ?? undefined,
     });
 
-    ingredients.forEach(async (ingredient, index) => {
+    for (const [index, ingredient] of ingredients.entries()) {
       await ctx.db.insert('recipeIngredients', {
         ...ingredient,
         recipeId,
         order: index,
       });
-    });
+    }
 
     return recipeId;
   },

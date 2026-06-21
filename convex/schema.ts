@@ -42,7 +42,12 @@ export default defineSchema({
     cookingTime: v.optional(v.number()),
     prepTime: v.optional(v.number()),
     servings: v.optional(v.number()),
-    instructions: v.array(v.string()),
+    instructions: v.array(
+      v.object({
+        title: v.optional(v.string()),
+        steps: v.array(v.string()),
+      }),
+    ),
     tags: v.array(v.string()),
     source: v.optional(v.string()),
     history: v.array(
@@ -62,6 +67,7 @@ export default defineSchema({
     quantity: v.optional(v.number()),
     unit: v.optional(v.string()),
     notes: v.optional(v.string()),
+    group: v.optional(v.string()),
     order: v.number(),
   })
     .index('by_recipe', ['recipeId'])

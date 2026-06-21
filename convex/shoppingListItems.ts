@@ -83,7 +83,8 @@ export const addFromRecipe = authenticatedMutation({
     // Get recipe ingredients
     const recipeIngredients = await ctx.db
       .query('recipeIngredients')
-      .withIndex('by_recipe', (q) => q.eq('recipeId', args.recipeId))
+      .withIndex('by_recipe_and_order', (q) => q.eq('recipeId', args.recipeId))
+      .order('asc')
       .collect();
 
     // Get current max order

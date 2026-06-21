@@ -4,14 +4,14 @@ import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { capitalize } from 'es-toolkit';
-import { Edit, GripVertical, Plus, Repeat2, RotateCcw, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, GripVertical, Plus, Repeat2, RotateCcw, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { CategoryTag } from '@/components/category-tag';
 import { IngredientCombobox } from '@/components/ingredient-combobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldLabel } from '@/components/ui/field';
 import { FieldFileUpload, FieldInput, FieldTagsInput, FieldTextarea } from '@/components/ui/form-fields';
 import { ImagePreview } from '@/components/ui/image-preview';
@@ -43,22 +43,66 @@ const recipeSchema = z.object({
   imageUrl: z.url().or(z.undefined()),
   tags: z.array(z.string()),
   source: z.string().or(z.undefined()),
-  ingredients: z.array(
-    z.object({
-      id: z.string(),
-      ingredientId: zodConvexId<'ingredients'>().optional(),
-      newIngredientName: z.string().optional(),
-      quantity: z.number().optional(),
-      unit: z.string().optional(),
-      notes: z.string().optional(),
+  ingredientGroups: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        ingredients: z.array(
+          z.object({
+            id: z.string(),
+            ingredientId: zodConvexId<'ingredients'>().optional(),
+            newIngredientName: z.string().optional(),
+            quantity: z.number().optional(),
+            unit: z.string().optional(),
+            notes: z.string().optional(),
+          }),
+        ),
+      }),
+    )
+    .superRefine((groups, ctx) => {
+      if (groups.length <= 1) {
+        return;
+      }
+
+      for (const [index, group] of groups.entries()) {
+        if (!group.title.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Section name is required when there are multiple sections',
+            path: [index, 'title'],
+          });
+        }
+      }
     }),
-  ),
-  instructions: z.array(
-    z.object({
-      id: z.string(),
-      text: z.string(),
+  instructions: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        steps: z.array(
+          z.object({
+            id: z.string(),
+            text: z.string(),
+          }),
+        ),
+      }),
+    )
+    .superRefine((groups, ctx) => {
+      if (groups.length <= 1) {
+        return;
+      }
+
+      for (const [index, group] of groups.entries()) {
+        if (!group.title.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Section name is required when there are multiple sections',
+            path: [index, 'title'],
+          });
+        }
+      }
     }),
-  ),
 });
 
 type RecipeFormProps = {
@@ -66,11 +110,10 @@ type RecipeFormProps = {
   recipeId?: Id<'recipes'>;
   initialValues?: Partial<
     Doc<'recipes'> & {
-      ingredients: Array<
-        Partial<Doc<'recipeIngredients'>> & {
-          newIngredientName?: string;
-        }
-      >;
+      ingredientGroups?: Array<{
+        title?: string;
+        ingredients: Array<Partial<Doc<'recipeIngredients'>> & { newIngredientName?: string }>;
+      }>;
       imageUrl?: string;
     }
   >;
@@ -112,19 +155,27 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
       source: initialValues?.source,
       imageFiles: initialImageFiles,
       imageUrl: isStorageId(initialValues?.image) ? undefined : initialValues?.image,
-      ingredients: (initialValues?.ingredients?.map((ingredient) => ({
-        id: generateId(),
-        ingredientId: ingredient.ingredientId,
-        newIngredientName: ingredient.newIngredientName,
-        quantity: ingredient.quantity,
-        unit: ingredient.unit,
-        notes: ingredient.notes,
-      })) ?? []) as z.infer<typeof recipeSchema>['ingredients'],
-      instructions:
-        initialValues?.instructions?.map((text) => ({
-          id: generateId(),
-          text,
-        })) ?? [],
+      ingredientGroups: (initialValues?.ingredientGroups?.length
+        ? initialValues.ingredientGroups.map((group) => ({
+            id: generateId(),
+            title: group.title ?? '',
+            ingredients: (group.ingredients ?? []).map((ingredient) => ({
+              id: generateId(),
+              ingredientId: ingredient.ingredientId,
+              newIngredientName: ingredient.newIngredientName,
+              quantity: ingredient.quantity,
+              unit: ingredient.unit,
+              notes: ingredient.notes,
+            })),
+          }))
+        : [{ id: generateId(), title: '', ingredients: [] }]) as z.infer<typeof recipeSchema>['ingredientGroups'],
+      instructions: (initialValues?.instructions?.length
+        ? initialValues.instructions.map((group) => ({
+            id: generateId(),
+            title: group.title ?? '',
+            steps: group.steps.map((text) => ({ id: generateId(), text })),
+          }))
+        : [{ id: generateId(), title: '', steps: [] }]) as z.infer<typeof recipeSchema>['instructions'],
     },
     validators: {
       onChange: recipeSchema,
@@ -160,13 +211,20 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
           prepTime: value.prepTime,
           cookingTime: value.cookingTime,
           servings: value.servings,
-          ingredients: value.ingredients
-            .filter((ingredient) => ingredient.ingredientId || ingredient.newIngredientName)
-            .map((ingredient) => ({
-              ...ingredient,
-              id: undefined,
-            })),
-          instructions: value.instructions.map((instruction) => instruction.text),
+          ingredients: value.ingredientGroups.flatMap((group) => {
+            const groupTitle = group.title.trim();
+            return group.ingredients
+              .filter((ingredient) => ingredient.ingredientId || ingredient.newIngredientName)
+              .map((ingredient) => ({
+                ...ingredient,
+                group: groupTitle || undefined,
+                id: undefined,
+              }));
+          }),
+          instructions: value.instructions.map((group) => ({
+            title: group.title.trim() || undefined,
+            steps: group.steps.map((step) => step.text),
+          })),
           tags: value.tags.map(capitalize),
           source: value.source,
         };
@@ -326,223 +384,376 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
           </form.Field>
         </CardContent>
       </Card>
-
       {/* Ingredients */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ingredients</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form.Field name="ingredients" mode="array">
-            {(arrayField) => {
-              const ingredientsList = arrayField.state.value as z.infer<typeof recipeSchema>['ingredients'];
 
-              return (
-                <div className="space-y-4">
-                  <Sortable
-                    value={ingredientsList}
-                    onMove={(e) => arrayField.moveValue(e.activeIndex, e.overIndex)}
-                    getItemValue={(item) => (item as z.infer<typeof recipeSchema>['ingredients'][number]).id}
-                    orientation="vertical"
-                  >
-                    <SortableContent className="space-y-2">
-                      {ingredientsList.map(({ id }, index) => (
-                        <form.Field key={id} name={`ingredients[${index}]`}>
-                          {(itemField) => {
-                            const item = itemField.state.value;
-                            const isNew = item.newIngredientName;
-                            const ingredient = item.ingredientId
-                              ? ingredients?.find((ing) => ing._id === item.ingredientId)
-                              : item.newIngredientName
-                                ? {
-                                    emoji: undefined,
-                                    name: item.newIngredientName,
-                                    category: undefined,
-                                  }
-                                : undefined;
+      <CardTitle className="mb-4">Ingredients</CardTitle>
 
-                            return (
-                              <SortableItem value={id}>
-                                <Item
-                                  variant="outline"
-                                  size="sm"
-                                  className="items-start flex-nowrap overflow-x-scroll pr-3"
-                                >
-                                  <ItemContent className="">
-                                    <ItemTitle className="w-full flex-col items-start sm:flex-row sm:items-center">
-                                      {ingredient ? (
-                                        <div className="flex-12 flex items-center gap-2">
-                                          {isNew ? <Badge size="sm">New</Badge> : <span>{ingredient.emoji}</span>}
-                                          {ingredient.name}
-                                          {ingredient.category && <CategoryTag category={ingredient.category} />}
-                                        </div>
-                                      ) : (
-                                        <IngredientCombobox
-                                          className="flex-12 w-full"
-                                          placeholder="Select ingredient..."
-                                          selectedItems={[]}
-                                          onSelect={async (ingredientId) => {
-                                            arrayField.replaceValue(index, {
-                                              id: item.id,
-                                              ingredientId,
-                                              unit: ingredients?.find((ing) => ing._id === ingredientId)?.defaultUnit,
-                                            });
-                                          }}
-                                          onCreate={async (ingredientName) => {
-                                            arrayField.replaceValue(index, {
-                                              id: item.id,
-                                              newIngredientName: ingredientName,
-                                            });
-                                          }}
-                                        />
-                                      )}
-                                      <div className="grid grid-cols-2 gap-2 min-w-44 w-full flex-1">
-                                        <form.Field name={`ingredients[${index}].quantity`}>
-                                          {(field) => <FieldInput field={field} type="number" placeholder="0" />}
+      <form.Field name="ingredientGroups" mode="array">
+        {(groupsField) => {
+          const groups = groupsField.state.value;
+
+          return (
+            <div className="space-y-6">
+              {groups.map((group, gi) => (
+                <Card key={group.id} className="border-muted">
+                  <CardHeader>
+                    <CardTitle className="mr-8">
+                      <form.Field name={`ingredientGroups[${gi}].title`}>
+                        {(titleField) => (
+                          <FieldInput field={titleField} aria-label="Section name" placeholder="Section name" />
+                        )}
+                      </form.Field>
+                    </CardTitle>
+                    <CardAction>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={gi === 0}
+                        onClick={() => groupsField.moveValue(gi, gi - 1)}
+                        aria-label="Move section up"
+                      >
+                        <ChevronUp />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={gi === groups.length - 1}
+                        onClick={() => groupsField.moveValue(gi, gi + 1)}
+                        aria-label="Move section down"
+                      >
+                        <ChevronDown />
+                      </Button>
+                      {groups.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => groupsField.removeValue(gi)}
+                          aria-label="Remove section"
+                        >
+                          <Trash2 />
+                        </Button>
+                      )}
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <form.Field name={`ingredientGroups[${gi}].ingredients`} mode="array">
+                      {(ingredientsArrayField) => {
+                        const ingredientsList = ingredientsArrayField.state.value;
+
+                        return (
+                          <div className="space-y-4">
+                            <Sortable
+                              value={ingredientsList}
+                              onMove={(e) => ingredientsArrayField.moveValue(e.activeIndex, e.overIndex)}
+                              getItemValue={(item) => item.id}
+                              orientation="vertical"
+                            >
+                              <SortableContent className="space-y-2">
+                                {ingredientsList.map((row, ii) => (
+                                  <form.Field key={row.id} name={`ingredientGroups[${gi}].ingredients[${ii}]`}>
+                                    {(itemField) => {
+                                      const item = itemField.state.value;
+                                      const isNew = item.newIngredientName;
+                                      const ingredient = item.ingredientId
+                                        ? ingredients?.find((ing) => ing._id === item.ingredientId)
+                                        : item.newIngredientName
+                                          ? {
+                                              emoji: undefined,
+                                              name: item.newIngredientName,
+                                              category: undefined,
+                                            }
+                                          : undefined;
+
+                                      return (
+                                        <SortableItem value={row.id}>
+                                          <Item
+                                            variant="outline"
+                                            size="sm"
+                                            className="items-start flex-nowrap overflow-x-auto pr-3"
+                                          >
+                                            <ItemContent>
+                                              <ItemTitle className="w-full flex-col items-start sm:flex-row sm:items-center">
+                                                {ingredient ? (
+                                                  <div className="flex-12 flex items-center gap-2">
+                                                    {isNew ? (
+                                                      <Badge size="sm">New</Badge>
+                                                    ) : (
+                                                      <span>{ingredient.emoji}</span>
+                                                    )}
+                                                    {ingredient.name}
+                                                    {ingredient.category && (
+                                                      <CategoryTag category={ingredient.category} />
+                                                    )}
+                                                  </div>
+                                                ) : (
+                                                  <IngredientCombobox
+                                                    className="flex-12 w-full"
+                                                    placeholder="Select ingredient..."
+                                                    selectedItems={[]}
+                                                    onSelect={async (ingredientId) => {
+                                                      ingredientsArrayField.replaceValue(ii, {
+                                                        ...item,
+                                                        ingredientId,
+                                                        unit: ingredients?.find((ing) => ing._id === ingredientId)
+                                                          ?.defaultUnit,
+                                                      });
+                                                    }}
+                                                    onCreate={async (ingredientName) => {
+                                                      ingredientsArrayField.replaceValue(ii, {
+                                                        ...item,
+                                                        newIngredientName: ingredientName,
+                                                      });
+                                                    }}
+                                                  />
+                                                )}
+                                                <div className="grid grid-cols-2 gap-2 min-w-44 w-full flex-1">
+                                                  <form.Field
+                                                    name={`ingredientGroups[${gi}].ingredients[${ii}].quantity`}
+                                                  >
+                                                    {(field) => (
+                                                      <FieldInput field={field} type="number" placeholder="0" />
+                                                    )}
+                                                  </form.Field>
+                                                  <form.Field name={`ingredientGroups[${gi}].ingredients[${ii}].unit`}>
+                                                    {(field) => <FieldInput field={field} placeholder="g, tsp..." />}
+                                                  </form.Field>
+                                                </div>
+                                              </ItemTitle>
+                                              <ItemDescription className="overflow-visible">
+                                                <form.Field name={`ingredientGroups[${gi}].ingredients[${ii}].notes`}>
+                                                  {(field) => (
+                                                    <Popover>
+                                                      <PopoverTrigger className="p-1 flex items-center gap-2 hover:underline">
+                                                        <span className="line-clamp-1 text-left">
+                                                          {field.state.value || 'Click to add notes...'}
+                                                        </span>
+                                                        <Edit className="size-4 shrink-0" />
+                                                      </PopoverTrigger>
+                                                      <PopoverContent side="top" align="start">
+                                                        <FieldInput
+                                                          field={field}
+                                                          label="Edit Notes"
+                                                          placeholder="e.g., large, fresh..."
+                                                          onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                              e.preventDefault();
+                                                              document.dispatchEvent(
+                                                                new KeyboardEvent('keydown', {
+                                                                  key: 'Escape',
+                                                                }),
+                                                              );
+                                                            }
+                                                          }}
+                                                        />
+                                                      </PopoverContent>
+                                                    </Popover>
+                                                  )}
+                                                </form.Field>
+                                              </ItemDescription>
+                                            </ItemContent>
+                                            <ItemActions className="flex-col-reverse sm:flex-row gap-0">
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                disabled={!ingredient}
+                                                onClick={() => ingredientsArrayField.replaceValue(ii, { id: item.id })}
+                                              >
+                                                <Repeat2 />
+                                              </Button>
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => ingredientsArrayField.removeValue(ii)}
+                                              >
+                                                <Trash2 />
+                                              </Button>
+                                              <SortableItemHandle asChild>
+                                                <Button type="button" variant="ghost" size="icon">
+                                                  <GripVertical />
+                                                </Button>
+                                              </SortableItemHandle>
+                                            </ItemActions>
+                                          </Item>
+                                        </SortableItem>
+                                      );
+                                    }}
+                                  </form.Field>
+                                ))}
+                              </SortableContent>
+                            </Sortable>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => ingredientsArrayField.pushValue({ id: generateId() })}
+                              className="w-full"
+                            >
+                              <Plus />
+                              Add ingredient to this section
+                            </Button>
+                          </div>
+                        );
+                      }}
+                    </form.Field>
+                  </CardContent>
+                </Card>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => groupsField.pushValue({ id: generateId(), title: '', ingredients: [] })}
+                className="w-full"
+              >
+                <Plus />
+                Add section
+              </Button>
+            </div>
+          );
+        }}
+      </form.Field>
+
+      <CardTitle className="mb-4">Instructions</CardTitle>
+      <form.Field name="instructions" mode="array">
+        {(instructionsField) => {
+          const instructions = instructionsField.state.value;
+
+          return (
+            <div className="space-y-6">
+              {instructions.map((group, gi) => (
+                <Card key={group.id} className="border-muted">
+                  <CardHeader>
+                    <CardTitle className="mr-8">
+                      <form.Field name={`instructions[${gi}].title`}>
+                        {(titleField) => (
+                          <FieldInput field={titleField} aria-label="Section name" placeholder="Section name" />
+                        )}
+                      </form.Field>
+                    </CardTitle>
+                    <CardAction>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={gi === 0}
+                        onClick={() => instructionsField.moveValue(gi, gi - 1)}
+                        aria-label="Move section up"
+                      >
+                        <ChevronUp />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={gi === instructions.length - 1}
+                        onClick={() => instructionsField.moveValue(gi, gi + 1)}
+                        aria-label="Move section down"
+                      >
+                        <ChevronDown />
+                      </Button>
+                      {instructions.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => instructionsField.removeValue(gi)}
+                          aria-label="Remove section"
+                        >
+                          <Trash2 />
+                        </Button>
+                      )}
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent>
+                    <form.Field name={`instructions[${gi}].steps`} mode="array">
+                      {(stepsField) => {
+                        const steps = stepsField.state.value;
+
+                        return (
+                          <div className="space-y-4">
+                            <Sortable
+                              value={steps}
+                              onMove={(e) => stepsField.moveValue(e.activeIndex, e.overIndex)}
+                              getItemValue={(item) => item.id}
+                              orientation="vertical"
+                            >
+                              <SortableContent className="space-y-2">
+                                {steps.map((step, si) => (
+                                  <SortableItem key={step.id} value={step.id}>
+                                    <Item variant="outline" size="sm" className="items-start pr-3">
+                                      <ItemContent>
+                                        <form.Field name={`instructions[${gi}].steps[${si}].text`}>
+                                          {(textField) => (
+                                            <FieldTextarea
+                                              field={textField}
+                                              placeholder={`Step ${si + 1}...`}
+                                              rows={3}
+                                            />
+                                          )}
                                         </form.Field>
-                                        <form.Field name={`ingredients[${index}].unit`}>
-                                          {(field) => <FieldInput field={field} placeholder="g, tsp..." />}
-                                        </form.Field>
-                                      </div>
-                                    </ItemTitle>
-                                    <ItemDescription className="overflow-visible">
-                                      <form.Field name={`ingredients[${index}].notes`}>
-                                        {(field) => (
-                                          <>
-                                            <Popover>
-                                              <PopoverTrigger className="p-1 flex items-center gap-2 hover:underline">
-                                                <span className="line-clamp-1 text-left">
-                                                  {field.state.value || 'Click to add notes...'}
-                                                </span>
-                                                <Edit className="size-4 shrink-0" />
-                                              </PopoverTrigger>
-                                              <PopoverContent side="top" align="start">
-                                                <FieldInput
-                                                  field={field}
-                                                  label="Edit Notes"
-                                                  placeholder="e.g., large, fresh..."
-                                                  onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                      e.preventDefault();
-                                                      // Dispatch Escape key event to close the popover
-                                                      document.dispatchEvent(
-                                                        new KeyboardEvent('keydown', { key: 'Escape' }),
-                                                      );
-                                                    }
-                                                  }}
-                                                />
-                                              </PopoverContent>
-                                            </Popover>
-                                          </>
-                                        )}
-                                      </form.Field>
-                                    </ItemDescription>
-                                  </ItemContent>
-                                  <ItemActions className="flex-col-reverse sm:flex-row gap-0">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      disabled={!ingredient}
-                                      onClick={() => arrayField.replaceValue(index, { id: item.id })}
-                                    >
-                                      <Repeat2 />
-                                    </Button>
+                                      </ItemContent>
+                                      <ItemActions className="flex-col gap-0">
+                                        <SortableItemHandle asChild>
+                                          <Button type="button" variant="ghost" size="icon">
+                                            <GripVertical />
+                                          </Button>
+                                        </SortableItemHandle>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => stepsField.removeValue(si)}
+                                        >
+                                          <Trash2 />
+                                        </Button>
+                                      </ItemActions>
+                                    </Item>
+                                  </SortableItem>
+                                ))}
+                              </SortableContent>
+                            </Sortable>
 
-                                    <Button variant="ghost" size="icon" onClick={() => arrayField.removeValue(index)}>
-                                      <Trash2 />
-                                    </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => stepsField.pushValue({ id: generateId(), text: '' })}
+                              className="w-full"
+                            >
+                              <Plus />
+                              Add step to this section
+                            </Button>
+                          </div>
+                        );
+                      }}
+                    </form.Field>
+                  </CardContent>
+                </Card>
+              ))}
 
-                                    <SortableItemHandle asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <GripVertical />
-                                      </Button>
-                                    </SortableItemHandle>
-                                  </ItemActions>
-                                </Item>
-                              </SortableItem>
-                            );
-                          }}
-                        </form.Field>
-                      ))}
-                    </SortableContent>
-                  </Sortable>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => arrayField.pushValue({ id: generateId() })}
-                    className="w-full"
-                  >
-                    <Plus />
-                    Add Ingredient
-                  </Button>
-                </div>
-              );
-            }}
-          </form.Field>
-        </CardContent>
-      </Card>
-
-      {/* Instructions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Instructions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form.Field name="instructions" mode="array">
-            {(field) => {
-              const instructions = field.state.value;
-
-              return (
-                <div className="space-y-4">
-                  <Sortable
-                    value={instructions}
-                    onMove={(e) => field.moveValue(e.activeIndex, e.overIndex)}
-                    getItemValue={(item) => item.id}
-                    orientation="vertical"
-                  >
-                    <SortableContent className="space-y-2">
-                      {instructions.map((instruction, index) => (
-                        <SortableItem key={instruction.id} value={instruction.id}>
-                          <Item variant="outline" size="sm" className="items-start pr-3">
-                            <ItemContent>
-                              <form.Field name={`instructions[${index}].text`}>
-                                {(field) => (
-                                  <FieldTextarea field={field} placeholder={`Step ${index + 1}...`} rows={3} />
-                                )}
-                              </form.Field>
-                            </ItemContent>
-                            <ItemActions className="flex-col gap-0">
-                              <SortableItemHandle asChild>
-                                <Button variant="ghost" size="icon">
-                                  <GripVertical />
-                                </Button>
-                              </SortableItemHandle>
-                              <Button variant="ghost" size="icon" onClick={() => field.removeValue(index)}>
-                                <Trash2 />
-                              </Button>
-                            </ItemActions>
-                          </Item>
-                        </SortableItem>
-                      ))}
-                    </SortableContent>
-                  </Sortable>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => field.pushValue({ id: generateId(), text: '' })}
-                    className="w-full"
-                  >
-                    <Plus />
-                    Add Instruction
-                  </Button>
-                </div>
-              );
-            }}
-          </form.Field>
-        </CardContent>
-      </Card>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  instructionsField.pushValue({
+                    id: generateId(),
+                    title: '',
+                    steps: [],
+                  })
+                }
+                className="w-full"
+              >
+                <Plus />
+                Add section
+              </Button>
+            </div>
+          );
+        }}
+      </form.Field>
 
       {/* Submit */}
       <div className="flex gap-2 justify-end">

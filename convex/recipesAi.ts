@@ -33,7 +33,6 @@ export const parseRecipeFromSource = authenticatedAction({
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
 
-    // Create schema matching the form's recipeSchema structure
     const parsedRecipeSchema = z.object({
       title: z.string().describe('Recipe title'),
       description: z.string().describe('Recipe description'),
@@ -41,20 +40,37 @@ export const parseRecipeFromSource = authenticatedAction({
       cookingTime: z.number().optional().describe('Cooking time in minutes'),
       servings: z.number().int().optional().describe('Number of servings'),
       tags: z.array(z.string()).describe('Recipe tags/categories'),
-      ingredients: z
+      ingredientGroups: z
         .array(
           z.object({
-            ingredientName: z.string().describe('Base name of the ingredient (e.g., "egg" not "large eggs")'),
-            quantity: z.number().optional().describe('Quantity (numeric value only)'),
-            unit: z
+            title: z
               .string()
               .optional()
-              .describe('Unit in grams (g), milliliters (ml), or small units (tsp, tbsp, pinch, dash)'),
-            notes: z.string().optional().describe('Qualifiers like "large", "fresh", "to taste" go here'),
+              .describe('Section name for ingredients, e.g. "Dough", "Frosting". Omit for a single flat list.'),
+            ingredients: z
+              .array(
+                z.object({
+                  ingredientName: z.string().describe('Base name of the ingredient (e.g., "egg" not "large eggs")'),
+                  quantity: z.number().optional().describe('Quantity (numeric value only)'),
+                  unit: z
+                    .string()
+                    .optional()
+                    .describe('Unit in grams (g), milliliters (ml), or small units (tsp, tbsp, pinch, dash)'),
+                  notes: z.string().optional().describe('Qualifiers like "large", "fresh", "to taste" go here'),
+                }),
+              )
+              .describe('Ingredients in this section'),
           }),
         )
-        .describe('List of ingredients with converted units'),
-      instructions: z.array(z.string()).describe('Step-by-step cooking instructions'),
+        .describe('Ingredients split by recipe part (use one group with no title for simple recipes)'),
+      instructions: z
+        .array(
+          z.object({
+            title: z.string().optional().describe('Section heading for these steps, e.g. "Dough". Omit if not needed.'),
+            steps: z.array(z.string()).describe('Ordered steps for this section'),
+          }),
+        )
+        .describe('Instructions split by recipe part (use one group for simple recipes)'),
     });
 
     const prompt = `Parse a recipe from ${sourceType} into structured data.
@@ -77,14 +93,18 @@ MEASUREMENTS:
   - "2 large eggs" → quantity: 2, unit: "", notes: "large"
   - "salt to taste" → quantity: 0 or omit, unit: "", notes: "to taste"
 
+GROUPING:
+  - If the recipe has clear parts (e.g. cake + frosting, dough + filling), use multiple ingredientGroups and instructionGroups with descriptive titles
+  - For a simple single-flow recipe, use a single group with no title for ingredients and a single group with no title for instructions
+
 INSTRUCTIONS:
-  - Keep steps minimal and concise
+  - Keep steps minimal and concise within each group
   - Combine steps when they naturally belong together
 
 SOURCE:
   ${sourceType === 'URL' ? `URL (parse this webpage for the recipe): ${sourceContent}` : `Raw recipe text: ${sourceContent}`}
 
-Return: title, description, prepTime, cookingTime, servings, tags, ingredients, instructions.`;
+Return: title, description, prepTime, cookingTime, servings, tags, ingredientGroups, instructionGroups.`;
 
     const { output } = await generateText({
       model: google('gemini-3-pro-preview'),
@@ -96,30 +116,32 @@ Return: title, description, prepTime, cookingTime, servings, tags, ingredients, 
       prompt,
     });
 
-    // Match ingredients to existing ones
-    const matchedIngredients = output.ingredients.map((ingredient) => {
+    const matchIngredient = (
+      ingredient: z.infer<typeof parsedRecipeSchema>['ingredientGroups'][number]['ingredients'][number],
+    ) => {
       const baseName = ingredient.ingredientName.toLowerCase().trim();
-      const matchedIngredient = existingIngredients.find(
-        (ingredient) => ingredient.name.toLowerCase().trim() === baseName,
-      );
+      const matchedIngredient = existingIngredients.find((existing) => existing.name.toLowerCase().trim() === baseName);
 
       if (matchedIngredient) {
         return {
           ...ingredient,
           ingredientId: matchedIngredient._id,
         };
-      } else {
-        return {
-          ...ingredient,
-          newIngredientName: ingredient.ingredientName,
-        };
       }
-    });
+
+      return {
+        ...ingredient,
+        newIngredientName: ingredient.ingredientName,
+      };
+    };
 
     return {
       ...output,
       source: args.url,
-      ingredients: matchedIngredients,
+      ingredientGroups: output.ingredientGroups.map((group) => ({
+        title: group.title,
+        ingredients: group.ingredients.map(matchIngredient),
+      })),
     };
   },
 });

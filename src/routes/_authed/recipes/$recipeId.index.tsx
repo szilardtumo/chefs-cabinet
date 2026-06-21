@@ -176,24 +176,33 @@ function RecipeDetailComponent() {
             <CardTitle>Ingredients</CardTitle>
           </CardHeader>
           <CardContent>
-            {!recipe.ingredients || recipe.ingredients.length === 0 ? (
-              <p className="text-muted-foreground">No ingredients added yet</p>
-            ) : (
-              <ul className="space-y-2">
-                {recipe.ingredients.map((ri) => (
-                  <li key={ri._id} className="flex items-center gap-1">
-                    <IngredientCartButton ingredientId={ri.ingredientId} />
-                    <div>
-                      <span className="italic">
-                        {ri.quantity} {ri.quantity !== undefined ? ri.unit : ''}
-                      </span>{' '}
-                      {ri.ingredient?.name} {ri.ingredient?.emoji}{' '}
-                      {ri.notes && <span className="text-muted-foreground text-sm italic">({ri.notes})</span>}
+            {
+              <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
+                {recipe.ingredientGroups.length > 0 ? (
+                  recipe.ingredientGroups.map((group, groupIndex) => (
+                    <div key={`${group.title ?? 'section'}-${groupIndex}`} className="space-y-2">
+                      {group.title && <h3 className="text-sm font-semibold text-foreground">{group.title}</h3>}
+                      <ul className="space-y-2">
+                        {group.ingredients.map((ri) => (
+                          <li key={ri._id} className="flex items-center gap-1">
+                            <IngredientCartButton ingredientId={ri.ingredientId} />
+                            <div>
+                              <span className="italic">
+                                {ri.quantity} {ri.quantity !== undefined ? ri.unit : ''}
+                              </span>{' '}
+                              {ri.ingredient?.name} {ri.ingredient?.emoji}{' '}
+                              {ri.notes && <span className="text-muted-foreground text-sm italic">({ri.notes})</span>}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">No ingredients.</p>
+                )}
+              </div>
+            }
           </CardContent>
         </Card>
 
@@ -203,16 +212,25 @@ function RecipeDetailComponent() {
             <CardTitle>Instructions</CardTitle>
           </CardHeader>
           <CardContent>
-            {recipe.instructions.length === 0 ? (
-              <p className="text-muted-foreground">No instructions added yet</p>
-            ) : (
-              <ol className="list-decimal list-inside space-y-2">
-                {recipe.instructions.map((instruction, index) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: index is the correct key
-                  <li key={index}>{instruction}</li>
-                ))}
-              </ol>
-            )}
+            {
+              <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
+                {recipe.instructions.length > 0 ? (
+                  recipe.instructions.map((group, groupIndex) => (
+                    <div key={`${group.title ?? 'section'}-${groupIndex}`} className="space-y-2">
+                      {group.title && <h3 className="text-sm font-semibold">{group.title}</h3>}
+                      <ol className="list-decimal list-inside space-y-2">
+                        {group.steps.map((step, stepIndex) => (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: stable order within section
+                          <li key={stepIndex}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">No instructions.</p>
+                )}
+              </div>
+            }
           </CardContent>
         </Card>
 
