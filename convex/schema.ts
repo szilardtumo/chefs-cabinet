@@ -1,6 +1,11 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+const recipeInstructionGroup = v.object({
+  title: v.optional(v.string()),
+  steps: v.array(v.string()),
+});
+
 export default defineSchema({
   // Categories for organizing ingredients
   categories: defineTable({
@@ -42,12 +47,7 @@ export default defineSchema({
     cookingTime: v.optional(v.number()),
     prepTime: v.optional(v.number()),
     servings: v.optional(v.number()),
-    instructions: v.array(
-      v.object({
-        title: v.optional(v.string()),
-        steps: v.array(v.string()),
-      }),
-    ),
+    instructions: v.union(v.array(v.string()), v.array(recipeInstructionGroup)),
     tags: v.array(v.string()),
     source: v.optional(v.string()),
     history: v.array(
