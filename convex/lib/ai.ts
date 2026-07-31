@@ -1,6 +1,14 @@
 import type { UserIdentity } from 'convex/server';
 import { AIError } from './errors';
 
+/** Google Gemini model IDs used across the app. */
+export const GEMINI_MODELS = {
+  /** Complex reasoning, tool use (recipe parsing from URL/text). */
+  pro: 'gemini-3.1-pro-preview',
+  /** Simple structured output (ingredient categorization). */
+  flashLite: 'gemini-3.5-flash-lite',
+} as const;
+
 /**
  * Checks if AI features are enabled for the given user identity.
  * Requires the `aiEnabled` custom claim to be configured in the Clerk JWT template:

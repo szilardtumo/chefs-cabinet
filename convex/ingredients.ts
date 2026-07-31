@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import type { ActionCtx } from './_generated/server';
-import { createGoogleAI } from './lib/ai';
+import { createGoogleAI, GEMINI_MODELS } from './lib/ai';
 import { InvalidOperationError, NotFoundError } from './lib/errors';
 import { authenticatedAction, authenticatedMutation, authenticatedQuery } from './lib/helpers';
 
@@ -199,7 +199,7 @@ Process all ingredients in a single response.`;
     );
 
     const { output } = await generateText({
-      model: google('gemini-2.5-flash'),
+      model: google(GEMINI_MODELS.flashLite),
       output: Output.object({ schema }),
       prompt,
     });

@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import { z } from 'zod';
 import { api } from './_generated/api';
 import type { IngredientWithCategory } from './ingredients';
-import { createGoogleAI } from './lib/ai';
+import { createGoogleAI, GEMINI_MODELS } from './lib/ai';
 import { authenticatedAction } from './lib/helpers';
 
 /**
@@ -107,7 +107,7 @@ SOURCE:
 Return: title, description, prepTime, cookingTime, servings, tags, ingredientGroups, instructionGroups.`;
 
     const { output } = await generateText({
-      model: google('gemini-3-pro-preview'),
+      model: google(GEMINI_MODELS.pro),
       output: Output.object({ schema: parsedRecipeSchema }),
       tools: {
         google_search: google.tools.googleSearch({}),
