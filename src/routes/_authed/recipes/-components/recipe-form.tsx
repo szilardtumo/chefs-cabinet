@@ -390,11 +390,14 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
 
       <form.Field name="ingredientGroups" mode="array">
         {(groupsField) => {
-          const groups = groupsField.state.value;
+          const groups = groupsField.state.value ?? [];
 
           return (
             <div className="space-y-6">
-              {groups.map((group, gi) => (
+              {groups.map((group, gi) => {
+                if (!group) return null;
+
+                return (
                 <Card key={group.id} className="border-muted">
                   <CardHeader>
                     <CardTitle className="mr-8">
@@ -441,7 +444,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                   <CardContent className="space-y-4">
                     <form.Field name={`ingredientGroups[${gi}].ingredients`} mode="array">
                       {(ingredientsArrayField) => {
-                        const ingredientsList = ingredientsArrayField.state.value;
+                        const ingredientsList = ingredientsArrayField.state.value ?? [];
 
                         return (
                           <div className="space-y-4">
@@ -452,10 +455,15 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                               orientation="vertical"
                             >
                               <SortableContent className="space-y-2">
-                                {ingredientsList.map((row, ii) => (
+                                {ingredientsList.map((row, ii) => {
+                                  if (!row) return null;
+
+                                  return (
                                   <form.Field key={row.id} name={`ingredientGroups[${gi}].ingredients[${ii}]`}>
                                     {(itemField) => {
-                                      const item = itemField.state.value;
+                                      const item = itemField.state.value ?? row;
+                                      if (!item) return null;
+
                                       const isNew = item.newIngredientName;
                                       const ingredient = item.ingredientId
                                         ? ingredients?.find((ing) => ing._id === item.ingredientId)
@@ -583,7 +591,8 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                                       );
                                     }}
                                   </form.Field>
-                                ))}
+                                  );
+                                })}
                               </SortableContent>
                             </Sortable>
 
@@ -602,7 +611,8 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                     </form.Field>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
 
               <Button
                 type="button"
@@ -672,7 +682,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
                   <CardContent>
                     <form.Field name={`instructions[${gi}].steps`} mode="array">
                       {(stepsField) => {
-                        const steps = stepsField.state.value;
+                        const steps = stepsField.state.value ?? [];
 
                         return (
                           <div className="space-y-4">
