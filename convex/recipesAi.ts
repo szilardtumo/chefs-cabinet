@@ -2,20 +2,21 @@ import { generateText, Output } from 'ai';
 import { v } from 'convex/values';
 import { z } from 'zod';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import type { IngredientWithCategory } from './ingredients';
 import { createGoogleAI, GEMINI_MODELS } from './lib/ai';
 import { authenticatedAction } from './lib/helpers';
 
 /**
- * Parses a recipe from a URL or raw text using AI.
- * Extracts recipe data, converts units, and matches ingredients to existing ones.
+ * Imports a recipe from a URL or raw text using AI.
+ * Parses the source, creates any new ingredients, and saves the recipe.
  */
-export const parseRecipeFromSource = authenticatedAction({
+export const importRecipeFromSource = authenticatedAction({
   args: {
     url: v.optional(v.string()),
     text: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<'recipes'>> => {
     if (!args.url && !args.text) {
       throw new Error('Either url or text must be provided');
     }
@@ -23,7 +24,6 @@ export const parseRecipeFromSource = authenticatedAction({
     const identity = await ctx.auth.getUserIdentity();
     const google = await createGoogleAI(identity!);
 
-    // Get user's existing ingredients for matching
     const existingIngredients: IngredientWithCategory[] = await ctx.runQuery(api.ingredients.getAll, {});
 
     const sourceContent = args.url || args.text || '';
@@ -56,7 +56,12 @@ export const parseRecipeFromSource = authenticatedAction({
                     .string()
                     .optional()
                     .describe('Unit in grams (g), milliliters (ml), or small units (tsp, tbsp, pinch, dash)'),
-                  notes: z.string().optional().describe('Qualifiers like "large", "fresh", "to taste" go here'),
+                  notes: z
+                    .string()
+                    .optional()
+                    .describe(
+                      'Only uncommon qualifiers that matter (e.g. "zest", "juice", "to taste", "smoked"). Omit defaults like all-purpose, kosher, fresh, dried, ground.',
+                    ),
                 }),
               )
               .describe('Ingredients in this section'),
@@ -81,9 +86,16 @@ EXISTING INGREDIENTS (use these base names when possible):
 INGREDIENT MATCHING:
   - Use a base name from the list above whenever there is a reasonable match
   - Treat singular/plural as the same ("egg" ↔ "eggs")
-  - Put forms/qualifiers in notes (fresh, large, zest, juice, chopped, etc.)
+  - Put only meaningful, non-obvious forms in notes (zest, juice, smoked, browned, to taste, etc.)
   - Example: "lemon zest" → ingredientName: "lemon", notes: "zest"
   - Only create a new ingredient if no reasonable match exists
+
+OMIT OBVIOUS NOTES (do not put these in notes or in the ingredient name):
+  - Default types: all-purpose flour → "flour"; kosher/table/sea salt → "salt"; granulated/white sugar → "sugar"
+  - Default states: fresh, dried, ground, finely ground, freshly ground, powdered, minced, chopped, diced, sliced
+  - Other noise: unsalted butter → "butter" (unless salted is unusual for the recipe); large eggs → notes may keep "large" only if size matters
+  - If a specialty really matters, keep it (e.g. "00 flour", "flaky salt", "smoked paprika", "dark brown sugar")
+  - Prefer empty notes over clutter — when in doubt, omit the qualifier
 
 MEASUREMENTS:
   - Convert cups/fl oz to g (solids) or ml (liquids)
@@ -116,32 +128,39 @@ Return: title, description, prepTime, cookingTime, servings, tags, ingredientGro
       prompt,
     });
 
-    const matchIngredient = (
-      ingredient: z.infer<typeof parsedRecipeSchema>['ingredientGroups'][number]['ingredients'][number],
-    ) => {
-      const baseName = ingredient.ingredientName.toLowerCase().trim();
-      const matchedIngredient = existingIngredients.find((existing) => existing.name.toLowerCase().trim() === baseName);
+    const ingredients = output.ingredientGroups.flatMap((group) =>
+      group.ingredients.map((ingredient) => {
+        const baseName = ingredient.ingredientName.toLowerCase().trim();
+        const matchedIngredient = existingIngredients.find(
+          (existing) => existing.name.toLowerCase().trim() === baseName,
+        );
 
-      if (matchedIngredient) {
         return {
-          ...ingredient,
-          ingredientId: matchedIngredient._id,
+          quantity: ingredient.quantity,
+          unit: ingredient.unit,
+          notes: ingredient.notes,
+          group: group.title,
+          ...(matchedIngredient
+            ? { ingredientId: matchedIngredient._id }
+            : { newIngredientName: ingredient.ingredientName }),
         };
-      }
+      }),
+    );
 
-      return {
-        ...ingredient,
-        newIngredientName: ingredient.ingredientName,
-      };
-    };
+    const aiImportedTag = 'AI imported';
+    const tags = output.tags.includes(aiImportedTag) ? output.tags : [...output.tags, aiImportedTag];
 
-    return {
-      ...output,
+    return await ctx.runAction(api.recipes.create, {
+      title: output.title,
+      description: output.description,
+      prepTime: output.prepTime,
+      cookingTime: output.cookingTime,
+      servings: output.servings,
+      tags,
       source: args.url,
-      ingredientGroups: output.ingredientGroups.map((group) => ({
-        title: group.title,
-        ingredients: group.ingredients.map(matchIngredient),
-      })),
-    };
+      instructions: output.instructions,
+      ingredients,
+      aiPrompt: args.url ? `Import from URL: ${args.url}` : 'Import from pasted recipe text',
+    });
   },
 });

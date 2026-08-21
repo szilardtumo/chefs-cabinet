@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { FieldInput, FieldTextarea } from '@/components/ui/form-fields';
-import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const importSchema = z.discriminatedUnion('type', [
@@ -30,8 +29,8 @@ export const Route = createFileRoute('/_authed/recipes/import')({
 function ImportRecipeComponent() {
   const navigate = useNavigate();
 
-  const parseRecipeMutation = useMutation({
-    mutationFn: useConvexAction(api.recipesAi.parseRecipeFromSource),
+  const importRecipeMutation = useMutation({
+    mutationFn: useConvexAction(api.recipesAi.importRecipeFromSource),
   });
 
   const form = useForm({
@@ -43,24 +42,33 @@ function ImportRecipeComponent() {
     validators: {
       onBlur: importSchema,
     },
-    onSubmit: async ({ value }) => {
-      try {
-        const source = value.type === 'url' ? value.url : value.text;
+    onSubmit: ({ value }) => {
+      const source = value.type === 'url' ? value.url : value.text;
 
-        const importedRecipe = await parseRecipeMutation.mutateAsync({
-          [value.type]: source,
-        });
+      const importPromise = importRecipeMutation.mutateAsync({
+        [value.type]: source,
+      });
 
-        navigate({ to: '/recipes/new', state: { importedRecipe } });
+      toast.promise(importPromise, {
+        loading: 'Importing recipe…',
+        description: 'You can keep browsing or close this window. The recipe will be available once parsing finishes.',
+        success: (recipeId) => ({
+          message: 'Recipe imported',
+          description: 'Your recipe has been created.',
+          action: {
+            label: 'View recipe',
+            onClick: () => {
+              navigate({ to: '/recipes/$recipeId', params: { recipeId } });
+            },
+          },
+        }),
+        error: (error) => ({
+          message: 'Import failed',
+          description: error instanceof Error ? error.message : 'Failed to import recipe. Please try again.',
+        }),
+      });
 
-        toast.success('Recipe parsed', {
-          description: 'Your recipe has been parsed and is ready to review.',
-        });
-      } catch (error) {
-        toast.error('Parsing failed', {
-          description: error instanceof Error ? error.message : 'Failed to parse recipe. Please try again.',
-        });
-      }
+      navigate({ to: '/recipes' });
     },
   });
 
@@ -136,17 +144,8 @@ function ImportRecipeComponent() {
         </CardContent>
         <CardFooter className="justify-end">
           <Button type="submit" form="import-recipe-form" disabled={!form.state.canSubmit}>
-            {form.state.isSubmitting ? (
-              <>
-                <Spinner />
-                Parsing with AI...
-              </>
-            ) : (
-              <>
-                <Sparkles />
-                Import with AI
-              </>
-            )}
+            <Sparkles />
+            Import with AI
           </Button>
         </CardFooter>
       </Card>

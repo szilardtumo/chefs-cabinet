@@ -1,20 +1,12 @@
-import { createFileRoute, useNavigate, useRouterState } from '@tanstack/react-router';
-import type { ComponentProps } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { RecipeForm } from './-components/recipe-form';
 
 export const Route = createFileRoute('/_authed/recipes/new')({
   component: RecipeFormComponent,
 });
 
-declare module '@tanstack/react-router' {
-  interface HistoryState {
-    importedRecipe?: ComponentProps<typeof RecipeForm>['initialValues'];
-  }
-}
-
 function RecipeFormComponent() {
   const navigate = useNavigate();
-  const parsedRecipe = useRouterState({ select: (state) => state.location.state.importedRecipe });
 
   return (
     <div className="space-y-6">
@@ -25,7 +17,6 @@ function RecipeFormComponent() {
 
       <RecipeForm
         mode="create"
-        initialValues={parsedRecipe}
         onSuccess={(recipeId) => {
           navigate({ to: '/recipes/$recipeId', params: { recipeId } });
         }}
