@@ -1,6 +1,7 @@
 import { generateText, Output } from 'ai';
 import { v } from 'convex/values';
-import { z } from 'zod';
+import { zodToConvex } from 'convex-helpers/server/zod';
+import { z } from 'zod/v3';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { ActionCtx } from './_generated/server';
@@ -57,33 +58,7 @@ const reviseRecipeSchema = parsedRecipeSchema.extend({
 type ParsedRecipe = z.infer<typeof parsedRecipeSchema>;
 type ParsedIngredient = z.infer<typeof parsedIngredientSchema>;
 
-const parsedIngredientValidator = v.object({
-  ingredientName: v.string(),
-  quantity: v.optional(v.number()),
-  unit: v.optional(v.string()),
-  notes: v.optional(v.string()),
-});
-
-const recipeSnapshotValidator = v.object({
-  title: v.string(),
-  description: v.string(),
-  prepTime: v.optional(v.number()),
-  cookingTime: v.optional(v.number()),
-  servings: v.optional(v.number()),
-  tags: v.array(v.string()),
-  ingredientGroups: v.array(
-    v.object({
-      title: v.optional(v.string()),
-      ingredients: v.array(parsedIngredientValidator),
-    }),
-  ),
-  instructions: v.array(
-    v.object({
-      title: v.optional(v.string()),
-      steps: v.array(v.string()),
-    }),
-  ),
-});
+const recipeSnapshotValidator = zodToConvex(parsedRecipeSchema);
 
 const revisionRoundValidator = v.object({
   prompt: v.string(),
@@ -123,15 +98,8 @@ INSTRUCTIONS:
 
 export type RecipeSnapshot = ParsedRecipe;
 
-export type MatchedRecipeFormValues = {
-  title: string;
-  description: string;
-  prepTime?: number;
-  cookingTime?: number;
-  servings?: number;
-  tags: string[];
+export type MatchedRecipeFormValues = Omit<RecipeSnapshot, 'ingredientGroups'> & {
   ingredientGroups: ReturnType<typeof matchIngredientGroups>;
-  instructions: ParsedRecipe['instructions'];
 };
 
 async function loadRecipeAiContext(ctx: ActionCtx) {

@@ -1,5 +1,8 @@
+import type { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import type { MatchedRecipeFormValues, RecipeSnapshot } from '@convex/recipesAi';
+import type { FunctionArgs } from 'convex/server';
+import { capitalize, omit } from 'es-toolkit';
 import { z } from 'zod';
 import { generateId } from '@/lib/id';
 import { zodConvexId } from '@/utils/validation';
@@ -70,23 +73,23 @@ export type RecipeFormValues = z.infer<typeof recipeFormSchema>;
 
 type IngredientLookup = Array<{ _id: Id<'ingredients'>; name: string }>;
 
-type FormIngredientGroupInput = {
+type FormIngredient = RecipeFormValues['ingredientGroups'][number]['ingredients'][number];
+
+/**
+ * The group shapes the form accepts from upstream, satisfied by both the recipe query and an AI revision.
+ * Anchored to the form values rather than to either source, so a change in one source cannot break the other's path.
+ */
+type IngredientGroupInput = {
   title?: string;
-  ingredients?: Array<{
-    ingredientId?: Id<'ingredients'>;
-    newIngredientName?: string;
-    quantity?: number;
-    unit?: string;
-    notes?: string;
-  }>;
+  ingredients?: Array<Omit<FormIngredient, 'id'>>;
 };
 
-type FormInstructionGroupInput = {
+type InstructionGroupInput = {
   title?: string;
   steps: string[];
 };
 
-export function toFormIngredientGroups(groups?: FormIngredientGroupInput[]): RecipeFormValues['ingredientGroups'] {
+export function toFormIngredientGroups(groups?: IngredientGroupInput[]): RecipeFormValues['ingredientGroups'] {
   if (!groups?.length) {
     return [{ id: generateId(), title: '', ingredients: [] }];
   }
@@ -105,7 +108,7 @@ export function toFormIngredientGroups(groups?: FormIngredientGroupInput[]): Rec
   }));
 }
 
-export function toFormInstructionGroups(groups?: FormInstructionGroupInput[]): RecipeFormValues['instructions'] {
+export function toFormInstructionGroups(groups?: InstructionGroupInput[]): RecipeFormValues['instructions'] {
   if (!groups?.length) {
     return [{ id: generateId(), title: '', steps: [] }];
   }
@@ -118,14 +121,19 @@ export function toFormInstructionGroups(groups?: FormInstructionGroupInput[]): R
 }
 
 export function serializeFormToRecipeSnapshot(value: RecipeFormValues, ingredients: IngredientLookup): RecipeSnapshot {
+  const { ingredientGroups, instructions } = value;
+  const recipeContent = omit(value, [
+    'ingredientGroups',
+    'instructions',
+    'imageFiles',
+    'imageUrl',
+    'source',
+    'aiPrompt',
+  ]);
+
   return {
-    title: value.title,
-    description: value.description,
-    prepTime: value.prepTime,
-    cookingTime: value.cookingTime,
-    servings: value.servings,
-    tags: value.tags,
-    ingredientGroups: value.ingredientGroups.map((group) => ({
+    ...recipeContent,
+    ingredientGroups: ingredientGroups.map((group) => ({
       title: group.title.trim() || undefined,
       ingredients: group.ingredients
         .filter((ingredient) => ingredient.ingredientId || ingredient.newIngredientName)
@@ -139,9 +147,40 @@ export function serializeFormToRecipeSnapshot(value: RecipeFormValues, ingredien
           notes: ingredient.notes,
         })),
     })),
-    instructions: value.instructions.map((group) => ({
+    instructions: instructions.map((group) => ({
       title: group.title.trim() || undefined,
       steps: group.steps.map((step) => step.text).filter((text) => text.trim().length > 0),
+    })),
+  };
+}
+
+/** What `recipes.create` accepts; `recipes.update` takes the same fields plus the recipe id. */
+export type RecipeWriteInput = FunctionArgs<typeof api.recipes.create>;
+
+/**
+ * Maps the form to the write action's input. The explicit return type is the seam between the two:
+ * if the action's args change, this mapper fails to compile rather than the submit call site.
+ */
+export function serializeFormToRecipeInput(
+  value: RecipeFormValues,
+  image: RecipeWriteInput['image'],
+): RecipeWriteInput {
+  const { ingredientGroups, instructions } = value;
+  const recipeContent = omit(value, ['ingredientGroups', 'instructions', 'imageFiles', 'imageUrl']);
+
+  return {
+    ...recipeContent,
+    image,
+    tags: value.tags.map(capitalize),
+    ingredients: ingredientGroups.flatMap((group) => {
+      const groupTitle = group.title.trim();
+      return group.ingredients
+        .filter((ingredient) => ingredient.ingredientId || ingredient.newIngredientName)
+        .map((ingredient) => ({ ...omit(ingredient, ['id']), group: groupTitle || undefined }));
+    }),
+    instructions: instructions.map((group) => ({
+      title: group.title.trim() || undefined,
+      steps: group.steps.map((step) => step.text),
     })),
   };
 }
@@ -150,17 +189,15 @@ export function mapMatchedRecipeToFormValues(
   recipe: MatchedRecipeFormValues,
   preserve: Pick<RecipeFormValues, 'imageFiles' | 'imageUrl' | 'source'>,
 ): Omit<RecipeFormValues, 'aiPrompt'> {
+  const { ingredientGroups, instructions, ...recipeContent } = recipe;
+
   return {
-    title: recipe.title,
-    description: recipe.description,
+    ...recipeContent,
     prepTime: recipe.prepTime,
     cookingTime: recipe.cookingTime,
     servings: recipe.servings,
-    tags: recipe.tags,
-    source: preserve.source,
-    imageFiles: preserve.imageFiles,
-    imageUrl: preserve.imageUrl,
-    ingredientGroups: toFormIngredientGroups(recipe.ingredientGroups),
-    instructions: toFormInstructionGroups(recipe.instructions),
+    ...preserve,
+    ingredientGroups: toFormIngredientGroups(ingredientGroups),
+    instructions: toFormInstructionGroups(instructions),
   };
 }

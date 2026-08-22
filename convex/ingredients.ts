@@ -1,5 +1,6 @@
 import { generateText, Output } from 'ai';
 import { v } from 'convex/values';
+import { omit, pick } from 'es-toolkit';
 import { z } from 'zod';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -7,6 +8,7 @@ import type { ActionCtx } from './_generated/server';
 import { createGoogleAI, GEMINI_MODELS } from './lib/ai';
 import { InvalidOperationError, NotFoundError } from './lib/errors';
 import { authenticatedAction, authenticatedMutation, authenticatedQuery } from './lib/helpers';
+import schema from './schema';
 
 export type Ingredient = Doc<'ingredients'>;
 
@@ -113,13 +115,7 @@ export const search = authenticatedQuery({
  * @returns A promise that resolves to the ID of the created ingredient.
  */
 export const create = authenticatedMutation({
-  args: {
-    name: v.string(),
-    categoryId: v.id('categories'),
-    defaultUnit: v.optional(v.string()),
-    notes: v.optional(v.string()),
-    emoji: v.optional(v.string()),
-  },
+  args: omit(schema.tables.ingredients.validator.fields, ['userId', 'usageScore', 'lastUsageAt']),
   handler: async (ctx, args) => {
     // Verify category belongs to user
     const category = await ctx.db.get(args.categoryId);
@@ -293,9 +289,7 @@ export const update = authenticatedMutation({
     id: v.id('ingredients'),
     name: v.optional(v.string()),
     categoryId: v.optional(v.id('categories')),
-    defaultUnit: v.optional(v.string()),
-    notes: v.optional(v.string()),
-    emoji: v.optional(v.string()),
+    ...pick(schema.tables.ingredients.validator.fields, ['defaultUnit', 'notes', 'emoji']),
   },
   handler: async (ctx, args) => {
     const ingredient = await ctx.db.get(args.id);

@@ -1,6 +1,8 @@
 import { v } from 'convex/values';
+import { pick } from 'es-toolkit';
 import { NotFoundError } from './lib/errors';
 import { authenticatedMutation } from './lib/helpers';
+import schema from './schema';
 
 /**
  * Adds an ingredient to a recipe for the currently authenticated user.
@@ -56,10 +58,7 @@ export const add = authenticatedMutation({
 export const update = authenticatedMutation({
   args: {
     id: v.id('recipeIngredients'),
-    quantity: v.optional(v.number()),
-    unit: v.optional(v.string()),
-    notes: v.optional(v.string()),
-    group: v.optional(v.string()),
+    ...pick(schema.tables.recipeIngredients.validator.fields, ['quantity', 'unit', 'notes', 'group']),
   },
   handler: async (ctx, args) => {
     const recipeIngredient = await ctx.db.get(args.id);

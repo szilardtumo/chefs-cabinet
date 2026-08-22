@@ -1,9 +1,9 @@
 import { api } from '@convex/_generated/api';
-import type { Doc, Id } from '@convex/_generated/dataModel';
+import type { Id } from '@convex/_generated/dataModel';
 import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { capitalize } from 'es-toolkit';
+import type { FunctionReturnType } from 'convex/server';
 import { ChevronDown, ChevronUp, Edit, GripVertical, Plus, Repeat2, RotateCcw, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryTag } from '@/components/category-tag';
@@ -27,6 +27,7 @@ import { RecipeAiRevisePanel } from './recipe-ai-revise';
 import {
   mapMatchedRecipeToFormValues,
   recipeFormSchema,
+  serializeFormToRecipeInput,
   serializeFormToRecipeSnapshot,
   toFormIngredientGroups,
   toFormInstructionGroups,
@@ -42,15 +43,7 @@ async function urlToFile(url: string, filename: string): Promise<File> {
 type RecipeFormProps = {
   mode: 'create' | 'edit';
   recipeId?: Id<'recipes'>;
-  initialValues?: Partial<
-    Doc<'recipes'> & {
-      ingredientGroups?: Array<{
-        title?: string;
-        ingredients: Array<Partial<Doc<'recipeIngredients'>> & { newIngredientName?: string }>;
-      }>;
-      imageUrl?: string;
-    }
-  >;
+  initialValues?: Partial<FunctionReturnType<typeof api.recipes.getById>>;
   onSuccess?: (recipeId: Id<'recipes'>) => void;
   onCancel?: () => void;
 };
@@ -120,31 +113,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
           }
         }
 
-        const data = {
-          title: value.title,
-          description: value.description,
-          image,
-          prepTime: value.prepTime,
-          cookingTime: value.cookingTime,
-          servings: value.servings,
-          ingredients: value.ingredientGroups.flatMap((group) => {
-            const groupTitle = group.title.trim();
-            return group.ingredients
-              .filter((ingredient) => ingredient.ingredientId || ingredient.newIngredientName)
-              .map((ingredient) => ({
-                ...ingredient,
-                group: groupTitle || undefined,
-                id: undefined,
-              }));
-          }),
-          instructions: value.instructions.map((group) => ({
-            title: group.title.trim() || undefined,
-            steps: group.steps.map((step) => step.text),
-          })),
-          tags: value.tags.map(capitalize),
-          source: value.source,
-          aiPrompt: value.aiPrompt,
-        };
+        const data = serializeFormToRecipeInput(value, image);
 
         if (mode === 'create') {
           const newRecipeId = await createRecipe(data);

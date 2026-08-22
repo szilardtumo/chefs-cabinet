@@ -1,5 +1,6 @@
 import { type Infer, v } from 'convex/values';
-import { groupBy, isEqual, omitBy } from 'es-toolkit';
+import { doc } from 'convex-helpers/validators';
+import { groupBy, isEqual, omit, omitBy } from 'es-toolkit';
 import { isStorageId } from '@/lib/storage';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -7,6 +8,7 @@ import type { ActionCtx } from './_generated/server';
 import { internalMutation } from './_generated/server';
 import { NotFoundError } from './lib/errors';
 import { authenticatedAction, authenticatedMutation, authenticatedQuery } from './lib/helpers';
+import schema from './schema';
 
 /**
  * Retrieves all recipes for the currently authenticated user.
@@ -40,6 +42,26 @@ export const getAll = authenticatedQuery({
 });
 
 /**
+ * The recipe detail payload: the stored recipe plus a resolved image URL and its ingredients grouped for display.
+ * Declared rather than inferred so the read shape the UI depends on cannot drift with the handler body.
+ */
+const recipeWithDetails = v.object({
+  ...doc(schema, 'recipes').fields,
+  imageUrl: v.optional(v.string()),
+  ingredientGroups: v.array(
+    v.object({
+      title: v.string(),
+      ingredients: v.array(
+        v.object({
+          ...doc(schema, 'recipeIngredients').fields,
+          ingredient: v.union(doc(schema, 'ingredients'), v.null()),
+        }),
+      ),
+    }),
+  ),
+});
+
+/**
  * Retrieves a single recipe with all details for the currently authenticated user.
  *
  * @param args.id - The ID of the recipe to retrieve.
@@ -48,6 +70,7 @@ export const getAll = authenticatedQuery({
  */
 export const getById = authenticatedQuery({
   args: { id: v.id('recipes') },
+  returns: recipeWithDetails,
   handler: async (ctx, args) => {
     const recipe = await ctx.db.get(args.id);
     if (!recipe) {
@@ -92,40 +115,20 @@ export const getById = authenticatedQuery({
   },
 });
 
-const recipeIngredientSchema = v.object({
-  ingredientId: v.id('ingredients'),
-  quantity: v.optional(v.number()),
-  unit: v.optional(v.string()),
-  notes: v.optional(v.string()),
-  group: v.optional(v.string()),
-});
+/** A stored recipe ingredient without the fields the mutation derives itself. */
+const recipeIngredientSchema = v.object(omit(schema.tables.recipeIngredients.validator.fields, ['recipeId', 'order']));
 
 const recipeSchema = v.object({
-  title: v.string(),
-  description: v.string(),
-  prepTime: v.optional(v.number()),
-  cookingTime: v.optional(v.number()),
-  servings: v.optional(v.number()),
+  ...omit(schema.tables.recipes.validator.fields, ['userId', 'image', 'history']),
+  // Callers use null to clear the existing image.
   image: v.optional(v.union(v.id('_storage'), v.string(), v.null())),
-  tags: v.array(v.string()),
-  source: v.optional(v.string()),
-  instructions: v.array(
-    v.object({
-      title: v.optional(v.string()),
-      steps: v.array(v.string()),
-    }),
-  ),
   ingredients: v.array(recipeIngredientSchema),
   aiPrompt: v.optional(v.string()),
 });
 
-type IngredientInput = {
+type IngredientInput = Omit<Infer<typeof recipeIngredientSchema>, 'ingredientId'> & {
   ingredientId?: Id<'ingredients'>;
   newIngredientName?: string;
-  quantity?: number;
-  unit?: string;
-  notes?: string;
-  group?: string;
 };
 
 /**
