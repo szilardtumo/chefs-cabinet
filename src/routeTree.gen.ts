@@ -20,6 +20,7 @@ import { Route as AuthedIngredientsIndexRouteImport } from './routes/_authed/ing
 import { Route as AuthedRecipesNewRouteImport } from './routes/_authed/recipes/new'
 import { Route as AuthedRecipesImportRouteImport } from './routes/_authed/recipes/import'
 import { Route as AuthedIngredientsCategoriesRouteImport } from './routes/_authed/ingredients/categories'
+import { Route as AuthedBooksStatsRouteImport } from './routes/_authed/books/stats'
 import { Route as AuthedBooksLibraryRouteImport } from './routes/_authed/books/_library'
 import { Route as AuthedRecipesRecipeIdIndexRouteImport } from './routes/_authed/recipes/$recipeId.index'
 import { Route as AuthedBooksLibraryIndexRouteImport } from './routes/_authed/books/_library/index'
@@ -82,6 +83,11 @@ const AuthedIngredientsCategoriesRoute =
     path: '/categories',
     getParentRoute: () => AuthedIngredientsRoute,
   } as any)
+const AuthedBooksStatsRoute = AuthedBooksStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => AuthedBooksRoute,
+} as any)
 const AuthedBooksLibraryRoute = AuthedBooksLibraryRouteImport.update({
   id: '/_library',
   getParentRoute: () => AuthedBooksRoute,
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/books': typeof AuthedBooksLibraryRouteWithChildren
   '/dashboard': typeof AuthedDashboardRoute
   '/ingredients': typeof AuthedIngredientsRouteWithChildren
+  '/books/stats': typeof AuthedBooksStatsRoute
   '/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
   '/recipes/import': typeof AuthedRecipesImportRoute
   '/recipes/new': typeof AuthedRecipesNewRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/books': typeof AuthedBooksLibraryIndexRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/books/stats': typeof AuthedBooksStatsRoute
   '/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
   '/recipes/import': typeof AuthedRecipesImportRoute
   '/recipes/new': typeof AuthedRecipesNewRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/ingredients': typeof AuthedIngredientsRouteWithChildren
   '/_authed/books/_library': typeof AuthedBooksLibraryRouteWithChildren
+  '/_authed/books/stats': typeof AuthedBooksStatsRoute
   '/_authed/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
   '/_authed/recipes/import': typeof AuthedRecipesImportRoute
   '/_authed/recipes/new': typeof AuthedRecipesNewRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/books'
     | '/dashboard'
     | '/ingredients'
+    | '/books/stats'
     | '/ingredients/categories'
     | '/recipes/import'
     | '/recipes/new'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/'
     | '/books'
     | '/dashboard'
+    | '/books/stats'
     | '/ingredients/categories'
     | '/recipes/import'
     | '/recipes/new'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/_authed/dashboard'
     | '/_authed/ingredients'
     | '/_authed/books/_library'
+    | '/_authed/books/stats'
     | '/_authed/ingredients/categories'
     | '/_authed/recipes/import'
     | '/_authed/recipes/new'
@@ -305,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIngredientsCategoriesRouteImport
       parentRoute: typeof AuthedIngredientsRoute
     }
+    '/_authed/books/stats': {
+      id: '/_authed/books/stats'
+      path: '/stats'
+      fullPath: '/books/stats'
+      preLoaderRoute: typeof AuthedBooksStatsRouteImport
+      parentRoute: typeof AuthedBooksRoute
+    }
     '/_authed/books/_library': {
       id: '/_authed/books/_library'
       path: ''
@@ -367,10 +386,12 @@ const AuthedBooksLibraryRouteWithChildren =
 
 interface AuthedBooksRouteChildren {
   AuthedBooksLibraryRoute: typeof AuthedBooksLibraryRouteWithChildren
+  AuthedBooksStatsRoute: typeof AuthedBooksStatsRoute
 }
 
 const AuthedBooksRouteChildren: AuthedBooksRouteChildren = {
   AuthedBooksLibraryRoute: AuthedBooksLibraryRouteWithChildren,
+  AuthedBooksStatsRoute: AuthedBooksStatsRoute,
 }
 
 const AuthedBooksRouteWithChildren = AuthedBooksRoute._addFileChildren(

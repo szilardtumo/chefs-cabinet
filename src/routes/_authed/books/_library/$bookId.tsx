@@ -3,7 +3,7 @@ import type { Doc, Id } from '@convex/_generated/dataModel';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { type AnyFieldApi, useForm } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useCanGoBack, useRouter } from '@tanstack/react-router';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { ExternalLink, ImageUp, Trash2 } from 'lucide-react';
 import { Fragment, useState } from 'react';
@@ -391,6 +391,8 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
 function BookSheetRoute() {
   const { bookId } = Route.useParams();
   const navigate = Route.useNavigate();
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
   const [open, setOpen] = useState(true);
   const { data: book, isError } = useQuery(convexQuery(api.books.getById, { id: bookId as Id<'books'> }));
 
@@ -404,8 +406,12 @@ function BookSheetRoute() {
     <Sheet open={open} onOpenChange={(nextOpen) => !nextOpen && close()}>
       <SheetContent
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
-        // Fires after the exit animation; skipped when the route unmounts some other way (e.g. browser back)
-        onCloseAutoFocus={() => !open && navigate({ to: '/books', search: (prev) => prev, replace: true })}
+        // Fires after the exit animation; skipped when the route unmounts some other way (e.g. browser back).
+        // Going back returns to wherever the book was opened from, such as the stats page.
+        onCloseAutoFocus={() =>
+          !open &&
+          (canGoBack ? router.history.back() : navigate({ to: '/books', search: (prev) => prev, replace: true }))
+        }
       >
         {book ? (
           <BookDetails key={book._id} book={book} onClose={close} />

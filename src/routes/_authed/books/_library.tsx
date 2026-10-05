@@ -3,7 +3,7 @@ import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
 import { groupBy } from 'es-toolkit';
-import { Library, Plus, Search } from 'lucide-react';
+import { ChartNoAxesColumn, Library, Plus, Search } from 'lucide-react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,6 +56,12 @@ function BooksComponent() {
           <p className="text-muted-foreground">Your reading library</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/books/stats">
+              <ChartNoAxesColumn />
+              Stats
+            </Link>
+          </Button>
           <Button asChild>
             <Link to="/books/new" search={(prev) => prev}>
               <Plus />

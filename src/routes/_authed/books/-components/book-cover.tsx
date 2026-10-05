@@ -11,7 +11,7 @@ export function BookCover({ book, className }: { book: Pick<Book, 'coverUrl' | '
   if (!book.coverUrl) {
     return (
       <div className={cn('flex items-center justify-center bg-muted', frameClassName)}>
-        <Library className="size-10 text-muted-foreground" />
+        <Library className="size-10 max-w-1/2 text-muted-foreground" />
       </div>
     );
   }
