@@ -377,11 +377,3 @@ export const remove = authenticatedMutation({
     }
   },
 });
-
-// Generate upload URL for recipe image
-export const generateUploadUrl = authenticatedMutation({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
-  },
-});

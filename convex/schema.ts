@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
+import { literals } from 'convex-helpers/validators';
 
 export default defineSchema({
   // Categories for organizing ingredients
@@ -97,4 +98,21 @@ export default defineSchema({
     .index('by_list', ['shoppingListId'])
     .index('by_list_and_order', ['shoppingListId', 'order'])
     .index('by_ingredient', ['ingredientId']),
+
+  books: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    author: v.string(),
+    genres: v.array(v.string()),
+    pagesRead: v.number(),
+    pageCount: v.optional(v.number()),
+    readingFormat: v.optional(literals('book', 'ebook', 'audiobook', 'pdf', 'article')),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    cancelledAt: v.optional(v.number()),
+    rating: v.optional(v.number()),
+    goodreadsUrl: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    cover: v.optional(v.id('_storage')),
+  }).index('by_user', ['userId']),
 });

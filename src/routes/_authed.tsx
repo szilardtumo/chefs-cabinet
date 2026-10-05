@@ -1,9 +1,10 @@
 import { SignIn, UserButton } from '@clerk/tanstack-react-start';
-import { createFileRoute, Outlet } from '@tanstack/react-router';
+import { ClientOnly, createFileRoute, Outlet } from '@tanstack/react-router';
 import { AppBreadcrumb } from '@/components/app-breadcrumb';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const Route = createFileRoute('/_authed')({
   beforeLoad: ({ context }) => {
@@ -34,7 +35,10 @@ function AuthedLayout() {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
           <AppBreadcrumb className="flex-1" />
-          <UserButton />
+          {/* Clerk renders the button only in the browser, which breaks hydration when server-rendered */}
+          <ClientOnly fallback={<Skeleton className="size-7 rounded-full" />}>
+            <UserButton />
+          </ClientOnly>
         </header>
         <main className="p-4 sm:p-8">
           <Outlet />

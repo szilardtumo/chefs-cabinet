@@ -96,7 +96,7 @@
 
 import type { AnyFieldApi } from '@tanstack/react-form';
 import EmojiPicker from 'emoji-picker-react';
-import { Smile, Upload, X } from 'lucide-react';
+import { RotateCcw, Smile, Upload, X } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -111,11 +111,15 @@ import {
   FileUploadList,
   FileUploadTrigger,
 } from '@/components/ui/file-upload';
+import { ImagePreview } from '@/components/ui/image-preview';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TagsInput } from '@/components/ui/tags-input';
 import { Textarea } from '@/components/ui/textarea';
+import { UnsplashCoverPhotoPicker } from '@/components/unsplash-cover-photo-picker';
 
 // #region Helper Functions
 
@@ -507,6 +511,110 @@ export function FieldEmojiPicker({ field, label, description, hideError, showRem
       </Popover>
       {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
+  );
+}
+
+// #endregion
+
+// #region FieldSlider
+
+type FieldSliderProps = BaseFieldProps &
+  Omit<React.ComponentProps<typeof Slider>, 'name' | 'value' | 'defaultValue' | 'onValueChange' | 'onBlur'>;
+
+export function FieldSlider({ field, label, description, hideError, ...sliderProps }: FieldSliderProps) {
+  const hasError = field.state.meta.errors.length > 0;
+
+  return (
+    <Field data-invalid={hasError}>
+      {label && <FieldLabel htmlFor={field.name}>{label}</FieldLabel>}
+      {description && <FieldDescription>{description}</FieldDescription>}
+      <Slider
+        id={field.name}
+        name={field.name}
+        value={[field.state.value ?? 0]}
+        onValueChange={([value]) => field.handleChange(value)}
+        onBlur={field.handleBlur}
+        {...sliderProps}
+      />
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
+    </Field>
+  );
+}
+
+// #endregion
+
+// #region FieldImage
+
+type FieldImageProps = {
+  /** Holds the newly picked file (`File[]`, at most one). */
+  filesField: AnyFieldApi;
+  /** Holds the URL of the current or an Unsplash image; the Remove button clears it to `undefined`. */
+  urlField: AnyFieldApi;
+  label: string;
+  onReset: () => void;
+  previewClassName?: string;
+  /** Adds a tab for picking a photo from Unsplash next to the upload. */
+  withUnsplash?: boolean;
+};
+
+export function FieldImage({
+  filesField,
+  urlField,
+  label,
+  onReset,
+  previewClassName,
+  withUnsplash = false,
+}: FieldImageProps) {
+  const hasImage = filesField.state.value.length > 0 || Boolean(urlField.state.value);
+  const fileUpload = (
+    <FieldFileUpload field={filesField} accept="image/*" maxFiles={1} maxSize={10 * 1024 * 1024} hideFileList />
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-end gap-2">
+        <FieldLabel>{label}</FieldLabel>
+        <Button type="button" variant="outline" className="ml-auto" onClick={onReset}>
+          <RotateCcw /> Reset
+        </Button>
+        {hasImage && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              filesField.setValue([]);
+              urlField.setValue(undefined);
+            }}
+          >
+            <X /> Remove
+          </Button>
+        )}
+      </div>
+      <ImagePreview src={filesField.state.value[0] || urlField.state.value} className={previewClassName} />
+      {withUnsplash ? (
+        <Tabs defaultValue="upload">
+          <TabsList className="w-full">
+            <TabsTrigger value="upload" className="w-full">
+              Upload image
+            </TabsTrigger>
+            <TabsTrigger value="unsplash" className="w-full">
+              Browse from Unsplash
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="upload">{fileUpload}</TabsContent>
+          <TabsContent value="unsplash">
+            <UnsplashCoverPhotoPicker
+              onPhotoSelected={(photo) => {
+                filesField.setValue([]);
+                urlField.handleChange(photo.imageUrl);
+              }}
+            />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        fileUpload
+      )}
+    </div>
   );
 }
 

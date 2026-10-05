@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as books from "../books.js";
 import type * as categories from "../categories.js";
 import type * as ingredients from "../ingredients.js";
 import type * as lib_ai from "../lib/ai.js";
@@ -20,6 +21,7 @@ import type * as recipesAi from "../recipesAi.js";
 import type * as seed from "../seed.js";
 import type * as shoppingListItems from "../shoppingListItems.js";
 import type * as shoppingLists from "../shoppingLists.js";
+import type * as storage from "../storage.js";
 import type * as unsplash from "../unsplash.js";
 
 import type {
@@ -37,6 +39,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  books: typeof books;
   categories: typeof categories;
   ingredients: typeof ingredients;
   "lib/ai": typeof lib_ai;
@@ -49,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   shoppingListItems: typeof shoppingListItems;
   shoppingLists: typeof shoppingLists;
+  storage: typeof storage;
   unsplash: typeof unsplash;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

@@ -9,30 +9,29 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type DeleteRecipeDialogProps = {
+type ConfirmDeleteDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-  recipeTitle?: string;
+  /** What is being deleted, e.g. "recipe". */
+  itemType: string;
+  itemName?: string;
 };
 
-export function DeleteRecipeDialog({ open, onOpenChange, onConfirm, recipeTitle }: DeleteRecipeDialogProps) {
+export function ConfirmDeleteDialog({ open, onOpenChange, onConfirm, itemType, itemName }: ConfirmDeleteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
+          <AlertDialogTitle>Delete {itemType}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete {recipeTitle ? `"${recipeTitle}"` : 'this recipe'}? This action cannot be
+            Are you sure you want to delete {itemName ? `"${itemName}"` : `this ${itemType}`}? This action cannot be
             undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
+          <AlertDialogAction variant="destructive" onClick={onConfirm}>
             Delete
           </AlertDialogAction>
         </AlertDialogFooter>

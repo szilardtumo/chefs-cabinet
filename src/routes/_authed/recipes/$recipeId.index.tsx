@@ -7,13 +7,13 @@ import { ArrowLeft, ChefHat, Clock, History, LinkIcon, Pencil, ShoppingCart, Tra
 import { useState } from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import { IngredientCartButton } from '@/components/ingredient-cart-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AddToShoppingListDialog } from './-components/add-to-shopping-list-dialog';
-import { DeleteRecipeDialog } from './-components/delete-recipe-dialog';
 
 export const Route = createFileRoute('/_authed/recipes/$recipeId/')({
   component: RecipeDetailComponent,
@@ -272,11 +272,12 @@ function RecipeDetailComponent() {
         recipeId={recipeId as Id<'recipes'>}
         recipeTitle={recipe.title}
       />
-      <DeleteRecipeDialog
+      <ConfirmDeleteDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDelete}
-        recipeTitle={recipe.title}
+        itemType="recipe"
+        itemName={recipe.title}
       />
     </>
   );

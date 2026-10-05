@@ -4,22 +4,18 @@ import { convexQuery, useConvexAction } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import type { FunctionReturnType } from 'convex/server';
-import { ChevronDown, ChevronUp, Edit, GripVertical, Plus, Repeat2, RotateCcw, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, GripVertical, Plus, Repeat2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryTag } from '@/components/category-tag';
 import { IngredientCombobox } from '@/components/ingredient-combobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FieldLabel } from '@/components/ui/field';
-import { FieldFileUpload, FieldInput, FieldTagsInput, FieldTextarea } from '@/components/ui/form-fields';
-import { ImagePreview } from '@/components/ui/image-preview';
+import { FieldImage, FieldInput, FieldTagsInput, FieldTextarea } from '@/components/ui/form-fields';
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from '@/components/ui/item';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sortable, SortableContent, SortableItem, SortableItemHandle } from '@/components/ui/sortable';
 import { Spinner } from '@/components/ui/spinner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UnsplashCoverPhotoPicker } from '@/components/unsplash-cover-photo-picker';
 import { useStorageUpload } from '@/hooks/use-storage-upload';
 import { generateId } from '@/lib/id';
 import { isStorageId } from '@/lib/storage';
@@ -210,65 +206,17 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
             {(imageFilesField) => (
               <form.Field name="imageUrl">
                 {(imageUrlField) => (
-                  <>
-                    <div className="flex items-end gap-2">
-                      <FieldLabel>Recipe Image</FieldLabel>
-                      <Button
-                        variant="outline"
-                        className="ml-auto"
-                        onClick={() => {
-                          form.resetField('imageFiles');
-                          form.resetField('imageUrl');
-                        }}
-                      >
-                        <RotateCcw /> Reset
-                      </Button>
-
-                      {(imageFilesField.state.value.length > 0 || imageUrlField.state.value) && (
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            imageFilesField.setValue([]);
-                            imageUrlField.setValue(undefined);
-                          }}
-                        >
-                          <X /> Remove
-                        </Button>
-                      )}
-                    </div>
-                    <ImagePreview
-                      src={imageFilesField.state.value[0] || imageUrlField.state.value}
-                      className="aspect-video max-h-60 rounded-lg"
-                    />
-
-                    <Tabs defaultValue="upload">
-                      <TabsList className="w-full">
-                        <TabsTrigger value="upload" className="w-full">
-                          Upload image
-                        </TabsTrigger>
-                        <TabsTrigger value="unsplash" className="w-full">
-                          Browse from Unsplash
-                        </TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="upload">
-                        <FieldFileUpload
-                          field={imageFilesField}
-                          accept="image/*"
-                          maxFiles={1}
-                          maxSize={10 * 1024 * 1024}
-                          hideFileList
-                        />
-                      </TabsContent>
-                      <TabsContent value="unsplash">
-                        <UnsplashCoverPhotoPicker
-                          onPhotoSelected={(photo) => {
-                            imageFilesField.setValue([]);
-                            imageUrlField.handleChange(photo.imageUrl);
-                          }}
-                        />
-                      </TabsContent>
-                    </Tabs>
-                  </>
+                  <FieldImage
+                    filesField={imageFilesField}
+                    urlField={imageUrlField}
+                    label="Recipe Image"
+                    previewClassName="aspect-video max-h-60 rounded-lg"
+                    onReset={() => {
+                      form.resetField('imageFiles');
+                      form.resetField('imageUrl');
+                    }}
+                    withUnsplash
+                  />
                 )}
               </form.Field>
             )}

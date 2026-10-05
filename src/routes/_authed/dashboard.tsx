@@ -2,7 +2,7 @@ import { api } from '@convex/_generated/api';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { BookOpen, Carrot, Plus } from 'lucide-react';
+import { BookOpen, Carrot, Library, Plus } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ export const Route = createFileRoute('/_authed/dashboard')({
 function DashboardComponent() {
   const { data: recipes } = useSuspenseQuery(convexQuery(api.recipes.getAll, {}));
   const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
+  const { data: books } = useSuspenseQuery(convexQuery(api.books.getAll, {}));
 
   const { mutateAsync: seedUserData } = useMutation({
     mutationFn: useConvexMutation(api.seed.seedUserData),
@@ -39,12 +40,21 @@ function DashboardComponent() {
       value: recipes?.length || 0,
       icon: BookOpen,
       color: 'text-blue-600',
+      to: '/recipes' as const,
     },
     {
       title: 'Total Ingredients',
       value: ingredients?.length || 0,
       icon: Carrot,
       color: 'text-green-600',
+      to: '/ingredients' as const,
+    },
+    {
+      title: 'Books',
+      value: books?.length || 0,
+      icon: Library,
+      color: 'text-amber-600',
+      to: '/books' as const,
     },
   ];
 
@@ -63,15 +73,17 @@ function DashboardComponent() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
+            <Link key={stat.title} to={stat.to} className="block">
+              <Card className="hover:shadow-lg transition-shadow h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                  <Icon className={`h-4 w-4 ${stat.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>

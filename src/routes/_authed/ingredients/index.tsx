@@ -9,20 +9,11 @@ import { type ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { Pencil, Plus, Settings2, Trash2 } from 'lucide-react';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
 import { IngredientCartButton } from '@/components/ingredient-cart-button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,7 +46,6 @@ function IngredientsComponent() {
         description: 'The ingredient has been deleted successfully.',
       });
       setDeleteDialogOpen(false);
-      setSelectedIngredient(null);
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -210,30 +200,13 @@ function IngredientsComponent() {
         />
       </Suspense>
 
-      <AlertDialog
+      <ConfirmDeleteDialog
         open={deleteDialogOpen}
-        onOpenChange={(open) => {
-          setDeleteDialogOpen(open);
-          if (!open) {
-            setSelectedIngredient(null);
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Ingredient</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this ingredient? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDeleteConfirm}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        itemType="ingredient"
+        itemName={selectedIngredient?.name}
+      />
     </>
   );
 }

@@ -13,14 +13,19 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedIngredientsRouteImport } from './routes/_authed/ingredients'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AuthedBooksRouteImport } from './routes/_authed/books'
 import { Route as AuthedShoppingIndexRouteImport } from './routes/_authed/shopping/index'
 import { Route as AuthedRecipesIndexRouteImport } from './routes/_authed/recipes/index'
 import { Route as AuthedIngredientsIndexRouteImport } from './routes/_authed/ingredients/index'
 import { Route as AuthedRecipesNewRouteImport } from './routes/_authed/recipes/new'
 import { Route as AuthedRecipesImportRouteImport } from './routes/_authed/recipes/import'
 import { Route as AuthedIngredientsCategoriesRouteImport } from './routes/_authed/ingredients/categories'
+import { Route as AuthedBooksLibraryRouteImport } from './routes/_authed/books/_library'
 import { Route as AuthedRecipesRecipeIdIndexRouteImport } from './routes/_authed/recipes/$recipeId.index'
+import { Route as AuthedBooksLibraryIndexRouteImport } from './routes/_authed/books/_library/index'
 import { Route as AuthedRecipesRecipeIdEditRouteImport } from './routes/_authed/recipes/$recipeId.edit'
+import { Route as AuthedBooksLibraryNewRouteImport } from './routes/_authed/books/_library/new'
+import { Route as AuthedBooksLibraryBookIdRouteImport } from './routes/_authed/books/_library/$bookId'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -39,6 +44,11 @@ const AuthedIngredientsRoute = AuthedIngredientsRouteImport.update({
 const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedBooksRoute = AuthedBooksRouteImport.update({
+  id: '/books',
+  path: '/books',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedShoppingIndexRoute = AuthedShoppingIndexRouteImport.update({
@@ -72,21 +82,42 @@ const AuthedIngredientsCategoriesRoute =
     path: '/categories',
     getParentRoute: () => AuthedIngredientsRoute,
   } as any)
+const AuthedBooksLibraryRoute = AuthedBooksLibraryRouteImport.update({
+  id: '/_library',
+  getParentRoute: () => AuthedBooksRoute,
+} as any)
 const AuthedRecipesRecipeIdIndexRoute =
   AuthedRecipesRecipeIdIndexRouteImport.update({
     id: '/recipes/$recipeId/',
     path: '/recipes/$recipeId/',
     getParentRoute: () => AuthedRoute,
   } as any)
+const AuthedBooksLibraryIndexRoute = AuthedBooksLibraryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedBooksLibraryRoute,
+} as any)
 const AuthedRecipesRecipeIdEditRoute =
   AuthedRecipesRecipeIdEditRouteImport.update({
     id: '/recipes/$recipeId/edit',
     path: '/recipes/$recipeId/edit',
     getParentRoute: () => AuthedRoute,
   } as any)
+const AuthedBooksLibraryNewRoute = AuthedBooksLibraryNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthedBooksLibraryRoute,
+} as any)
+const AuthedBooksLibraryBookIdRoute =
+  AuthedBooksLibraryBookIdRouteImport.update({
+    id: '/$bookId',
+    path: '/$bookId',
+    getParentRoute: () => AuthedBooksLibraryRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/books': typeof AuthedBooksLibraryRouteWithChildren
   '/dashboard': typeof AuthedDashboardRoute
   '/ingredients': typeof AuthedIngredientsRouteWithChildren
   '/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
@@ -95,11 +126,15 @@ export interface FileRoutesByFullPath {
   '/ingredients/': typeof AuthedIngredientsIndexRoute
   '/recipes': typeof AuthedRecipesIndexRoute
   '/shopping': typeof AuthedShoppingIndexRoute
+  '/books/$bookId': typeof AuthedBooksLibraryBookIdRoute
+  '/books/new': typeof AuthedBooksLibraryNewRoute
   '/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
+  '/books/': typeof AuthedBooksLibraryIndexRoute
   '/recipes/$recipeId': typeof AuthedRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/books': typeof AuthedBooksLibraryIndexRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
   '/recipes/import': typeof AuthedRecipesImportRoute
@@ -107,6 +142,8 @@ export interface FileRoutesByTo {
   '/ingredients': typeof AuthedIngredientsIndexRoute
   '/recipes': typeof AuthedRecipesIndexRoute
   '/shopping': typeof AuthedShoppingIndexRoute
+  '/books/$bookId': typeof AuthedBooksLibraryBookIdRoute
+  '/books/new': typeof AuthedBooksLibraryNewRoute
   '/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
   '/recipes/$recipeId': typeof AuthedRecipesRecipeIdIndexRoute
 }
@@ -114,21 +151,27 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
+  '/_authed/books': typeof AuthedBooksRouteWithChildren
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/ingredients': typeof AuthedIngredientsRouteWithChildren
+  '/_authed/books/_library': typeof AuthedBooksLibraryRouteWithChildren
   '/_authed/ingredients/categories': typeof AuthedIngredientsCategoriesRoute
   '/_authed/recipes/import': typeof AuthedRecipesImportRoute
   '/_authed/recipes/new': typeof AuthedRecipesNewRoute
   '/_authed/ingredients/': typeof AuthedIngredientsIndexRoute
   '/_authed/recipes/': typeof AuthedRecipesIndexRoute
   '/_authed/shopping/': typeof AuthedShoppingIndexRoute
+  '/_authed/books/_library/$bookId': typeof AuthedBooksLibraryBookIdRoute
+  '/_authed/books/_library/new': typeof AuthedBooksLibraryNewRoute
   '/_authed/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
+  '/_authed/books/_library/': typeof AuthedBooksLibraryIndexRoute
   '/_authed/recipes/$recipeId/': typeof AuthedRecipesRecipeIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/books'
     | '/dashboard'
     | '/ingredients'
     | '/ingredients/categories'
@@ -137,11 +180,15 @@ export interface FileRouteTypes {
     | '/ingredients/'
     | '/recipes'
     | '/shopping'
+    | '/books/$bookId'
+    | '/books/new'
     | '/recipes/$recipeId/edit'
+    | '/books/'
     | '/recipes/$recipeId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/books'
     | '/dashboard'
     | '/ingredients/categories'
     | '/recipes/import'
@@ -149,21 +196,28 @@ export interface FileRouteTypes {
     | '/ingredients'
     | '/recipes'
     | '/shopping'
+    | '/books/$bookId'
+    | '/books/new'
     | '/recipes/$recipeId/edit'
     | '/recipes/$recipeId'
   id:
     | '__root__'
     | '/'
     | '/_authed'
+    | '/_authed/books'
     | '/_authed/dashboard'
     | '/_authed/ingredients'
+    | '/_authed/books/_library'
     | '/_authed/ingredients/categories'
     | '/_authed/recipes/import'
     | '/_authed/recipes/new'
     | '/_authed/ingredients/'
     | '/_authed/recipes/'
     | '/_authed/shopping/'
+    | '/_authed/books/_library/$bookId'
+    | '/_authed/books/_library/new'
     | '/_authed/recipes/$recipeId/edit'
+    | '/_authed/books/_library/'
     | '/_authed/recipes/$recipeId/'
   fileRoutesById: FileRoutesById
 }
@@ -200,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthedDashboardRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/books': {
+      id: '/_authed/books'
+      path: '/books'
+      fullPath: '/books'
+      preLoaderRoute: typeof AuthedBooksRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/shopping/': {
@@ -244,12 +305,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIngredientsCategoriesRouteImport
       parentRoute: typeof AuthedIngredientsRoute
     }
+    '/_authed/books/_library': {
+      id: '/_authed/books/_library'
+      path: ''
+      fullPath: '/books'
+      preLoaderRoute: typeof AuthedBooksLibraryRouteImport
+      parentRoute: typeof AuthedBooksRoute
+    }
     '/_authed/recipes/$recipeId/': {
       id: '/_authed/recipes/$recipeId/'
       path: '/recipes/$recipeId'
       fullPath: '/recipes/$recipeId'
       preLoaderRoute: typeof AuthedRecipesRecipeIdIndexRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/_authed/books/_library/': {
+      id: '/_authed/books/_library/'
+      path: '/'
+      fullPath: '/books/'
+      preLoaderRoute: typeof AuthedBooksLibraryIndexRouteImport
+      parentRoute: typeof AuthedBooksLibraryRoute
     }
     '/_authed/recipes/$recipeId/edit': {
       id: '/_authed/recipes/$recipeId/edit'
@@ -258,8 +333,49 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRecipesRecipeIdEditRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/books/_library/new': {
+      id: '/_authed/books/_library/new'
+      path: '/new'
+      fullPath: '/books/new'
+      preLoaderRoute: typeof AuthedBooksLibraryNewRouteImport
+      parentRoute: typeof AuthedBooksLibraryRoute
+    }
+    '/_authed/books/_library/$bookId': {
+      id: '/_authed/books/_library/$bookId'
+      path: '/$bookId'
+      fullPath: '/books/$bookId'
+      preLoaderRoute: typeof AuthedBooksLibraryBookIdRouteImport
+      parentRoute: typeof AuthedBooksLibraryRoute
+    }
   }
 }
+
+interface AuthedBooksLibraryRouteChildren {
+  AuthedBooksLibraryBookIdRoute: typeof AuthedBooksLibraryBookIdRoute
+  AuthedBooksLibraryNewRoute: typeof AuthedBooksLibraryNewRoute
+  AuthedBooksLibraryIndexRoute: typeof AuthedBooksLibraryIndexRoute
+}
+
+const AuthedBooksLibraryRouteChildren: AuthedBooksLibraryRouteChildren = {
+  AuthedBooksLibraryBookIdRoute: AuthedBooksLibraryBookIdRoute,
+  AuthedBooksLibraryNewRoute: AuthedBooksLibraryNewRoute,
+  AuthedBooksLibraryIndexRoute: AuthedBooksLibraryIndexRoute,
+}
+
+const AuthedBooksLibraryRouteWithChildren =
+  AuthedBooksLibraryRoute._addFileChildren(AuthedBooksLibraryRouteChildren)
+
+interface AuthedBooksRouteChildren {
+  AuthedBooksLibraryRoute: typeof AuthedBooksLibraryRouteWithChildren
+}
+
+const AuthedBooksRouteChildren: AuthedBooksRouteChildren = {
+  AuthedBooksLibraryRoute: AuthedBooksLibraryRouteWithChildren,
+}
+
+const AuthedBooksRouteWithChildren = AuthedBooksRoute._addFileChildren(
+  AuthedBooksRouteChildren,
+)
 
 interface AuthedIngredientsRouteChildren {
   AuthedIngredientsCategoriesRoute: typeof AuthedIngredientsCategoriesRoute
@@ -275,6 +391,7 @@ const AuthedIngredientsRouteWithChildren =
   AuthedIngredientsRoute._addFileChildren(AuthedIngredientsRouteChildren)
 
 interface AuthedRouteChildren {
+  AuthedBooksRoute: typeof AuthedBooksRouteWithChildren
   AuthedDashboardRoute: typeof AuthedDashboardRoute
   AuthedIngredientsRoute: typeof AuthedIngredientsRouteWithChildren
   AuthedRecipesImportRoute: typeof AuthedRecipesImportRoute
@@ -286,6 +403,7 @@ interface AuthedRouteChildren {
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedBooksRoute: AuthedBooksRouteWithChildren,
   AuthedDashboardRoute: AuthedDashboardRoute,
   AuthedIngredientsRoute: AuthedIngredientsRouteWithChildren,
   AuthedRecipesImportRoute: AuthedRecipesImportRoute,

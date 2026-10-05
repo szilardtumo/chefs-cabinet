@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 
 export function useStorageUpload() {
   const { mutateAsync: generateUploadUrl } = useMutation({
-    mutationFn: useConvexMutation(api.recipes.generateUploadUrl),
+    mutationFn: useConvexMutation(api.storage.generateUploadUrl),
   });
 
   const { mutateAsync: uploadFile, isPending: isUploading } = useMutation({

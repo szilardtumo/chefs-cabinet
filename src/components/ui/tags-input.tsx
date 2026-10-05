@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 export interface TagsInputProps {
+  id?: string;
   value: string[];
   onValueChange: (value: string[]) => void;
   placeholder?: string;
   withAddButton?: boolean;
   addButtonText?: string;
   className?: string;
+  inputClassName?: string;
   disabled?: boolean;
   maxTags?: number;
   onTagAdd?: (tag: string) => boolean | string | null; // Return true to allow, false/string to reject with message
@@ -21,12 +23,14 @@ export interface TagsInputProps {
 }
 
 export function TagsInput({
+  id,
   value = [],
   onValueChange,
   placeholder = 'Add a tag...',
   withAddButton = false,
   addButtonText = 'Add',
   className,
+  inputClassName,
   disabled = false,
   maxTags,
   onTagAdd,
@@ -85,12 +89,13 @@ export function TagsInput({
     <div className={cn('space-y-2', className)}>
       <div className="flex gap-2">
         <Input
+          id={id}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyPress}
           placeholder={placeholder}
           disabled={disabled || (maxTags ? value.length >= maxTags : false)}
-          className="flex-1"
+          className={cn('flex-1', inputClassName)}
         />
         {withAddButton && (
           <Button type="button" onClick={handleAddTag} disabled={disabled || !inputValue.trim()}>

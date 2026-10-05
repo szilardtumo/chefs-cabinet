@@ -1,5 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import { uniqBy } from 'es-toolkit';
+import { Fragment } from 'react';
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -59,12 +60,14 @@ export function AppBreadcrumb(props: React.ComponentProps<typeof Breadcrumb>) {
           </>
         )}
         {items.slice(Math.max(items.length - ITEMS_TO_DISPLAY + 1, 1), -1).map((item) => (
-          <BreadcrumbItem key={item.path}>
-            <BreadcrumbLink asChild className="max-w-20 truncate md:max-w-none">
-              <Link to={item.path}>{item.title}</Link>
-            </BreadcrumbLink>
+          <Fragment key={item.path}>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild className="max-w-20 truncate md:max-w-none">
+                <Link to={item.path}>{item.title}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
             <BreadcrumbSeparator />
-          </BreadcrumbItem>
+          </Fragment>
         ))}
         {items.length > 1 && <BreadcrumbPage>{items[items.length - 1].title}</BreadcrumbPage>}
       </BreadcrumbList>

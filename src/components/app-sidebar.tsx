@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { BookOpen, Carrot, ChefHat, Home, ShoppingCart } from 'lucide-react';
+import { BookOpen, Carrot, ChefHat, Home, Library, ShoppingCart } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +30,11 @@ const navItems = [
     to: '/recipes',
   },
   {
+    label: 'Books',
+    icon: Library,
+    to: '/books',
+  },
+  {
     label: 'Shopping List',
     icon: ShoppingCart,
     to: '/shopping',
@@ -42,20 +47,22 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            asChild
-            size="lg"
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-          >
-            <Link to="/dashboard" onClick={() => setOpenMobile(false)}>
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <ChefHat />
-              </div>
-              <span className="font-bold">Chef's Cabinet</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
+              <Link to="/dashboard" onClick={() => setOpenMobile(false)}>
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <ChefHat />
+                </div>
+                <span className="font-bold">Chef's Cabinet</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
