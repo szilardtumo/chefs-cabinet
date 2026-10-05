@@ -77,7 +77,7 @@ function QuickAddRoute() {
   // an edition that's already in the library just opens
   const addOrOpen = (edition: Edition) => {
     const existingBook = edition.isbn && books?.find((book) => book.isbn === edition.isbn);
-    if (!existingBook) return addBook({ editionId: edition.editionId });
+    if (!existingBook) return addBook({ editionId: edition.editionId, isbn: edition.isbn });
     toast.info('Already in your library');
     openBook(existingBook._id);
   };
@@ -144,8 +144,8 @@ function QuickAddRoute() {
                       <CommandEmpty>{pickedBook ? 'No editions found' : 'No book found for this ISBN'}</CommandEmpty>
                       {editions.data?.map((edition) => (
                         <CommandItem
-                          key={edition.editionId}
-                          value={String(edition.editionId)}
+                          key={edition.editionId ?? edition.isbn}
+                          value={String(edition.editionId ?? edition.isbn)}
                           keywords={[
                             edition.title,
                             edition.language,
@@ -160,7 +160,14 @@ function QuickAddRoute() {
                           <LookupRow
                             title={edition.title}
                             coverUrl={edition.coverUrl}
-                            details={[edition.language, edition.format, edition.publisher, edition.publishedYear]}
+                            details={[
+                              edition.language,
+                              edition.format,
+                              edition.publisher,
+                              edition.publishedYear,
+                              // Open Library's editions have less data, often no cover or description
+                              edition.editionId === undefined && 'from Open Library',
+                            ]}
                           />
                         </CommandItem>
                       ))}

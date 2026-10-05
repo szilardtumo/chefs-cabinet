@@ -21,7 +21,8 @@ export const catalogSearchResult = v.object({
 });
 
 export const catalogEdition = v.object({
-  editionId: v.number(),
+  // Missing for an edition only Open Library has, which is added by its ISBN instead
+  editionId: v.optional(v.number()),
   title: v.string(),
   format: v.optional(v.string()),
   publisher: v.optional(v.string()),

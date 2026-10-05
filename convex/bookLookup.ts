@@ -1,4 +1,5 @@
-import { v } from 'convex/values';
+import { type Infer, v } from 'convex/values';
+import { pick } from 'es-toolkit';
 import { isbnSchema } from '@/lib/isbn';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -64,6 +65,13 @@ async function findOnOpenLibrary(isbn13: string) {
   };
 }
 
+/** An edition by its ISBN, from Hardcover or else Open Library; throws when neither has it. */
+async function findByIsbn(isbn: ReturnType<typeof parseIsbn>) {
+  const found = (await catalog.findEdition(isbn)) ?? (await findOnOpenLibrary(isbn.isbn13));
+  if (!found) throw new ValidationError(`No book with ISBN ${isbn.isbn13} on Hardcover or Open Library`);
+  return found;
+}
+
 /**
  * Searches the book catalog by title and author.
  */
@@ -75,23 +83,35 @@ export const searchBooks = authenticatedAction({
 
 /**
  * Lists a book's editions in the catalog, or the editions with an ISBN, most read first.
+ * An ISBN Hardcover doesn't have lists Open Library's edition, if it has one.
  */
 export const getEditions = authenticatedAction({
   args: { bookId: v.optional(v.number()), isbn: v.optional(v.string()) },
   returns: v.array(catalog.catalogEdition),
-  handler: async (_ctx, args) =>
-    await catalog.listEditions(args.bookId !== undefined ? { bookId: args.bookId } : parseIsbn(args.isbn ?? '')),
+  handler: async (_ctx, args): Promise<Infer<typeof catalog.catalogEdition>[]> => {
+    if (args.bookId !== undefined) return await catalog.listEditions({ bookId: args.bookId });
+
+    const isbn = parseIsbn(args.isbn ?? '');
+    const editions = await catalog.listEditions(isbn);
+    if (editions.length) return editions;
+    const found = await findOnOpenLibrary(isbn.isbn13);
+    return found ? [pick(found, ['title', 'publisher', 'publishedYear', 'language', 'isbn', 'coverUrl'])] : [];
+  },
 });
 
 /**
  * Adds an edition from the catalog to the library as "Want to read", with its cover.
  */
 export const addBook = authenticatedAction({
-  args: { editionId: v.number() },
+  // Editions without a Hardcover id come from Open Library and are added by their ISBN
+  args: { editionId: v.optional(v.number()), isbn: v.optional(v.string()) },
   returns: v.id('books'),
   // Actions that return what they run need an explicit return type, or TypeScript loops through the generated api
   handler: async (ctx, args): Promise<Id<'books'>> => {
-    const found = await catalog.findEdition(args);
+    const found =
+      args.editionId !== undefined
+        ? await catalog.findEdition({ editionId: args.editionId })
+        : await findByIsbn(parseIsbn(args.isbn ?? ''));
     if (!found) throw new Error('This edition no longer exists');
     const { coverUrl, ...edition } = found;
     return await withStoredCover(ctx, coverUrl, (cover) =>
@@ -113,9 +133,7 @@ export const setIsbn = authenticatedAction({
   returns: v.string(),
   handler: async (ctx, args) => {
     const isbn = parseIsbn(args.isbn);
-    const found = (await catalog.findEdition(isbn)) ?? (await findOnOpenLibrary(isbn.isbn13));
-    if (!found) throw new ValidationError(`No book with ISBN ${isbn.isbn13} on Hardcover or Open Library`);
-    const { coverUrl, ...edition } = found;
+    const { coverUrl, ...edition } = await findByIsbn(isbn);
     await withStoredCover(ctx, coverUrl, (cover) =>
       ctx.runMutation(internal.books.applyEdition, { id: args.id, userId: ctx.userId, edition, cover }),
     );
