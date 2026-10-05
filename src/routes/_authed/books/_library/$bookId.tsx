@@ -1,38 +1,30 @@
 import { api } from '@convex/_generated/api';
 import type { Doc, Id } from '@convex/_generated/dataModel';
-import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
-import { type AnyFieldApi, useForm } from '@tanstack/react-form';
+import { convexQuery, useConvexAction, useConvexMutation } from '@convex-dev/react-query';
+import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute, useCanGoBack, useRouter } from '@tanstack/react-router';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
-import { ExternalLink, ImageUp, Trash2 } from 'lucide-react';
+import { getDate, getMonth, getYear, set } from 'date-fns';
+import { ExternalLink, Trash2 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import { DatePicker } from '@/components/date-picker';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { FieldGroup, FieldLabel } from '@/components/ui/field';
-import { FieldImage, FieldInput, FieldTextarea } from '@/components/ui/form-fields';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FieldInput, FieldTextarea } from '@/components/ui/form-fields';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { TagsInput } from '@/components/ui/tags-input';
-import { useStorageUpload } from '@/hooks/use-storage-upload';
+import { isbnSchema } from '@/lib/isbn';
 import { toastError, toastWithUndo } from '@/lib/toast';
-import { cn } from '@/lib/utils';
 import { BookCover } from '../-components/book-cover';
 import { BookProgressPopover } from '../-components/book-progress';
 import { BookRating } from '../-components/book-rating';
 import { BookStatusPicker } from '../-components/book-status-picker';
+import { IsbnScanButton } from '../-components/isbn-scan-button';
 
 export const Route = createFileRoute('/_authed/books/_library/$bookId')({
   component: BookSheetRoute,
@@ -51,95 +43,7 @@ const READING_FORMAT_LABELS: Record<ReadingFormat, string> = {
   article: 'Article',
 };
 
-const PROPERTY_LABEL_CLASS = 'pt-2 font-normal text-muted-foreground';
-// Inputs read as plain text until hovered or focused
-const INLINE_INPUT_CLASS =
-  'border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-input dark:bg-transparent';
-
-type CoverDialogProps = {
-  book: Book;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-};
-
-function CoverDialog({ book, open, onOpenChange }: CoverDialogProps) {
-  const { uploadFile } = useStorageUpload();
-  const { mutateAsync: updateDetails } = useMutation({
-    mutationFn: useConvexMutation(api.books.updateDetails),
-  });
-  const form = useForm({
-    // `coverUrl` only previews the current cover; `FieldImage`'s Remove button clears it
-    defaultValues: { coverFiles: [] as File[], coverUrl: book.coverUrl ?? undefined },
-    onSubmit: async ({ value }) => {
-      try {
-        if (value.coverFiles[0]) {
-          await updateDetails({ id: book._id, cover: await uploadFile(value.coverFiles[0]) });
-        } else if (!value.coverUrl && book.cover) {
-          await updateDetails({ id: book._id, cover: null });
-        }
-        onOpenChange(false);
-      } catch (error) {
-        toastError(error);
-      }
-    },
-  });
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen) form.reset();
-        onOpenChange(nextOpen);
-      }}
-    >
-      <DialogContent>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            form.handleSubmit();
-          }}
-          className="flex flex-col gap-4"
-        >
-          <DialogHeader>
-            <DialogTitle>Change cover</DialogTitle>
-            <DialogDescription>Upload an image for the cover.</DialogDescription>
-          </DialogHeader>
-          <form.Field name="coverFiles">
-            {(coverFilesField) => (
-              <form.Field name="coverUrl">
-                {(coverUrlField) => (
-                  <FieldImage
-                    filesField={coverFilesField}
-                    urlField={coverUrlField}
-                    label="Cover"
-                    previewClassName="aspect-[2/3] w-28 rounded-md"
-                    onReset={() => form.reset()}
-                  />
-                )}
-              </form.Field>
-            )}
-          </form.Field>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <form.Subscribe selector={(state) => state.isSubmitting}>
-              {(isSubmitting) => (
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Spinner />}
-                  Save cover
-                </Button>
-              )}
-            </form.Subscribe>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
-  const [coverDialogOpen, setCoverDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { mutateAsync: updateDetails } = useMutation({
     // Genre edits build on the current list, so show each one before the server confirms it
@@ -150,6 +54,18 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
   });
   const { mutateAsync: removeBook } = useMutation({
     mutationFn: useConvexMutation(api.books.remove),
+  });
+  const { mutate: setIsbn, isPending: isUpdatingFromIsbn } = useMutation({
+    mutationFn: useConvexAction(api.bookLookup.setIsbn),
+    onSuccess: (isbn: string) => {
+      // Shows the stored ISBN-13, so blurring the field again doesn't look like another change
+      form.setFieldValue('isbn', isbn);
+      toast.success('Book details updated');
+    },
+    onError: (error) => {
+      toastError(error);
+      form.setFieldValue('isbn', book.isbn ?? '');
+    },
   });
 
   const save = async (changes: BookChanges, undoChanges?: BookChanges) => {
@@ -163,22 +79,8 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
     }
   };
 
-  // Typed fields are saved one by one when they lose focus; emptied optional fields are cleared
-  const saveTextOnBlur =
-    (key: 'title' | 'author' | 'goodreadsUrl' | 'notes') =>
-    ({ value, fieldApi }: { value: string; fieldApi: AnyFieldApi }) => {
-      const text = value.trim();
-      if (fieldApi.state.meta.isValid && text !== (book[key] ?? '')) save({ [key]: text || null });
-    };
-
   const form = useForm({
-    defaultValues: {
-      title: book.title,
-      author: book.author,
-      pageCount: book.pageCount,
-      goodreadsUrl: book.goodreadsUrl ?? '',
-      notes: book.notes ?? '',
-    },
+    defaultValues: { isbn: book.isbn ?? '', notes: book.notes ?? '' },
   });
 
   const handleDelete = async () => {
@@ -191,8 +93,6 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
     }
   };
 
-  const minPageCount = book.status === 'done' ? 1 : Math.max(1, book.pagesRead);
-
   const dates = [
     { key: 'startedAt', label: 'Started', value: book.startedAt, shown: book.status !== 'not_started' },
     { key: 'completedAt', label: 'Finished', value: book.completedAt, shown: book.status === 'done' },
@@ -200,49 +100,27 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
   ] as const;
   const shownDates = dates.filter((date) => date.shown);
 
+  // Set from the catalog edition the ISBN points to
+  const editionDetails = [
+    { label: 'Pages', value: book.pageCount },
+    { label: 'Format', value: book.readingFormat && READING_FORMAT_LABELS[book.readingFormat] },
+    {
+      label: 'Series',
+      value: [book.seriesName, book.seriesPosition && `#${book.seriesPosition}`].filter(Boolean).join(' '),
+    },
+    { label: 'Published', value: book.publishedYear },
+    { label: 'Publisher', value: book.publisher },
+    { label: 'Language', value: book.language },
+  ].filter((detail) => detail.value);
+
   return (
     <>
       <SheetHeader className="flex-row gap-4 border-b pr-12">
-        <button
-          type="button"
-          className="group relative w-24 shrink-0 self-start"
-          onClick={() => setCoverDialogOpen(true)}
-          aria-label="Change cover"
-        >
-          <BookCover book={book} />
-          <span className="absolute inset-0 flex items-center justify-center rounded-md bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100">
-            <ImageUp className="size-5" />
-          </span>
-        </button>
+        <BookCover book={book} className="w-24 shrink-0 self-start" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <SheetTitle className="sr-only">{book.title}</SheetTitle>
+          <SheetTitle className="text-lg">{book.title}</SheetTitle>
+          <p className="text-muted-foreground">{book.author}</p>
           <SheetDescription className="sr-only">Book details. Changes are saved automatically.</SheetDescription>
-          <form.Field
-            name="title"
-            validators={{ onChange: z.string().trim().min(1, 'Title is required') }}
-            listeners={{ onBlur: saveTextOnBlur('title') }}
-          >
-            {(field) => (
-              <FieldInput
-                field={field}
-                aria-label="Title"
-                className={cn('-ml-3 h-auto py-1 text-lg font-semibold md:text-lg', INLINE_INPUT_CLASS)}
-              />
-            )}
-          </form.Field>
-          <form.Field
-            name="author"
-            validators={{ onChange: z.string().trim().min(1, 'Author is required') }}
-            listeners={{ onBlur: saveTextOnBlur('author') }}
-          >
-            {(field) => (
-              <FieldInput
-                field={field}
-                aria-label="Author"
-                className={cn('-ml-3 h-auto py-1 text-muted-foreground', INLINE_INPUT_CLASS)}
-              />
-            )}
-          </form.Field>
           <BookRating book={book} className="justify-start" />
           <div className="mt-1 flex flex-col gap-1">
             <div>
@@ -255,7 +133,53 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
 
       <FieldGroup className="gap-6 p-4">
         <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1">
-          <FieldLabel htmlFor="genres" className={PROPERTY_LABEL_CLASS}>
+          <form.Field
+            name="isbn"
+            validators={{
+              // Empty is allowed while typing; blurring an empty field shows the current ISBN again
+              onChange: z
+                .string()
+                .transform((value) => value.trim() || undefined)
+                .pipe(isbnSchema.optional()),
+            }}
+            listeners={{
+              // A new ISBN replaces the title, cover, pages and the rest with that edition's
+              onBlur: ({ value, fieldApi }) => {
+                // An ISBN can be replaced but not removed, so an emptied field shows the current one again
+                if (!value.trim()) fieldApi.setValue(book.isbn ?? '');
+                else if (fieldApi.state.meta.isValid && value !== book.isbn) setIsbn({ id: book._id, isbn: value });
+              },
+            }}
+          >
+            {(field) => (
+              <>
+                <FieldLabel htmlFor={field.name} className="pt-2 font-normal text-muted-foreground">
+                  ISBN
+                </FieldLabel>
+                <div className="flex items-center gap-1">
+                  <FieldInput
+                    field={field}
+                    placeholder="Add the ISBN to fill in the details"
+                    disabled={isUpdatingFromIsbn}
+                    className="border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-input dark:bg-transparent"
+                  />
+                  {isUpdatingFromIsbn ? (
+                    <Spinner />
+                  ) : (
+                    <IsbnScanButton
+                      variant="ghost"
+                      onScan={(isbn) => {
+                        field.handleChange(isbn);
+                        if (isbn !== book.isbn) setIsbn({ id: book._id, isbn });
+                      }}
+                    />
+                  )}
+                </div>
+              </>
+            )}
+          </form.Field>
+
+          <FieldLabel htmlFor="genres" className="pt-2 font-normal text-muted-foreground">
             Genres
           </FieldLabel>
           <TagsInput
@@ -263,58 +187,12 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
             value={book.genres}
             onValueChange={(genres) => save({ genres }, { genres: book.genres })}
             placeholder="Add a genre..."
-            inputClassName={INLINE_INPUT_CLASS}
+            inputClassName="border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-input dark:bg-transparent"
           />
-
-          <FieldLabel htmlFor="readingFormat" className={PROPERTY_LABEL_CLASS}>
-            Format
-          </FieldLabel>
-          <Select
-            value={book.readingFormat ?? ''}
-            onValueChange={(format) =>
-              save({ readingFormat: format as ReadingFormat }, { readingFormat: book.readingFormat ?? null })
-            }
-          >
-            <SelectTrigger id="readingFormat" className={INLINE_INPUT_CLASS}>
-              <SelectValue placeholder="Not set" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(READING_FORMAT_LABELS).map(([format, label]) => (
-                <SelectItem key={format} value={format}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <form.Field
-            name="pageCount"
-            validators={{
-              onChange: z
-                .number()
-                .int('Page count must be a whole number')
-                // Finished books follow the page count; otherwise it can't drop below the pages already read
-                .min(minPageCount, `Must be at least ${minPageCount}`)
-                .optional(),
-            }}
-            listeners={{
-              onBlur: ({ value, fieldApi }) =>
-                fieldApi.state.meta.isValid && value !== book.pageCount && save({ pageCount: value ?? null }),
-            }}
-          >
-            {(field) => (
-              <>
-                <FieldLabel htmlFor={field.name} className={PROPERTY_LABEL_CLASS}>
-                  Page count
-                </FieldLabel>
-                <FieldInput field={field} type="number" min={1} placeholder="Not set" className={INLINE_INPUT_CLASS} />
-              </>
-            )}
-          </form.Field>
 
           {shownDates.map((date) => (
             <Fragment key={date.key}>
-              <FieldLabel htmlFor={date.key} className={PROPERTY_LABEL_CLASS}>
+              <FieldLabel htmlFor={date.key} className="pt-2 font-normal text-muted-foreground">
                 {date.label}
               </FieldLabel>
               <DatePicker
@@ -322,42 +200,54 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
                 value={date.value === undefined ? undefined : new Date(date.value)}
                 onValueChange={(day) => {
                   // Move to the picked day but keep the recorded time of day
-                  const next = new Date(date.value ?? Date.now());
-                  next.setFullYear(day.getFullYear(), day.getMonth(), day.getDate());
+                  const next = set(date.value ?? Date.now(), {
+                    year: getYear(day),
+                    month: getMonth(day),
+                    date: getDate(day),
+                  });
                   save({ [date.key]: next.getTime() });
                 }}
                 placeholder="Not set"
-                className={INLINE_INPUT_CLASS}
+                className="border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-input dark:bg-transparent"
               />
             </Fragment>
           ))}
 
-          <form.Field
-            name="goodreadsUrl"
-            validators={{ onChange: z.url({ protocol: /^https?$/, error: 'Enter a web address' }).or(z.literal('')) }}
-            listeners={{ onBlur: saveTextOnBlur('goodreadsUrl') }}
-          >
-            {(field) => (
-              <>
-                <FieldLabel htmlFor={field.name} className={PROPERTY_LABEL_CLASS}>
-                  Goodreads
-                </FieldLabel>
-                <div className="flex gap-1">
-                  <FieldInput field={field} placeholder="Paste a link" className={INLINE_INPUT_CLASS} />
-                  {book.goodreadsUrl && (
-                    <Button variant="ghost" size="icon" aria-label="Open on Goodreads" asChild>
-                      <a href={book.goodreadsUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink />
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
-          </form.Field>
+          {editionDetails.map((detail) => (
+            <Fragment key={detail.label}>
+              <span className="pt-2 text-sm font-normal text-muted-foreground">{detail.label}</span>
+              <span className="pt-2 text-sm">{detail.value}</span>
+            </Fragment>
+          ))}
+
+          {book.goodreadsUrl && (
+            <>
+              <span className="pt-2 text-sm font-normal text-muted-foreground">Goodreads</span>
+              <a
+                href={book.goodreadsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 pt-2 text-sm underline underline-offset-2"
+              >
+                Open <ExternalLink className="size-3.5" />
+              </a>
+            </>
+          )}
         </div>
 
-        <form.Field name="notes" listeners={{ onBlur: saveTextOnBlur('notes') }}>
+        {book.description && (
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium">Description</span>
+            <p className="whitespace-pre-line text-sm text-muted-foreground">{book.description}</p>
+          </div>
+        )}
+
+        <form.Field
+          name="notes"
+          listeners={{
+            onBlur: ({ value }) => value.trim() !== (book.notes ?? '') && save({ notes: value.trim() || null }),
+          }}
+        >
           {(field) => (
             <FieldTextarea
               field={field}
@@ -376,7 +266,6 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
         </Button>
       </SheetFooter>
 
-      <CoverDialog book={book} open={coverDialogOpen} onOpenChange={setCoverDialogOpen} />
       <ConfirmDeleteDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}

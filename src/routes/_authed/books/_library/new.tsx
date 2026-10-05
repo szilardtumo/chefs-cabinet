@@ -1,23 +1,36 @@
 import { api } from '@convex/_generated/api';
-import { useConvexMutation } from '@convex-dev/react-query';
-import { useForm } from '@tanstack/react-form';
-import { useMutation } from '@tanstack/react-query';
+import type { Id } from '@convex/_generated/dataModel';
+import { convexAction, convexQuery, useConvexAction } from '@convex-dev/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
+import type { FunctionReturnType } from 'convex/server';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
-import { z } from 'zod';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { FieldGroup } from '@/components/ui/field';
-import { FieldInput, FieldSelect } from '@/components/ui/form-fields';
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { isbnSchema } from '@/lib/isbn';
 import { toastError } from '@/lib/toast';
-import { BOOK_STATUS_META, BOOK_STATUSES, type BookStatus } from '../-components/book-status';
+import { BookCover } from '../-components/book-cover';
+import { IsbnScanButton } from '../-components/isbn-scan-button';
 
-const quickAddSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required'),
-  author: z.string().trim().min(1, 'Author is required'),
-  status: z.enum(BOOK_STATUSES),
-});
+type SearchResult = FunctionReturnType<typeof api.bookLookup.searchBooks>[number];
+type Edition = FunctionReturnType<typeof api.bookLookup.getEditions>[number];
+
+function LookupRow({ title, coverUrl, details }: { title: string; coverUrl?: string; details: unknown[] }) {
+  return (
+    <>
+      <BookCover book={{ title, coverUrl: coverUrl ?? null }} className="w-8" />
+      <div className="min-w-0">
+        <p className="truncate font-medium">{title}</p>
+        <p className="truncate text-xs text-muted-foreground">{details.filter(Boolean).join(' · ')}</p>
+      </div>
+    </>
+  );
+}
 
 export const Route = createFileRoute('/_authed/books/_library/new')({
   component: QuickAddRoute,
@@ -27,26 +40,47 @@ export const Route = createFileRoute('/_authed/books/_library/new')({
 function QuickAddRoute() {
   const navigate = Route.useNavigate();
   const [open, setOpen] = useState(true);
-  const { mutateAsync: createBook } = useMutation({
-    mutationFn: useConvexMutation(api.books.create),
+  const [query, setQuery] = useState('');
+  // A search result whose editions are listed to pick from
+  const [pickedBook, setPickedBook] = useState<SearchResult>();
+  const [editionFilter, setEditionFilter] = useState('');
+  const { data: books } = useQuery(convexQuery(api.books.getAll, {}));
+
+  const trimmedQuery = query.trim();
+  const debouncedQuery = useDebouncedValue(trimmedQuery, 400);
+  // Every lookup is a request to the rate-limited catalog, so it waits for a pause in typing,
+  // and results are never refetched (catalog data doesn't change while you pick)
+  const isIsbn = isbnSchema.safeParse(debouncedQuery).success;
+  const search = useQuery({
+    ...convexAction(api.bookLookup.searchBooks, { query: debouncedQuery }),
+    enabled: !isIsbn && debouncedQuery.length >= 3,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  // The picked book's editions, or the edition a typed or scanned ISBN belongs to
+  const showEditions = pickedBook !== undefined || isIsbn;
+  const editions = useQuery({
+    ...convexAction(api.bookLookup.getEditions, pickedBook ? { bookId: pickedBook.bookId } : { isbn: debouncedQuery }),
+    enabled: showEditions,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
-  const form = useForm({
-    defaultValues: { title: '', author: '', status: 'not_started' as BookStatus },
-    validators: { onChange: quickAddSchema },
-    onSubmit: async ({ value }) => {
-      try {
-        const bookId = await createBook({
-          title: value.title.trim(),
-          author: value.author.trim(),
-          status: value.status,
-        });
-        navigate({ to: '/books/$bookId', params: { bookId }, search: (prev) => prev, replace: true });
-      } catch (error) {
-        toastError(error);
-      }
-    },
+  const openBook = (bookId: Id<'books'>) =>
+    navigate({ to: '/books/$bookId', params: { bookId }, search: (prev) => prev, replace: true });
+
+  const { mutate: addBook, isPending: isAdding } = useMutation({
+    mutationFn: useConvexAction(api.bookLookup.addBook),
+    onSuccess: openBook,
+    onError: toastError,
   });
+
+  // Adds the edition as "Want to read" and opens it, where status and dates can be set;
+  // an edition that's already in the library just opens
+  const addOrOpen = (edition: Edition) => {
+    const existingBook = edition.isbn && books?.find((book) => book.isbn === edition.isbn);
+    if (!existingBook) return addBook({ editionId: edition.editionId });
+    toast.info('Already in your library');
+    openBook(existingBook._id);
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -55,48 +89,117 @@ function QuickAddRoute() {
         // Fires after the exit animation; skipped when the route unmounts some other way (e.g. browser back)
         onCloseAutoFocus={() => !open && navigate({ to: '/books', search: (prev) => prev, replace: true })}
       >
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            form.handleSubmit();
-          }}
-          className="flex h-full flex-col"
-        >
-          <SheetHeader>
-            <SheetTitle>Add book</SheetTitle>
-            <SheetDescription>Cover, genres and the rest can be added from the book's panel next.</SheetDescription>
-          </SheetHeader>
-          <FieldGroup className="gap-4 px-4">
-            <form.Field name="title">
-              {(field) => <FieldInput field={field} label="Title" placeholder="e.g., Normal People" autoFocus />}
-            </form.Field>
-            <form.Field name="author">
-              {(field) => <FieldInput field={field} label="Author" placeholder="e.g., Sally Rooney" />}
-            </form.Field>
-            <form.Field name="status">
-              {(field) => (
-                <FieldSelect
-                  field={field}
-                  label="Status"
-                  options={BOOK_STATUSES.map((status) => ({ value: status, label: BOOK_STATUS_META[status].label }))}
-                />
-              )}
-            </form.Field>
-          </FieldGroup>
-          <SheetFooter className="flex-row justify-end">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <form.Subscribe selector={(state) => state.isSubmitting}>
-              {(isSubmitting) => (
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Spinner />}
-                  Add book
+        <SheetHeader>
+          <SheetTitle>Add book</SheetTitle>
+          <SheetDescription>Find the edition you have by title, author or ISBN.</SheetDescription>
+        </SheetHeader>
+        <div className="flex gap-2 px-4 pb-4">
+          {/* Search results come ranked from the catalog; editions are filtered here by language, publisher or year */}
+          <Command
+            shouldFilter={pickedBook !== undefined}
+            // Plain substring match on the keywords; cmdk's fuzzy match would also match digits of edition ids
+            filter={(_value, search, keywords) =>
+              keywords?.join(' ').toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
+            }
+            className="h-auto rounded-md border"
+          >
+            {pickedBook && (
+              <div className="flex items-center gap-1 border-b px-1 py-1 text-sm">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={() => {
+                    setPickedBook(undefined);
+                    setEditionFilter('');
+                  }}
+                  aria-label="Back to search results"
+                >
+                  <ArrowLeft />
                 </Button>
-              )}
-            </form.Subscribe>
-          </SheetFooter>
-        </form>
+                <span className="truncate">Editions of {pickedBook.title}</span>
+              </div>
+            )}
+            <CommandInput
+              value={pickedBook ? editionFilter : query}
+              onValueChange={pickedBook ? setEditionFilter : setQuery}
+              placeholder={pickedBook ? 'Filter by language, publisher or year' : 'Title, author or ISBN'}
+              disabled={isAdding}
+              autoFocus
+            />
+            {(isAdding || trimmedQuery || pickedBook) && (
+              <CommandList className="p-1">
+                {isAdding ||
+                editions.isLoading ||
+                (!pickedBook && (search.isLoading || trimmedQuery !== debouncedQuery)) ? (
+                  <div className="flex justify-center py-6">
+                    <Spinner />
+                  </div>
+                ) : showEditions ? (
+                  editions.isError ? (
+                    <p className="py-6 text-center text-sm text-destructive">{editions.error.message}</p>
+                  ) : (
+                    <>
+                      <CommandEmpty>{pickedBook ? 'No editions found' : 'No book found for this ISBN'}</CommandEmpty>
+                      {editions.data?.map((edition) => (
+                        <CommandItem
+                          key={edition.editionId}
+                          value={String(edition.editionId)}
+                          keywords={[
+                            edition.title,
+                            edition.language,
+                            edition.publisher,
+                            edition.publishedYear,
+                            edition.format,
+                          ]
+                            .filter(Boolean)
+                            .map(String)}
+                          onSelect={() => addOrOpen(edition)}
+                        >
+                          <LookupRow
+                            title={edition.title}
+                            coverUrl={edition.coverUrl}
+                            details={[edition.language, edition.format, edition.publisher, edition.publishedYear]}
+                          />
+                        </CommandItem>
+                      ))}
+                    </>
+                  )
+                ) : search.isError ? (
+                  <p className="py-6 text-center text-sm text-destructive">{search.error.message}</p>
+                ) : (
+                  <>
+                    <CommandEmpty>
+                      {trimmedQuery.length < 3 ? 'Type at least 3 characters' : 'No books found'}
+                    </CommandEmpty>
+                    {search.data?.map((result) => (
+                      <CommandItem
+                        key={result.bookId}
+                        value={String(result.bookId)}
+                        onSelect={() => setPickedBook(result)}
+                      >
+                        <LookupRow
+                          title={result.title}
+                          coverUrl={result.coverUrl}
+                          details={[result.author, result.releaseYear]}
+                        />
+                      </CommandItem>
+                    ))}
+                  </>
+                )}
+              </CommandList>
+            )}
+          </Command>
+          <IsbnScanButton
+            onScan={(isbn) => {
+              setPickedBook(undefined);
+              setEditionFilter('');
+              setQuery(isbn);
+            }}
+            disabled={isAdding}
+          />
+        </div>
       </SheetContent>
     </Sheet>
   );

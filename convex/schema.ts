@@ -114,5 +114,12 @@ export default defineSchema({
     goodreadsUrl: v.optional(v.string()),
     notes: v.optional(v.string()),
     cover: v.optional(v.id('_storage')),
+    isbn: v.optional(v.string()),
+    description: v.optional(v.string()),
+    publisher: v.optional(v.string()),
+    publishedYear: v.optional(v.number()),
+    seriesName: v.optional(v.string()),
+    seriesPosition: v.optional(v.string()),
+    language: v.optional(v.string()),
   }).index('by_user', ['userId']),
 });

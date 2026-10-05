@@ -1,13 +1,26 @@
 import { type Infer, type Validator, v } from 'convex/values';
 import { doc, literals } from 'convex-helpers/validators';
+import { omit } from 'es-toolkit';
 import { z } from 'zod';
 import type { Doc, Id } from './_generated/dataModel';
-import type { QueryCtx } from './_generated/server';
+import { internalMutation, type QueryCtx } from './_generated/server';
 import { NotFoundError, ValidationError } from './lib/errors';
 import { authenticatedMutation, authenticatedQuery } from './lib/helpers';
 import schema from './schema';
 
 const bookStatus = literals('not_started', 'in_progress', 'done', 'cancelled');
+
+/** The book fields that come from its catalog edition: everything but your own reading data and the stored cover. */
+export const editionFields = omit(schema.tables.books.validator.fields, [
+  'userId',
+  'pagesRead',
+  'startedAt',
+  'completedAt',
+  'cancelledAt',
+  'rating',
+  'notes',
+  'cover',
+]);
 
 type BookStatus = Infer<typeof bookStatus>;
 
@@ -140,39 +153,33 @@ export const getById = authenticatedQuery({
 });
 
 /**
- * Quickly adds a book; everything else is filled in from the book panel later.
+ * Adds a book from a catalog edition, not started yet; called by `bookLookup.addBook` after it stored the cover.
  */
-export const create = authenticatedMutation({
+export const create = internalMutation({
   args: {
-    title: v.string(),
-    author: v.string(),
-    status: bookStatus,
+    ...editionFields,
+    userId: v.string(),
+    cover: v.optional(v.id('_storage')),
   },
   handler: async (ctx, args) => {
-    const { status, ...bookData } = args;
-    const book = { ...bookData, genres: [], pagesRead: 0, ...timestampsForStatus(status, {}) };
+    const book = { ...args, pagesRead: 0 };
     assertValidBook(book);
 
-    return await ctx.db.insert('books', { ...book, userId: ctx.userId });
+    return await ctx.db.insert('books', book);
   },
 });
 
 /**
- * Updates the given book fields; `null` clears an optional field.
+ * Updates the fields you keep yourself; `null` clears an optional field.
+ * Everything that comes with the edition is set from the catalog through `applyEdition`.
  */
 export const updateDetails = authenticatedMutation({
   args: {
     id: v.id('books'),
-    title: v.optional(v.string()),
-    author: v.optional(v.string()),
     genres: v.optional(v.array(v.string())),
     pagesRead: v.optional(v.number()),
     rating: clearable(v.number()),
-    readingFormat: v.optional(v.union(...schema.tables.books.validator.fields.readingFormat.members, v.null())),
-    pageCount: clearable(v.number()),
-    goodreadsUrl: clearable(v.string()),
     notes: clearable(v.string()),
-    cover: clearable(v.id('_storage')),
     // Lifecycle dates can be moved but not cleared here; clearing one would change the status
     startedAt: v.optional(v.number()),
     completedAt: v.optional(v.number()),
@@ -185,15 +192,7 @@ export const updateDetails = authenticatedMutation({
     const patch = Object.fromEntries(
       Object.entries(changes).map(([key, value]) => [key, value ?? undefined]),
     ) as Partial<Doc<'books'>>;
-    // A finished book has read all its pages, so a corrected page count carries over
-    if (patch.pageCount !== undefined && deriveBookStatus(book) === 'done') {
-      patch.pagesRead = patch.pageCount;
-    }
     assertValidBook({ ...book, ...patch });
-
-    if ('cover' in changes && book.cover && book.cover !== patch.cover) {
-      await ctx.storage.delete(book.cover);
-    }
 
     await ctx.db.patch(id, patch);
   },
@@ -265,5 +264,49 @@ export const remove = authenticatedMutation({
     if (book.cover) {
       await ctx.storage.delete(book.cover);
     }
+  },
+});
+
+/**
+ * Replaces a book's details with a catalog edition's, keeping your own genres, progress, dates and notes.
+ */
+export const applyEdition = internalMutation({
+  args: {
+    id: v.id('books'),
+    // Only the user's own books can be updated
+    userId: v.string(),
+    edition: v.object(editionFields),
+    // `null` when the edition has no cover; left out when its cover couldn't be downloaded, which keeps the current one
+    cover: v.optional(v.union(v.id('_storage'), v.null())),
+  },
+  handler: async (ctx, { id, userId, edition, cover }) => {
+    const book = await ctx.db.get(id);
+    if (!book || book.userId !== userId) {
+      throw new NotFoundError('books', id);
+    }
+
+    const { genres, ...details } = edition;
+    // Clears what the previous edition had and this one doesn't. Convex drops `undefined` args,
+    // so the field list comes from the validator; `patch` removes fields set to `undefined`.
+    const cleared = Object.fromEntries(Object.keys(omit(editionFields, ['genres'])).map((key) => [key, undefined]));
+    const pageCount = details.pageCount;
+    const patch = {
+      ...cleared,
+      ...details,
+      // Genres are yours to edit, so the edition's only fill an empty list
+      genres: book.genres.length ? book.genres : genres,
+      cover: cover === undefined ? book.cover : (cover ?? undefined),
+      // A finished book has read all its pages; otherwise progress can't go past the new page count
+      pagesRead:
+        deriveBookStatus(book) === 'done'
+          ? (pageCount ?? book.pagesRead)
+          : Math.min(book.pagesRead, pageCount ?? book.pagesRead),
+    };
+    assertValidBook({ ...book, ...patch });
+
+    if (cover !== undefined && book.cover) {
+      await ctx.storage.delete(book.cover);
+    }
+    await ctx.db.patch(id, patch);
   },
 });

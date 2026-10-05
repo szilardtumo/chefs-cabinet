@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as bookLookup from "../bookLookup.js";
 import type * as books from "../books.js";
 import type * as categories from "../categories.js";
+import type * as hardcoverApi from "../hardcoverApi.js";
 import type * as ingredients from "../ingredients.js";
 import type * as lib_ai from "../lib/ai.js";
 import type * as lib_errors from "../lib/errors.js";
@@ -39,8 +41,10 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  bookLookup: typeof bookLookup;
   books: typeof books;
   categories: typeof categories;
+  hardcoverApi: typeof hardcoverApi;
   ingredients: typeof ingredients;
   "lib/ai": typeof lib_ai;
   "lib/errors": typeof lib_errors;
