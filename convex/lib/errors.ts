@@ -1,3 +1,5 @@
+import { ConvexError } from 'convex/values';
+
 /**
  * Custom error classes for Convex functions
  */
@@ -44,14 +46,9 @@ export class InvalidOperationError extends Error {
 }
 
 /**
- * Thrown when input validation fails
+ * Thrown when input validation fails. A `ConvexError`, so the client gets the message without Convex's request details.
  */
-export class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
+export class ValidationError extends ConvexError<string> {}
 
 /**
  * Thrown when an AI error occurs

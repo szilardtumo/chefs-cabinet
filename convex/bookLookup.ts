@@ -6,6 +6,7 @@ import type { ActionCtx } from './_generated/server';
 import * as catalog from './hardcoverApi';
 import { ValidationError } from './lib/errors';
 import { authenticatedAction } from './lib/helpers';
+import * as openLibrary from './openLibraryApi';
 import { storeImage } from './storage';
 
 function parseIsbn(input: string) {
@@ -31,6 +32,36 @@ async function withStoredCover<T>(
     if (cover) await ctx.storage.delete(cover);
     throw error;
   }
+}
+
+/**
+ * An edition Hardcover doesn't have, from Open Library. When Hardcover has the book itself, its data fills in
+ * what Open Library lacks (description, genres, series, authors); the edition's own data comes from Open Library.
+ */
+async function findOnOpenLibrary(isbn13: string) {
+  const edition = await openLibrary.findEdition(isbn13);
+  if (!edition) return null;
+
+  // Searching by last name skips initials Hardcover doesn't have ("Percival L. Everett"). Its search ranks loosely,
+  // so a hit only counts when its title and author's last name match too.
+  const lastName = edition.author.split(' ').at(-1)?.toLowerCase() ?? '';
+  const title = edition.title.toLowerCase();
+  const match = (await catalog.searchBooks(`${edition.title} ${lastName}`)).find(
+    (hit) =>
+      hit.author.toLowerCase().includes(lastName) &&
+      (hit.title.toLowerCase().includes(title) || title.includes(hit.title.toLowerCase())),
+  );
+  const book = match && (await catalog.findBook(match.bookId));
+  if (!book) return { ...edition, genres: [], readingFormat: 'book' as const };
+
+  return {
+    ...book,
+    isbn: edition.isbn,
+    publisher: edition.publisher,
+    goodreadsUrl: edition.goodreadsUrl,
+    pageCount: edition.pageCount ?? book.pageCount,
+    coverUrl: edition.coverUrl ?? book.coverUrl,
+  };
 }
 
 /**
@@ -82,8 +113,8 @@ export const setIsbn = authenticatedAction({
   returns: v.string(),
   handler: async (ctx, args) => {
     const isbn = parseIsbn(args.isbn);
-    const found = await catalog.findEdition(isbn);
-    if (!found) throw new Error(`No book found for ISBN ${isbn.isbn13}`);
+    const found = (await catalog.findEdition(isbn)) ?? (await findOnOpenLibrary(isbn.isbn13));
+    if (!found) throw new ValidationError(`No book with ISBN ${isbn.isbn13} on Hardcover or Open Library`);
     const { coverUrl, ...edition } = found;
     await withStoredCover(ctx, coverUrl, (cover) =>
       ctx.runMutation(internal.books.applyEdition, { id: args.id, userId: ctx.userId, edition, cover }),

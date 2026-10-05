@@ -1,8 +1,15 @@
+import { ConvexError } from 'convex/values';
 import { toast } from 'sonner';
 
 export function toastError(error: unknown) {
   toast.error('Error', {
-    description: error instanceof Error ? error.message : 'An unknown error occurred',
+    // A `ConvexError`'s message also has the function name and request id; its data is the message meant for users
+    description:
+      error instanceof ConvexError && typeof error.data === 'string'
+        ? error.data
+        : error instanceof Error
+          ? error.message
+          : 'An unknown error occurred',
   });
 }
 

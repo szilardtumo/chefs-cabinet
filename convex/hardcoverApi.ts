@@ -114,6 +114,12 @@ function toCatalogBook(edition: Edition): CatalogBook {
   };
 }
 
+const bookFields = `
+  title description release_year pages image { url } cached_tags
+  book_series(limit: 1) { position series { name } }
+  contributions { author { name } contribution }
+`;
+
 type IsbnLookup = { isbn13: string; isbn10?: string };
 
 // Some editions only have their ISBN-10 on Hardcover, so it's matched too when known
@@ -128,16 +134,33 @@ export async function findEdition(lookup: { editionId: number } | IsbnLookup) {
       editions(where: $where, limit: 1) {
         title edition_format pages release_date isbn_13 image { url } publisher { name } language { language }
         book_mappings { external_id platform { name } }
-        book {
-          title description release_year pages image { url } cached_tags
-          book_series(limit: 1) { position series { name } }
-          contributions { author { name } contribution }
-        }
+        book { ${bookFields} }
       }
     }`,
     { where },
   );
   return editions[0] ? toCatalogBook(editions[0]) : null;
+}
+
+/** A book with no edition's data (ISBN, publisher, edition cover), or `null`. */
+export async function findBook(bookId: number) {
+  const { books_by_pk: book } = await query<{ books_by_pk: Edition['book'] | null }>(
+    `query ($bookId: Int!) { books_by_pk(id: $bookId) { ${bookFields} } }`,
+    { bookId },
+  );
+  if (!book) return null;
+  return toCatalogBook({
+    title: null,
+    edition_format: null,
+    pages: null,
+    release_date: null,
+    isbn_13: null,
+    image: null,
+    publisher: null,
+    language: null,
+    book_mappings: [],
+    book,
+  });
 }
 
 /** Books matching a title and author search. */
