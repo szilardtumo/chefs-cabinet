@@ -35,6 +35,7 @@ export function DatePicker({ id, value, onValueChange, placeholder = 'Select dat
           mode="single"
           required
           selected={value}
+          defaultMonth={value}
           captionLayout="dropdown"
           startMonth={new Date(1990, 0)}
           endMonth={new Date()}
