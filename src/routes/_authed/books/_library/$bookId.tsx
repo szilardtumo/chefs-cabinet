@@ -29,6 +29,8 @@ import { IsbnScanButton } from '../-components/isbn-scan-button';
 
 export const Route = createFileRoute('/_authed/books/_library/$bookId')({
   component: BookSheetRoute,
+  // Opening another book while the previous one is closing would otherwise keep its closed state
+  remountDeps: ({ params }) => params.bookId,
 });
 
 type Book = FunctionReturnType<typeof api.books.getById>;
