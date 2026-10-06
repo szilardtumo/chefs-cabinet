@@ -98,6 +98,7 @@ import type { AnyFieldApi } from '@tanstack/react-form';
 import EmojiPicker from 'emoji-picker-react';
 import { RotateCcw, Smile, Upload, X } from 'lucide-react';
 import * as React from 'react';
+import { DatePicker } from '@/components/date-picker';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
@@ -536,6 +537,26 @@ export function FieldSlider({ field, label, description, hideError, ...sliderPro
         onBlur={field.handleBlur}
         {...sliderProps}
       />
+      {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
+    </Field>
+  );
+}
+
+// #endregion
+
+// #region FieldDatePicker
+
+type FieldDatePickerProps = BaseFieldProps &
+  Omit<React.ComponentProps<typeof DatePicker>, 'id' | 'value' | 'onValueChange'>;
+
+export function FieldDatePicker({ field, label, description, hideError, ...datePickerProps }: FieldDatePickerProps) {
+  const hasError = field.state.meta.errors.length > 0;
+
+  return (
+    <Field data-invalid={hasError}>
+      {label && <FieldLabel htmlFor={field.name}>{label}</FieldLabel>}
+      {description && <FieldDescription>{description}</FieldDescription>}
+      <DatePicker id={field.name} value={field.state.value} onValueChange={field.handleChange} {...datePickerProps} />
       {!hideError && <FieldError>{getErrorMessages(field.state.meta.errors)}</FieldError>}
     </Field>
   );

@@ -122,4 +122,19 @@ export default defineSchema({
     seriesPosition: v.optional(v.string()),
     language: v.optional(v.string()),
   }).index('by_user', ['userId']),
+
+  // One row per change of a book's current page, for reading history and daily stats
+  readingEvents: defineTable({
+    userId: v.string(),
+    bookId: v.id('books'),
+    // The page reached, and the pages added since the previous page (negative after a correction)
+    pagesRead: v.number(),
+    pagesDelta: v.number(),
+    // When the pages were read; reading logged for an earlier day gets 12:00 local time on that day
+    at: v.number(),
+    // `finish` when finishing the book filled the remaining pages
+    source: literals('progress', 'finish'),
+  })
+    .index('by_user_and_at', ['userId', 'at'])
+    .index('by_book_and_at', ['bookId', 'at']),
 });

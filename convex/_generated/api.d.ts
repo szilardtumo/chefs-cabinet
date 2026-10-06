@@ -18,6 +18,7 @@ import type * as lib_errors from "../lib/errors.js";
 import type * as lib_helpers from "../lib/helpers.js";
 import type * as migrations from "../migrations.js";
 import type * as openLibraryApi from "../openLibraryApi.js";
+import type * as readingEvents from "../readingEvents.js";
 import type * as recipeIngredients from "../recipeIngredients.js";
 import type * as recipes from "../recipes.js";
 import type * as recipesAi from "../recipesAi.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "lib/helpers": typeof lib_helpers;
   migrations: typeof migrations;
   openLibraryApi: typeof openLibraryApi;
+  readingEvents: typeof readingEvents;
   recipeIngredients: typeof recipeIngredients;
   recipes: typeof recipes;
   recipesAi: typeof recipesAi;

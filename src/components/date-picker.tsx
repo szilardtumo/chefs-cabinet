@@ -12,9 +12,18 @@ type DatePickerProps = {
   onValueChange: (date: Date) => void;
   placeholder?: string;
   className?: string;
+  /** Earliest day that can be picked; days after today can never be picked. */
+  minDate?: Date;
 };
 
-export function DatePicker({ id, value, onValueChange, placeholder = 'Select date', className }: DatePickerProps) {
+export function DatePicker({
+  id,
+  value,
+  onValueChange,
+  placeholder = 'Select date',
+  className,
+  minDate,
+}: DatePickerProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -39,7 +48,7 @@ export function DatePicker({ id, value, onValueChange, placeholder = 'Select dat
           captionLayout="dropdown"
           startMonth={new Date(1990, 0)}
           endMonth={new Date()}
-          disabled={{ after: new Date() }}
+          disabled={[{ after: new Date() }, minDate ? { before: minDate } : false]}
           onSelect={(date) => {
             onValueChange(date);
             setOpen(false);

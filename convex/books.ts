@@ -3,7 +3,7 @@ import { doc, literals } from 'convex-helpers/validators';
 import { omit } from 'es-toolkit';
 import { z } from 'zod';
 import type { Doc, Id } from './_generated/dataModel';
-import { internalMutation, type QueryCtx } from './_generated/server';
+import { internalMutation, type MutationCtx, type QueryCtx } from './_generated/server';
 import { NotFoundError, ValidationError } from './lib/errors';
 import { authenticatedMutation, authenticatedQuery } from './lib/helpers';
 import schema from './schema';
@@ -96,6 +96,8 @@ const bookWithDetails = v.object({
   coverUrl: v.union(v.string(), v.null()),
   status: bookStatus,
   progressPercent: v.optional(v.number()),
+  // When the latest logged reading happened; new reading can't be logged before it
+  lastReadAt: v.optional(v.number()),
 });
 
 function assertValidBook(book: z.input<typeof bookSchema>) {
@@ -105,18 +107,52 @@ function assertValidBook(book: z.input<typeof bookSchema>) {
   }
 }
 
+function getLastReadingEvent(ctx: QueryCtx, bookId: Id<'books'>) {
+  return ctx.db
+    .query('readingEvents')
+    .withIndex('by_book_and_at', (q) => q.eq('bookId', bookId))
+    .order('desc')
+    .first();
+}
+
 async function withDetails(ctx: QueryCtx, book: Doc<'books'>) {
   const coverUrl = book.cover ? await ctx.storage.getUrl(book.cover) : null;
+  const lastEvent = await getLastReadingEvent(ctx, book._id);
 
   return {
     ...book,
     coverUrl,
     status: deriveBookStatus(book),
     progressPercent: book.pageCount ? Math.min(100, Math.round((book.pagesRead / book.pageCount) * 100)) : undefined,
+    lastReadAt: lastEvent?.at,
   };
 }
 
-async function requireOwnedBook(ctx: QueryCtx & { userId: string }, id: Id<'books'>) {
+/** Sets a book's current page and logs the change as reading. Returns the event id, or `null` when the page didn't change. */
+async function recordProgress(
+  ctx: MutationCtx,
+  book: Doc<'books'>,
+  pagesRead: number,
+  source: Doc<'readingEvents'>['source'],
+  at = Date.now(),
+) {
+  if (pagesRead === book.pagesRead) return null;
+
+  // Keeps a book's events in date order, so each delta is measured from the page logged just before it.
+  // The picker blocks earlier days; a pick on the latest event's day can still be before its time.
+  const lastEvent = await getLastReadingEvent(ctx, book._id);
+  await ctx.db.patch(book._id, { pagesRead });
+  return await ctx.db.insert('readingEvents', {
+    userId: book.userId,
+    bookId: book._id,
+    pagesRead,
+    pagesDelta: pagesRead - book.pagesRead,
+    at: Math.max(at, lastEvent?.at ?? at),
+    source,
+  });
+}
+
+export async function requireOwnedBook(ctx: QueryCtx & { userId: string }, id: Id<'books'>) {
   const book = await ctx.db.get(id);
   if (!book || book.userId !== ctx.userId) {
     throw new NotFoundError('books', id);
@@ -177,7 +213,6 @@ export const updateDetails = authenticatedMutation({
   args: {
     id: v.id('books'),
     genres: v.optional(v.array(v.string())),
-    pagesRead: v.optional(v.number()),
     rating: clearable(v.number()),
     notes: clearable(v.string()),
     // Lifecycle dates can be moved but not cleared here; clearing one would change the status
@@ -199,8 +234,48 @@ export const updateDetails = authenticatedMutation({
 });
 
 /**
+ * Sets the page you reached and logs it as reading; returns the event id for Undo.
+ * `readOn` logs the pages on an earlier day instead of now.
+ */
+export const updateProgress = authenticatedMutation({
+  args: {
+    id: v.id('books'),
+    pagesRead: v.number(),
+    readOn: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const book = await requireOwnedBook(ctx, args.id);
+    if (args.readOn !== undefined && args.readOn > Date.now()) {
+      throw new ValidationError('You cannot log reading in the future');
+    }
+    assertValidBook({ ...book, pagesRead: args.pagesRead });
+
+    return await recordProgress(ctx, book, args.pagesRead, 'progress', args.readOn);
+  },
+});
+
+/**
+ * Removes a logged progress change and puts the book back on the page it was on before (used by Undo).
+ */
+export const undoProgress = authenticatedMutation({
+  args: { eventId: v.id('readingEvents') },
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.userId !== ctx.userId) {
+      throw new NotFoundError('readingEvents', args.eventId);
+    }
+    const book = await requireOwnedBook(ctx, event.bookId);
+    const pagesRead = event.pagesRead - event.pagesDelta;
+    assertValidBook({ ...book, pagesRead });
+
+    await ctx.db.patch(book._id, { pagesRead });
+    await ctx.db.delete(event._id);
+  },
+});
+
+/**
  * Moves a book to another reading status, stamping new lifecycle dates with the current time.
- * Finishing a book also marks all its pages as read.
+ * Finishing a book also marks all its pages as read and logs them; the event id is returned for Undo.
  */
 export const setStatus = authenticatedMutation({
   args: {
@@ -209,7 +284,7 @@ export const setStatus = authenticatedMutation({
   },
   handler: async (ctx, args) => {
     const book = await requireOwnedBook(ctx, args.id);
-    if (deriveBookStatus(book) === args.status) return;
+    if (deriveBookStatus(book) === args.status) return null;
 
     const patch = {
       // Clear all lifecycle dates first; `patch` removes fields set to `undefined`
@@ -217,16 +292,18 @@ export const setStatus = authenticatedMutation({
       completedAt: undefined,
       cancelledAt: undefined,
       ...timestampsForStatus(args.status, { startedAt: book.startedAt }),
-      ...(args.status === 'done' && book.pageCount !== undefined && { pagesRead: book.pageCount }),
     };
-    assertValidBook({ ...book, ...patch });
+    const pagesRead = args.status === 'done' ? (book.pageCount ?? book.pagesRead) : book.pagesRead;
+    assertValidBook({ ...book, ...patch, pagesRead });
 
     await ctx.db.patch(args.id, patch);
+    return await recordProgress(ctx, book, pagesRead, 'finish');
   },
 });
 
 /**
- * Puts back the lifecycle dates and progress a book had before a status change (used by Undo).
+ * Puts back the lifecycle dates and progress a book had before a status change (used by Undo),
+ * removing the reading the status change logged.
  */
 export const restoreStatus = authenticatedMutation({
   args: {
@@ -235,9 +312,10 @@ export const restoreStatus = authenticatedMutation({
     completedAt: v.optional(v.number()),
     cancelledAt: v.optional(v.number()),
     pagesRead: v.number(),
+    eventId: v.optional(v.union(v.id('readingEvents'), v.null())),
   },
   handler: async (ctx, args) => {
-    const { id, ...previous } = args;
+    const { id, eventId, ...previous } = args;
     const book = await requireOwnedBook(ctx, id);
     // Omitted dates arrive as missing keys, so set all three explicitly; `undefined` removes the field
     const patch = {
@@ -249,17 +327,27 @@ export const restoreStatus = authenticatedMutation({
     assertValidBook({ ...book, ...patch });
 
     await ctx.db.patch(id, patch);
+    const event = eventId && (await ctx.db.get(eventId));
+    if (event && event.bookId === id) {
+      await ctx.db.delete(event._id);
+    }
   },
 });
 
 /**
- * Deletes a book for the currently authenticated user.
+ * Deletes a book for the currently authenticated user, with its reading history.
  */
 export const remove = authenticatedMutation({
   args: { id: v.id('books') },
   handler: async (ctx, args) => {
     const book = await requireOwnedBook(ctx, args.id);
     await ctx.db.delete(args.id);
+
+    const events = await ctx.db
+      .query('readingEvents')
+      .withIndex('by_book_and_at', (q) => q.eq('bookId', args.id))
+      .collect();
+    await Promise.all(events.map((event) => ctx.db.delete(event._id)));
 
     if (book.cover) {
       await ctx.storage.delete(book.cover);

@@ -22,6 +22,7 @@ import { isbnSchema } from '@/lib/isbn';
 import { toastError, toastWithUndo } from '@/lib/toast';
 import { BookCover } from '../-components/book-cover';
 import { BookProgressPopover } from '../-components/book-progress';
+import { BookProgressChart } from '../-components/book-progress-chart';
 import { BookRating } from '../-components/book-rating';
 import { BookStatusPicker } from '../-components/book-status-picker';
 import { IsbnScanButton } from '../-components/isbn-scan-button';
@@ -234,6 +235,8 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
             </>
           )}
         </div>
+
+        <BookProgressChart book={book} />
 
         {book.description && (
           <div className="flex flex-col gap-2">

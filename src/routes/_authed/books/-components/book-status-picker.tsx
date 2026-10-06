@@ -37,10 +37,10 @@ export function BookStatusPicker({
   const handleStatusChange = async (status: BookStatus) => {
     const { _id: id, startedAt, completedAt, cancelledAt, pagesRead } = book;
     try {
-      await setStatus({ id, status });
+      const eventId = await setStatus({ id, status });
       // A status change rewrites the reading dates, so Undo restores them exactly
       toastWithUndo(`Moved to ${BOOK_STATUS_META[status].label}`, () =>
-        restoreStatus({ id, startedAt, completedAt, cancelledAt, pagesRead }),
+        restoreStatus({ id, startedAt, completedAt, cancelledAt, pagesRead, eventId }),
       );
     } catch (error) {
       toastError(error);

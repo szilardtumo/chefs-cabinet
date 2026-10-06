@@ -2,10 +2,11 @@ import { api } from '@convex/_generated/api';
 import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { differenceInDays } from 'date-fns';
-import { countBy, groupBy, mean, range, sumBy } from 'es-toolkit';
+import type { FunctionReturnType } from 'convex/server';
+import { differenceInDays, eachDayOfInterval, endOfYear, format, startOfDay, startOfToday, subDays } from 'date-fns';
+import { countBy, groupBy, mapValues, mean, range, sumBy } from 'es-toolkit';
 import { ChartNoAxesColumn } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, LabelList, Pie, PieChart, XAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, Pie, PieChart, XAxis, YAxis } from 'recharts';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -35,8 +36,13 @@ const booksChartConfig = {
   count: { label: 'Books', color: 'var(--chart-1)' },
 } satisfies ChartConfig;
 
+const pagesChartConfig = {
+  pages: { label: 'Pages', color: 'var(--chart-1)' },
+} satisfies ChartConfig;
+
 function BookStatsComponent() {
   const { data: books } = useSuspenseQuery(convexQuery(api.books.getAll, {}));
+  const { data: readingEvents } = useSuspenseQuery(convexQuery(api.readingEvents.getAll, {}));
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
 
@@ -45,7 +51,12 @@ function BookStatsComponent() {
       ? [{ ...book, completedAt: book.completedAt, completedDate: new Date(book.completedAt) }]
       : [],
   );
-  const years = [...new Set(finishedBooks.map((book) => book.completedDate.getFullYear()))].sort((a, b) => b - a);
+  const years = [
+    ...new Set([
+      ...finishedBooks.map((book) => book.completedDate.getFullYear()),
+      ...readingEvents.map((event) => new Date(event.at).getFullYear()),
+    ]),
+  ].sort((a, b) => b - a);
 
   if (years.length === 0) {
     return (
@@ -55,7 +66,7 @@ function BookStatsComponent() {
             <ChartNoAxesColumn />
           </EmptyMedia>
           <EmptyTitle>No stats yet</EmptyTitle>
-          <EmptyDescription>Finish a book to see your reading stats.</EmptyDescription>
+          <EmptyDescription>Log your progress or finish a book to see your reading stats.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
@@ -147,6 +158,8 @@ function BookStatsComponent() {
           </Card>
         ))}
       </div>
+
+      <PagesPerDayCard readingEvents={readingEvents} period={period} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -246,5 +259,124 @@ function BookStatsComponent() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+type ReadingEvent = FunctionReturnType<typeof api.readingEvents.getAll>[number];
+
+function PagesPerDayCard({ readingEvents, period }: { readingEvents: ReadingEvent[]; period: number | 'all' }) {
+  // A day's net pages; a day of only corrections counts as no reading rather than negative reading
+  const pagesByDay = mapValues(
+    groupBy(readingEvents, (event) => startOfDay(event.at).getTime()),
+    (dayEvents) =>
+      Math.max(
+        0,
+        sumBy(dayEvents, (event) => event.pagesDelta),
+      ),
+  );
+  const today = startOfToday();
+
+  // A streak is still alive until today ends, so it counts back from yesterday when today has no reading yet
+  let currentStreak = 0;
+  for (let day = pagesByDay[today.getTime()] ? today : subDays(today, 1); pagesByDay[day.getTime()]; ) {
+    currentStreak++;
+    day = subDays(day, 1);
+  }
+
+  // Starts at the first logged reading, so days before tracking existed don't show as days without reading
+  const firstDay = readingEvents.length ? startOfDay(readingEvents[0].at) : undefined;
+  const periodStart = period === 'all' ? firstDay : firstDay && new Date(Math.max(+firstDay, +new Date(period, 0)));
+  const periodEnd = period === 'all' ? today : new Date(Math.min(+today, +startOfDay(endOfYear(new Date(period, 0)))));
+  const days =
+    periodStart && periodStart <= periodEnd
+      ? eachDayOfInterval({ start: periodStart, end: periodEnd }).map((day) => ({
+          day: day.getTime(),
+          pages: pagesByDay[day.getTime()] ?? 0,
+        }))
+      : [];
+
+  let longestStreak = 0;
+  let streak = 0;
+  for (const { pages } of days) {
+    streak = pages > 0 ? streak + 1 : 0;
+    longestStreak = Math.max(longestStreak, streak);
+  }
+
+  // A session is a run of updates on one book less than 30 minutes apart
+  const periodEvents = readingEvents.filter(
+    (event) => days.length && event.at >= days[0].day && startOfDay(event.at) <= periodEnd,
+  );
+  const sessionPages: number[] = [];
+  for (const bookEvents of Object.values(groupBy(periodEvents, (event) => event.bookId))) {
+    let previousAt = Number.NEGATIVE_INFINITY;
+    for (const event of bookEvents) {
+      if (event.at - previousAt >= 30 * 60 * 1000) sessionPages.push(0);
+      sessionPages[sessionPages.length - 1] += event.pagesDelta;
+      previousAt = event.at;
+    }
+  }
+  const readingSessions = sessionPages.filter((pages) => pages > 0);
+
+  const stats = [
+    { label: 'Current streak', value: `${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}` },
+    { label: 'Longest streak', value: `${longestStreak} ${longestStreak === 1 ? 'day' : 'days'}` },
+    { label: 'Pages per session', value: readingSessions.length ? Math.round(mean(readingSessions)) : '–' },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Pages per day</CardTitle>
+        <CardDescription>The pages you logged on each day</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {readingEvents.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            Log your progress on a book to see the days you read
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-4">
+              {stats.map((stat) => (
+                <div key={stat.label}>
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="text-2xl font-semibold tabular-nums">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+            {days.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">No reading logged in {period}</p>
+            ) : (
+              <ChartContainer config={pagesChartConfig} className="aspect-auto h-56 w-full">
+                <LineChart accessibilityLayer data={days} margin={{ top: 8, right: 24 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="day"
+                    type="number"
+                    scale="time"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={(day: number) => format(day, period === 'all' ? 'MMM yyyy' : 'MMM d')}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    minTickGap={32}
+                  />
+                  <YAxis tickLine={false} axisLine={false} width={40} allowDecimals={false} />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        labelFormatter={(_, payload) => format(payload[0].payload.day, 'EEE, MMM d, yyyy')}
+                        formatter={(value) => <span className="tabular-nums">{value} pages</span>}
+                      />
+                    }
+                  />
+                  <Line dataKey="pages" type="monotone" stroke="var(--color-pages)" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ChartContainer>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

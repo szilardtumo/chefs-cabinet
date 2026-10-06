@@ -3,20 +3,25 @@ import { useConvexMutation } from '@convex-dev/react-query';
 import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import type { FunctionReturnType } from 'convex/server';
+import { addHours, isToday, startOfDay } from 'date-fns';
 import { useState } from 'react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { FieldInput, FieldSlider } from '@/components/ui/form-fields';
+import { FieldDatePicker, FieldInput, FieldSlider } from '@/components/ui/form-fields';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
+import { formatDate } from '@/lib/format';
 import { toastError, toastWithUndo } from '@/lib/toast';
 
 type Book = FunctionReturnType<typeof api.books.getAll>[number];
 
 export function BookProgressPopover({ book }: { book: Book }) {
   const [open, setOpen] = useState(false);
-  const { mutateAsync: updateDetails } = useMutation({
-    mutationFn: useConvexMutation(api.books.updateDetails),
+  const { mutateAsync: updateProgress } = useMutation({
+    mutationFn: useConvexMutation(api.books.updateProgress),
+  });
+  const { mutateAsync: undoProgress } = useMutation({
+    mutationFn: useConvexMutation(api.books.undoProgress),
   });
   const pagesReadSchema = z
     .number({ error: 'Enter a page number' })
@@ -25,16 +30,25 @@ export function BookProgressPopover({ book }: { book: Book }) {
     .max(book.pageCount ?? Number.POSITIVE_INFINITY, `The book has ${book.pageCount} pages`);
 
   const form = useForm({
-    defaultValues: { pagesRead: book.pagesRead },
-    validators: { onChange: z.object({ pagesRead: pagesReadSchema }) },
-    onSubmit: async ({ value: { pagesRead } }) => {
+    defaultValues: { pagesRead: book.pagesRead, readOn: new Date() },
+    validators: { onChange: z.object({ pagesRead: pagesReadSchema, readOn: z.date() }) },
+    onSubmit: async ({ value: { pagesRead, readOn } }) => {
       setOpen(false);
       if (pagesRead === book.pagesRead) return;
+      const today = isToday(readOn);
       try {
-        await updateDetails({ id: book._id, pagesRead });
-        toastWithUndo(`Progress saved: page ${pagesRead}`, () =>
-          updateDetails({ id: book._id, pagesRead: book.pagesRead }),
-        );
+        const eventId = await updateProgress({
+          id: book._id,
+          pagesRead,
+          // Reading logged for an earlier day has no time of day, so it is placed at noon
+          readOn: today ? undefined : addHours(startOfDay(readOn), 12).getTime(),
+        });
+        if (eventId) {
+          toastWithUndo(
+            `Progress saved: page ${pagesRead}${today ? '' : ` on ${formatDate(readOn, { month: 'short' })}`}`,
+            () => undoProgress({ eventId }),
+          );
+        }
       } catch (error) {
         toastError(error);
       }
@@ -46,7 +60,7 @@ export function BookProgressPopover({ book }: { book: Book }) {
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
-        if (nextOpen) form.reset({ pagesRead: book.pagesRead });
+        if (nextOpen) form.reset({ pagesRead: book.pagesRead, readOn: new Date() });
       }}
     >
       <PopoverTrigger asChild>
@@ -91,6 +105,21 @@ export function BookProgressPopover({ book }: { book: Book }) {
                   <FieldSlider field={field} max={book.pageCount} step={1} aria-label="Pages read" hideError />
                 )}
               </>
+            )}
+          </form.Field>
+          <form.Field name="readOn">
+            {(field) => (
+              <FieldDatePicker
+                field={field}
+                label="Read on"
+                // Reading is logged in date order, so days before the latest logged reading can't be picked
+                minDate={
+                  book.startedAt === undefined && book.lastReadAt === undefined
+                    ? undefined
+                    : new Date(Math.max(book.startedAt ?? 0, book.lastReadAt ?? 0))
+                }
+                className="h-8 text-muted-foreground"
+              />
             )}
           </form.Field>
           <form.Subscribe selector={(state) => state.isSubmitting}>
