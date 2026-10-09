@@ -121,7 +121,7 @@ export const getById = authenticatedQuery({
 const recipeIngredientSchema = v.object(omit(schema.tables.recipeIngredients.validator.fields, ['recipeId', 'order']));
 
 const recipeSchema = v.object({
-  ...omit(schema.tables.recipes.validator.fields, ['userId', 'image', 'updatedAt', 'history']),
+  ...omit(schema.tables.recipes.validator.fields, ['userId', 'image', 'updatedAt']),
   // Callers use null to clear the existing image.
   image: v.optional(v.union(v.id('_storage'), v.string(), v.null())),
   ingredients: v.array(recipeIngredientSchema),

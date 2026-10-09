@@ -145,7 +145,7 @@ function ShoppingCard() {
 function RecentRecipesCard() {
   const { data: recipes } = useSuspenseQuery(convexQuery(api.recipes.getAll, {}));
 
-  const recentRecipes = sortBy(recipes, [(recipe) => -(recipe.updatedAt ?? recipe._creationTime)]).slice(0, 6);
+  const recentRecipes = sortBy(recipes, [(recipe) => -recipe.updatedAt]).slice(0, 6);
 
   return (
     <Card>

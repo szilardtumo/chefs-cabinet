@@ -32,7 +32,7 @@ export async function recordRecipeHistory(
     .collect();
 
   const content = {
-    ...omit(recipe, ['_id', '_creationTime', 'userId', 'updatedAt', 'history']),
+    ...omit(recipe, ['_id', '_creationTime', 'userId', 'updatedAt']),
     ingredients: await Promise.all(
       recipeIngredients.map(async (row) => ({
         ...omit(row, ['_id', '_creationTime', 'recipeId', 'order']),

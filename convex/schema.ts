@@ -56,10 +56,7 @@ export default defineSchema({
   recipes: defineTable({
     userId: v.string(),
     ...recipeContent,
-    // Optional until `migrateRecipeHistories` has run on every deployment
-    updatedAt: v.optional(v.number()),
-    // Replaced by `recipeHistories`. Remove once `migrateRecipeHistories` has run on every deployment
-    history: v.optional(v.any()),
+    updatedAt: v.number(),
   })
     .index('by_user', ['userId'])
     .index('by_image', ['image']),
