@@ -1,6 +1,6 @@
 import { type Infer, v } from 'convex/values';
 import { doc } from 'convex-helpers/validators';
-import { groupBy, isEqual, omit, omitBy } from 'es-toolkit';
+import { groupBy, omit } from 'es-toolkit';
 import { isStorageId } from '@/lib/storage';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -8,6 +8,7 @@ import type { ActionCtx, MutationCtx } from './_generated/server';
 import { internalMutation } from './_generated/server';
 import { NotFoundError } from './lib/errors';
 import { authenticatedAction, authenticatedMutation, authenticatedQuery, requireOwned } from './lib/helpers';
+import { recordRecipeHistory } from './recipeHistories';
 import schema from './schema';
 import { requireUnclaimedStorage } from './storage';
 
@@ -120,7 +121,7 @@ export const getById = authenticatedQuery({
 const recipeIngredientSchema = v.object(omit(schema.tables.recipeIngredients.validator.fields, ['recipeId', 'order']));
 
 const recipeSchema = v.object({
-  ...omit(schema.tables.recipes.validator.fields, ['userId', 'image', 'history']),
+  ...omit(schema.tables.recipes.validator.fields, ['userId', 'image', 'updatedAt', 'history']),
   // Callers use null to clear the existing image.
   image: v.optional(v.union(v.id('_storage'), v.string(), v.null())),
   ingredients: v.array(recipeIngredientSchema),
@@ -194,18 +195,9 @@ export const createRecipeMutation = internalMutation({
     const { aiPrompt, ingredients, ...recipeData } = args;
     await validateRecipeInput(ctx, args.userId, args);
 
-    // Create initial history entry
-    const history = [
-      {
-        timestamp: Date.now(),
-        type: 'created' as const,
-        aiPrompt,
-      },
-    ];
-
     const recipeId = await ctx.db.insert('recipes', {
-      history,
       ...recipeData,
+      updatedAt: Date.now(),
       image: recipeData.image ?? undefined,
     });
 
@@ -217,6 +209,7 @@ export const createRecipeMutation = internalMutation({
       });
     }
 
+    await recordRecipeHistory(ctx, recipeId, 'created', aiPrompt);
     return recipeId;
   },
 });
@@ -270,18 +263,6 @@ export const updateRecipeMutation = internalMutation({
     }
     await validateRecipeInput(ctx, recipe.userId, args, id);
 
-    // Extract the fields that actually changed
-    // TODO: add ingredients to the changes
-    const changes = omitBy(updates, (value, key) => isEqual(value, recipe[key]));
-
-    // Add history entry
-    const newHistoryEntry = {
-      timestamp: Date.now(),
-      type: 'edited' as const,
-      changes,
-      aiPrompt,
-    };
-
     // Handle recipe ingredients
     const existingRecipeIngredients = await ctx.db
       .query('recipeIngredients')
@@ -312,9 +293,10 @@ export const updateRecipeMutation = internalMutation({
       ...updates,
       image: updates.image ?? undefined,
       userId: recipe.userId,
-      history: [...recipe.history, newHistoryEntry],
+      updatedAt: Date.now(),
     });
 
+    await recordRecipeHistory(ctx, id, 'edited', aiPrompt);
     return id;
   },
 });
@@ -386,6 +368,14 @@ export const remove = authenticatedMutation({
 
     for (const ri of recipeIngredients) {
       await ctx.db.delete(ri._id);
+    }
+
+    const histories = await ctx.db
+      .query('recipeHistories')
+      .withIndex('by_recipe', (q) => q.eq('recipeId', args.id))
+      .collect();
+    for (const history of histories) {
+      await ctx.db.delete(history._id);
     }
 
     // Delete the recipe

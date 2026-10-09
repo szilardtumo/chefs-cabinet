@@ -2,6 +2,24 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { literals } from 'convex-helpers/validators';
 
+/** What a recipe holds, shared by the recipe and its history entries. */
+const recipeContent = {
+  title: v.string(),
+  description: v.string(),
+  image: v.optional(v.union(v.id('_storage'), v.string())),
+  cookingTime: v.optional(v.number()),
+  prepTime: v.optional(v.number()),
+  servings: v.optional(v.number()),
+  instructions: v.array(
+    v.object({
+      title: v.optional(v.string()),
+      steps: v.array(v.string()),
+    }),
+  ),
+  tags: v.array(v.string()),
+  source: v.optional(v.string()),
+};
+
 export default defineSchema({
   // Categories for organizing ingredients
   categories: defineTable({
@@ -37,28 +55,11 @@ export default defineSchema({
   // Recipes
   recipes: defineTable({
     userId: v.string(),
-    title: v.string(),
-    description: v.string(),
-    image: v.optional(v.union(v.id('_storage'), v.string())),
-    cookingTime: v.optional(v.number()),
-    prepTime: v.optional(v.number()),
-    servings: v.optional(v.number()),
-    instructions: v.array(
-      v.object({
-        title: v.optional(v.string()),
-        steps: v.array(v.string()),
-      }),
-    ),
-    tags: v.array(v.string()),
-    source: v.optional(v.string()),
-    history: v.array(
-      v.object({
-        timestamp: v.number(),
-        type: v.union(v.literal('created'), v.literal('edited')),
-        changes: v.optional(v.record(v.string(), v.any())),
-        aiPrompt: v.optional(v.string()),
-      }),
-    ),
+    ...recipeContent,
+    // Optional until `migrateRecipeHistories` has run on every deployment
+    updatedAt: v.optional(v.number()),
+    // Replaced by `recipeHistories`. Remove once `migrateRecipeHistories` has run on every deployment
+    history: v.optional(v.any()),
   })
     .index('by_user', ['userId'])
     .index('by_image', ['image']),
@@ -76,6 +77,25 @@ export default defineSchema({
     .index('by_recipe', ['recipeId'])
     .index('by_ingredient', ['ingredientId'])
     .index('by_recipe_and_order', ['recipeId', 'order']),
+
+  // One row per save of a recipe, holding the recipe as it was after the save
+  recipeHistories: defineTable({
+    recipeId: v.id('recipes'),
+    type: literals('created', 'edited'),
+    aiPrompt: v.optional(v.string()),
+    ...recipeContent,
+    // With the name each ingredient had at the time, so the entry still reads right after it is renamed or deleted
+    ingredients: v.array(
+      v.object({
+        ingredientId: v.id('ingredients'),
+        name: v.string(),
+        quantity: v.optional(v.number()),
+        unit: v.optional(v.string()),
+        notes: v.optional(v.string()),
+        group: v.optional(v.string()),
+      }),
+    ),
+  }).index('by_recipe', ['recipeId']),
 
   // An AI recipe import, shown on the recipes page until the user opens the recipe from it or dismisses it
   recipeImports: defineTable({

@@ -5,6 +5,7 @@ import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import type { FunctionReturnType } from 'convex/server';
 import { ChevronDown, ChevronUp, Edit, GripVertical, Plus, Repeat2, Trash2 } from 'lucide-react';
+import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { CategoryTag } from '@/components/category-tag';
 import { IngredientCombobox } from '@/components/ingredient-combobox';
@@ -56,7 +57,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
 
   const { uploadFile } = useStorageUpload();
 
-  const { data: initialImageFiles = [] } = useQuery({
+  const { data: initialImageFiles } = useQuery({
     queryKey: ['initialImageFile', initialValues?.image],
     queryFn: async () => {
       if (isStorageId(initialValues?.image) && initialValues?.imageUrl) {
@@ -64,11 +65,13 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
       }
       return [];
     },
+    // A refetch would create a new File, which the save would see as a new photo and upload again
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
-  // Initialize form with default or existing values
-  const form = useForm({
-    defaultValues: {
+  // Built once per recipe: the form compares its values to these, and new row ids would never match
+  const defaultValues = useMemo(
+    () => ({
       title: initialValues?.title ?? '',
       description: initialValues?.description ?? '',
       prepTime: initialValues?.prepTime,
@@ -76,12 +79,17 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
       servings: initialValues?.servings,
       tags: initialValues?.tags ?? [],
       source: initialValues?.source,
-      imageFiles: initialImageFiles,
+      imageFiles: initialImageFiles ?? [],
       imageUrl: isStorageId(initialValues?.image) ? undefined : initialValues?.image,
       aiPrompt: undefined as string | undefined,
       ingredientGroups: toFormIngredientGroups(initialValues?.ingredientGroups),
       instructions: toFormInstructionGroups(initialValues?.instructions),
-    },
+    }),
+    [initialValues, initialImageFiles],
+  );
+
+  const form = useForm({
+    defaultValues,
     validators: {
       onChange: recipeFormSchema,
     },
@@ -95,15 +103,8 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
         if (imageUrl) {
           image = imageUrl;
         } else if (imageFiles.length > 0) {
-          const currentFile = imageFiles[0];
-          const isNewFile =
-            !initialImageFiles[0] ||
-            currentFile.name !== initialImageFiles[0].name ||
-            currentFile.size !== initialImageFiles[0].size ||
-            currentFile.lastModified !== initialImageFiles[0].lastModified;
-
-          if (isNewFile) {
-            image = await uploadFile(currentFile);
+          if (imageFiles[0] !== initialImageFiles?.[0]) {
+            image = await uploadFile(imageFiles[0]);
           } else if (isStorageId(initialValues?.image)) {
             image = initialValues?.image;
           }
@@ -154,10 +155,13 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
           getCurrentRecipe={() => serializeFormToRecipeSnapshot(form.state.values, ingredients ?? [])}
           onRevisionApplied={(revisedRecipe, revisionLog) => {
             const { imageFiles, imageUrl, source } = form.state.values;
-            form.reset({
-              ...mapMatchedRecipeToFormValues(revisedRecipe, { imageFiles, imageUrl, source }),
-              aiPrompt: revisionLog,
-            });
+            form.reset(
+              {
+                ...mapMatchedRecipeToFormValues(revisedRecipe, { imageFiles, imageUrl, source }),
+                aiPrompt: revisionLog,
+              },
+              { keepDefaultValues: true },
+            );
           }}
         />
       )}
@@ -629,18 +633,30 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={form.state.isSubmitting}>
-          {form.state.isSubmitting ? (
-            <>
-              <Spinner />
-              {mode === 'create' ? 'Creating...' : 'Updating...'}
-            </>
-          ) : mode === 'create' ? (
-            'Create Recipe'
-          ) : (
-            'Update Recipe'
+        <form.Subscribe
+          selector={(state) =>
+            [
+              state.isSubmitting,
+              // Files have no own keys, so the form sees a swapped photo as the default value
+              state.isDefaultValue && state.values.imageFiles[0] === initialImageFiles?.[0],
+            ] as const
+          }
+        >
+          {([isSubmitting, isUnchanged]) => (
+            <Button type="submit" disabled={isSubmitting || (mode === 'edit' && isUnchanged)}>
+              {isSubmitting ? (
+                <>
+                  <Spinner />
+                  {mode === 'create' ? 'Creating...' : 'Updating...'}
+                </>
+              ) : mode === 'create' ? (
+                'Create Recipe'
+              ) : (
+                'Update Recipe'
+              )}
+            </Button>
           )}
-        </Button>
+        </form.Subscribe>
       </div>
     </form>
   );

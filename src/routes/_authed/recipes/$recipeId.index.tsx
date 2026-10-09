@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AddToShoppingListDialog } from './-components/add-to-shopping-list-dialog';
 import { KeepScreenOnToggle } from './-components/keep-screen-on-toggle';
+import { RecipeHistorySheet } from './-components/recipe-history-sheet';
 
 export const Route = createFileRoute('/_authed/recipes/$recipeId/')({
   component: RecipeDetailComponent,
@@ -172,12 +173,10 @@ function RecipeDetailComponent() {
               Add to Shopping List
             </Button>
 
-            {recipe.history && recipe.history.length > 0 && (
-              <Button variant="outline" className="w-full" onClick={() => setHistoryOpen(!historyOpen)}>
-                <History className="mr-2 h-4 w-4" />
-                View History ({recipe.history.length})
-              </Button>
-            )}
+            <Button variant="outline" className="w-full" onClick={() => setHistoryOpen(true)}>
+              <History className="mr-2 h-4 w-4" />
+              View History
+            </Button>
           </div>
         </div>
 
@@ -244,39 +243,8 @@ function RecipeDetailComponent() {
             }
           </CardContent>
         </Card>
-
-        {/* History */}
-        {historyOpen && recipe.history && recipe.history.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Recipe History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recipe.history.map((entry) => (
-                  <div key={entry.timestamp} className="border-l-2 border-muted pl-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant={entry.aiPrompt ? 'default' : 'secondary'}>{entry.type.replace(/_/g, ' ')}</Badge>
-                      {entry.aiPrompt && <Badge variant="outline">AI Generated</Badge>}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{new Date(entry.timestamp).toLocaleString()}</p>
-                    {entry.aiPrompt && (
-                      <p className="text-sm mt-1">
-                        <span className="font-medium">Prompt:</span> {entry.aiPrompt}
-                      </p>
-                    )}
-                    {entry.changes && Object.keys(entry.changes).length > 0 && (
-                      <p className="text-sm mt-1 text-muted-foreground">
-                        Changed: {Object.keys(entry.changes).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
+      <RecipeHistorySheet recipeId={recipe._id} open={historyOpen} onOpenChange={setHistoryOpen} />
       <AddToShoppingListDialog
         open={shoppingListDialogOpen}
         onOpenChange={setShoppingListDialogOpen}
