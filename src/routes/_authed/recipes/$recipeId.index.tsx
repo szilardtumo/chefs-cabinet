@@ -144,7 +144,6 @@ function RecipeDetailComponent() {
                   <LinkIcon className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Source</p>
-                    {/* An imported recipe's source is the whole import request, with any links in it */}
                     <p className="text-sm text-muted-foreground whitespace-pre-line wrap-anywhere">
                       {recipe.source?.split(/(https?:\/\/\S+)/).map((part, index) =>
                         index % 2 === 1 ? (
