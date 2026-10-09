@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
-import { BookOpen, Carrot, ChefHat, Home, Library, ShoppingCart } from 'lucide-react';
+import { BookOpen, Carrot, Home, Library, ShoppingCart } from 'lucide-react';
+import { Logo } from '@/components/logo';
 import {
   Sidebar,
   SidebarContent,
@@ -56,7 +57,7 @@ export function AppSidebar() {
             >
               <Link to="/dashboard" onClick={() => setOpenMobile(false)}>
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <ChefHat />
+                  <Logo className="size-5" />
                 </div>
                 <span className="font-bold">Chef's Cabinet</span>
               </Link>

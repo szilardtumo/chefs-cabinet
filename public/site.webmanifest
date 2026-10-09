@@ -1,6 +1,13 @@
 {
-  "name": "",
-  "short_name": "",
+  "id": "/",
+  "name": "Chef's Cabinet",
+  "short_name": "Chef's Cabinet",
+  "description": "Recipes, ingredients, cookbooks and shopping lists in one place.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -11,9 +18,22 @@
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
-  "display": "standalone"
+  "shortcuts": [
+    {
+      "name": "Shopping list",
+      "url": "/shopping"
+    },
+    {
+      "name": "Recipes",
+      "url": "/recipes"
+    }
+  ]
 }
