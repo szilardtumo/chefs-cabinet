@@ -227,7 +227,9 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
           </form.Field>
 
           <form.Field name="source">
-            {(field) => <FieldInput field={field} label="Source" placeholder="e.g. https://example.com/recipe" />}
+            {(field) => (
+              <FieldTextarea field={field} label="Source" rows={2} placeholder="e.g. https://example.com/recipe" />
+            )}
           </form.Field>
         </CardContent>
       </Card>

@@ -9,6 +9,7 @@ import { internalMutation } from './_generated/server';
 import { NotFoundError } from './lib/errors';
 import { authenticatedAction, authenticatedMutation, authenticatedQuery, requireOwned } from './lib/helpers';
 import schema from './schema';
+import { requireUnclaimedStorage } from './storage';
 
 /**
  * Retrieves all recipes for the currently authenticated user.
@@ -178,18 +179,7 @@ async function validateRecipeInput(
   for (const { ingredientId } of ingredients) {
     await requireOwned({ db: ctx.db, userId }, 'ingredients', ingredientId);
   }
-  if (!isStorageId(image)) return;
-  const recipe = await ctx.db
-    .query('recipes')
-    .withIndex('by_image', (q) => q.eq('image', image))
-    .first();
-  const book = await ctx.db
-    .query('books')
-    .withIndex('by_cover', (q) => q.eq('cover', image))
-    .first();
-  if ((recipe && recipe._id !== recipeId) || book) {
-    throw new NotFoundError('_storage', image);
-  }
+  if (isStorageId(image)) await requireUnclaimedStorage(ctx, image, recipeId);
 }
 
 /**

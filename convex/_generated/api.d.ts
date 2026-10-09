@@ -20,6 +20,7 @@ import type * as lib_rateLimiter from "../lib/rateLimiter.js";
 import type * as migrations from "../migrations.js";
 import type * as openLibraryApi from "../openLibraryApi.js";
 import type * as readingEvents from "../readingEvents.js";
+import type * as recipeImports from "../recipeImports.js";
 import type * as recipeIngredients from "../recipeIngredients.js";
 import type * as recipes from "../recipes.js";
 import type * as recipesAi from "../recipesAi.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   openLibraryApi: typeof openLibraryApi;
   readingEvents: typeof readingEvents;
+  recipeImports: typeof recipeImports;
   recipeIngredients: typeof recipeIngredients;
   recipes: typeof recipes;
   recipesAi: typeof recipesAi;

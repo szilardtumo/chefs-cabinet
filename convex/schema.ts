@@ -77,6 +77,17 @@ export default defineSchema({
     .index('by_ingredient', ['ingredientId'])
     .index('by_recipe_and_order', ['recipeId', 'order']),
 
+  // An AI recipe import, shown on the recipes page until the user opens the recipe from it or dismisses it
+  recipeImports: defineTable({
+    userId: v.string(),
+    prompt: v.string(),
+    images: v.array(v.id('_storage')),
+    status: literals('pending', 'done', 'failed'),
+    recipeId: v.optional(v.id('recipes')),
+    error: v.optional(v.string()),
+    startedAt: v.number(),
+  }).index('by_user', ['userId']),
+
   // Shopping Lists
   shoppingLists: defineTable({
     userId: v.string(),

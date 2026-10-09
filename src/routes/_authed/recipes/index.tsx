@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { RecipeImports } from './-components/recipe-imports';
 
 export const Route = createFileRoute('/_authed/recipes/')({
   component: RecipesComponent,
@@ -60,6 +61,8 @@ function RecipesComponent() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <RecipeImports />
 
       {/* Search */}
       <Card>

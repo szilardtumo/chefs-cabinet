@@ -4,23 +4,22 @@ import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FieldInput, FieldTextarea } from '@/components/ui/form-fields';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FieldFileUpload, FieldTextarea } from '@/components/ui/form-fields';
+import { useStorageUpload } from '@/hooks/use-storage-upload';
+import { toastError } from '@/lib/toast';
 
-const importSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('url'),
-    url: z.url({ normalize: true }).trim(),
-  }),
-  z.object({
-    type: z.literal('text'),
-    text: z.string().trim().min(1, 'Text is required'),
-  }),
-]);
+const importSchema = z
+  .object({
+    prompt: z.string().trim().max(4000, 'Keep the request under 4000 characters'),
+    photos: z.array(z.instanceof(File)).max(3, 'Add at most 3 photos'),
+  })
+  .refine(({ prompt, photos }) => prompt || photos.length > 0, {
+    message: 'Describe the recipe or add a link or a photo',
+    path: ['prompt'],
+  });
 
 export const Route = createFileRoute('/_authed/recipes/import')({
   component: ImportRecipeComponent,
@@ -32,52 +31,43 @@ export const Route = createFileRoute('/_authed/recipes/import')({
   }),
 });
 
+/** A request for a shared page, which the user can still edit before importing. */
+function sharedPrompt({ title, text, url }: { title?: string; text?: string; url?: string }) {
+  // Apps often put the shared link inside the text instead of the url field
+  const link = url ?? text?.match(/https?:\/\/\S+/)?.[0];
+  const sharedText = [title, link ? text?.replace(link, '') : text]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join('\n');
+
+  if (link && sharedText) {
+    return `Import the recipe from this link:\n${link}\n\nIf the page doesn't show the whole recipe, use this text that was shared with it:\n${sharedText}`;
+  }
+  if (link) return `Import the recipe from this link:\n${link}`;
+  if (sharedText) return `Import the recipe from this text:\n${sharedText}`;
+  return '';
+}
+
 function ImportRecipeComponent() {
   const navigate = useNavigate();
   const shared = Route.useSearch();
-  // Apps often put the shared link inside the text instead of the url field
-  const sharedLink = shared.url ?? shared.text?.match(/https?:\/\/\S+/)?.[0];
+  const { uploadFile } = useStorageUpload();
 
-  const importRecipeMutation = useMutation({
-    mutationFn: useConvexAction(api.recipesAi.importRecipeFromSource),
+  const { mutateAsync: importRecipe } = useMutation({
+    mutationFn: useConvexAction(api.recipesAi.importRecipe),
   });
 
   const form = useForm({
-    defaultValues: {
-      type: !sharedLink && shared.text ? 'text' : 'url',
-      url: sharedLink ?? '',
-      text: [shared.title, shared.text].filter(Boolean).join('\n'),
-    } as z.infer<typeof importSchema>,
-    validators: {
-      onBlur: importSchema,
-    },
-    onSubmit: ({ value }) => {
-      const source = value.type === 'url' ? value.url : value.text;
-
-      const importPromise = importRecipeMutation.mutateAsync({
-        [value.type]: source,
-      });
-
-      toast.promise(importPromise, {
-        loading: 'Importing recipe…',
-        description: 'You can keep browsing or close this window. The recipe will be available once parsing finishes.',
-        success: (recipeId) => ({
-          message: 'Recipe imported',
-          description: 'Your recipe has been created.',
-          action: {
-            label: 'View recipe',
-            onClick: () => {
-              navigate({ to: '/recipes/$recipeId', params: { recipeId } });
-            },
-          },
-        }),
-        error: (error) => ({
-          message: 'Import failed',
-          description: error instanceof Error ? error.message : 'Failed to import recipe. Please try again.',
-        }),
-      });
-
-      navigate({ to: '/recipes' });
+    defaultValues: { prompt: sharedPrompt(shared), photos: [] as File[] },
+    validators: { onSubmit: importSchema },
+    onSubmit: async ({ value }) => {
+      try {
+        const images = await Promise.all(value.photos.map((photo) => uploadFile(photo)));
+        importRecipe({ prompt: value.prompt.trim(), images }).catch(toastError);
+        navigate({ to: '/recipes' });
+      } catch (error) {
+        toastError(error);
+      }
     },
   });
 
@@ -85,13 +75,13 @@ function ImportRecipeComponent() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Import Recipe</h1>
-        <p className="text-muted-foreground">Import a recipe from a URL or paste raw text</p>
+        <p className="text-muted-foreground">Build a recipe from links, pasted text or photos</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            Recipe Source
+            What should we import?
             <Sparkles className="size-4" />
           </CardTitle>
         </CardHeader>
@@ -103,59 +93,46 @@ function ImportRecipeComponent() {
               e.stopPropagation();
               form.handleSubmit();
             }}
-            className="space-y-4"
+            className="space-y-6"
           >
-            <form.Field name="type">
+            <form.Field name="prompt">
               {(field) => (
-                <Tabs
-                  value={field.state.value}
-                  onValueChange={(value) => field.handleChange(value as 'url' | 'text')}
-                  className="space-y-4"
-                >
-                  <TabsList className="w-full grid grid-cols-2">
-                    <TabsTrigger value="url">URL</TabsTrigger>
-                    <TabsTrigger value="text">Text</TabsTrigger>
-                  </TabsList>
+                <FieldTextarea
+                  field={field}
+                  label="Request"
+                  rows={8}
+                  placeholder={
+                    'https://example.com/lasagna\n\nOr: Combine these two. Take the sauce from https://… and the pasta dough from https://…, and make it for 2 people.'
+                  }
+                  description="Paste links (YouTube works too), recipe text, or describe what you want. You can ask to combine or change recipes."
+                />
+              )}
+            </form.Field>
 
-                  <TabsContent value="url">
-                    <form.Field name="url">
-                      {(field) => (
-                        <FieldInput
-                          field={field}
-                          label="Recipe URL"
-                          type="url"
-                          formNoValidate
-                          placeholder="https://example.com/recipe or https://youtube.com/watch?v=..."
-                          description="Paste any recipe URL or YouTube video link. The AI will extract the recipe information."
-                        />
-                      )}
-                    </form.Field>
-                  </TabsContent>
-
-                  <TabsContent value="text">
-                    <form.Field name="text">
-                      {(field) => (
-                        <FieldTextarea
-                          field={field}
-                          label="Recipe Text"
-                          placeholder="Paste your recipe text here..."
-                          rows={10}
-                          className="font-mono text-sm"
-                          description="Paste raw recipe text. The AI will parse and structure it for you."
-                        />
-                      )}
-                    </form.Field>
-                  </TabsContent>
-                </Tabs>
+            <form.Field name="photos">
+              {(field) => (
+                <FieldFileUpload
+                  field={field}
+                  label="Photos"
+                  description="Cookbook pages, recipe cards or screenshots. Up to 3."
+                  accept="image/*"
+                  multiple
+                  maxFiles={3}
+                  maxSize={10 * 1024 * 1024}
+                />
               )}
             </form.Field>
           </form>
         </CardContent>
         <CardFooter className="justify-end">
-          <Button type="submit" form="import-recipe-form" disabled={!form.state.canSubmit}>
-            <Sparkles />
-            Import with AI
-          </Button>
+          <form.Subscribe selector={(state) => state.isSubmitting}>
+            {(isSubmitting) => (
+              <Button type="submit" form="import-recipe-form" disabled={isSubmitting}>
+                <Sparkles />
+                {isSubmitting ? 'Starting import…' : 'Import with AI'}
+              </Button>
+            )}
+          </form.Subscribe>
         </CardFooter>
       </Card>
     </div>

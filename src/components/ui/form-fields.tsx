@@ -397,7 +397,11 @@ export function FieldFileUpload({
           <div className="flex flex-col items-center gap-2 text-center">
             <Upload className="size-8 text-muted-foreground" />
             <div>
-              <p className="font-medium text-sm">{files.length > 0 ? 'Replace file' : 'Drag & drop file here'}</p>
+              <p className="font-medium text-sm">
+                {files.length > 0 && maxFiles === 1
+                  ? 'Replace file'
+                  : `Drag & drop ${maxFiles === 1 ? 'file' : 'files'} here`}
+              </p>
               {maxSize && (
                 <p className="text-muted-foreground text-xs">
                   Or click to browse (up to {Math.round(maxSize / (1024 * 1024))}MB)

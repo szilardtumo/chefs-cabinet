@@ -6,7 +6,6 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, ChefHat, Clock, History, LinkIcon, Pencil, ShoppingCart, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import z from 'zod';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import { IngredientCartButton } from '@/components/ingredient-cart-button';
 import { Badge } from '@/components/ui/badge';
@@ -144,13 +143,23 @@ function RecipeDetailComponent() {
                   <LinkIcon className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Source</p>
-                    <p className="text-sm text-muted-foreground wrap-anywhere">
-                      {z.url().safeParse(recipe.source).success ? (
-                        <a className="hover:underline" href={recipe.source} target="_blank" rel="noopener noreferrer">
-                          {recipe.source}
-                        </a>
-                      ) : (
-                        recipe.source
+                    {/* An imported recipe's source is the whole import request, with any links in it */}
+                    <p className="text-sm text-muted-foreground whitespace-pre-line wrap-anywhere">
+                      {recipe.source?.split(/(https?:\/\/\S+)/).map((part, index) =>
+                        index % 2 === 1 ? (
+                          <a
+                            // biome-ignore lint/suspicious/noArrayIndexKey: the parts are fixed for a given source
+                            key={index}
+                            className="hover:underline"
+                            href={part}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {part}
+                          </a>
+                        ) : (
+                          part
+                        ),
                       )}
                     </p>
                   </div>

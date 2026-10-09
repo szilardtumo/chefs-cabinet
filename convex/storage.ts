@@ -1,4 +1,6 @@
-import type { ActionCtx } from './_generated/server';
+import type { Id } from './_generated/dataModel';
+import type { ActionCtx, MutationCtx } from './_generated/server';
+import { NotFoundError } from './lib/errors';
 import { authenticatedMutation } from './lib/helpers';
 import { enforceRateLimit } from './lib/rateLimiter';
 
@@ -21,4 +23,23 @@ export async function storeImage(ctx: ActionCtx, url: string) {
     throw new Error(`Couldn't download the image (${res.status})`);
   }
   return await ctx.storage.store(await res.blob());
+}
+
+/** Throws when a recipe other than `exceptRecipeId`, or a book, already uses the file. */
+export async function requireUnclaimedStorage(
+  ctx: Pick<MutationCtx, 'db'>,
+  storageId: Id<'_storage'>,
+  exceptRecipeId?: Id<'recipes'>,
+) {
+  const recipe = await ctx.db
+    .query('recipes')
+    .withIndex('by_image', (q) => q.eq('image', storageId))
+    .first();
+  const book = await ctx.db
+    .query('books')
+    .withIndex('by_cover', (q) => q.eq('cover', storageId))
+    .first();
+  if ((recipe && recipe._id !== exceptRecipeId) || book) {
+    throw new NotFoundError('_storage', storageId);
+  }
 }
