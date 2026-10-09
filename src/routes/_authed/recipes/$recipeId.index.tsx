@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AddToShoppingListDialog } from './-components/add-to-shopping-list-dialog';
+import { KeepScreenOnToggle } from './-components/keep-screen-on-toggle';
 
 export const Route = createFileRoute('/_authed/recipes/$recipeId/')({
   component: RecipeDetailComponent,
@@ -74,6 +75,7 @@ function RecipeDetailComponent() {
                   <p className="text-lg text-muted-foreground">{recipe.description}</p>
                 </div>
                 <div className="flex gap-2">
+                  <KeepScreenOnToggle />
                   <Button variant="outline" size="icon" asChild>
                     <Link to="/recipes/$recipeId/edit" params={{ recipeId }}>
                       <Pencil className="h-4 w-4" />

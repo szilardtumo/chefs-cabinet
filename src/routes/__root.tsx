@@ -54,7 +54,6 @@ export const Route = createRootRouteWithContext<{
       },
       { title: "Chef's Cabinet" },
       { name: 'description', content: 'Recipes, ingredients, cookbooks and shopping lists in one place.' },
-      { name: 'theme-color', content: '#ffffff' },
       { name: 'apple-mobile-web-app-title', content: "Chef's Cabinet" },
       { name: 'mobile-web-app-capable', content: 'yes' },
     ],

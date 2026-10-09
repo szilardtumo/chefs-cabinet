@@ -6,8 +6,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#1b1b1b",
+  "background_color": "#1b1b1b",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -35,5 +35,14 @@
       "name": "Recipes",
       "url": "/recipes"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/recipes/import",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

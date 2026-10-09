@@ -24,10 +24,19 @@ const importSchema = z.discriminatedUnion('type', [
 
 export const Route = createFileRoute('/_authed/recipes/import')({
   component: ImportRecipeComponent,
+  // Filled in when a page is shared to the installed app (`share_target` in site.webmanifest)
+  validateSearch: z.object({
+    title: z.string().optional().catch(undefined),
+    text: z.string().optional().catch(undefined),
+    url: z.string().optional().catch(undefined),
+  }),
 });
 
 function ImportRecipeComponent() {
   const navigate = useNavigate();
+  const shared = Route.useSearch();
+  // Apps often put the shared link inside the text instead of the url field
+  const sharedLink = shared.url ?? shared.text?.match(/https?:\/\/\S+/)?.[0];
 
   const importRecipeMutation = useMutation({
     mutationFn: useConvexAction(api.recipesAi.importRecipeFromSource),
@@ -35,9 +44,9 @@ function ImportRecipeComponent() {
 
   const form = useForm({
     defaultValues: {
-      type: 'url',
-      url: '',
-      text: '',
+      type: !sharedLink && shared.text ? 'text' : 'url',
+      url: sharedLink ?? '',
+      text: [shared.title, shared.text].filter(Boolean).join('\n'),
     } as z.infer<typeof importSchema>,
     validators: {
       onBlur: importSchema,
