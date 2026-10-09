@@ -12,6 +12,7 @@ import { NuqsAdapter } from 'nuqs/adapters/tanstack-router';
 import type * as React from 'react';
 import { DefaultCatchBoundary } from '@/components/default-catch-boundary.js';
 import { NotFound } from '@/components/not-found.js';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import appCss from '@/styles/app.css?url';
 
@@ -94,13 +95,16 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // ThemeProvider's script sets the theme class on <html> before React hydrates
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
-        <Toaster />
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
         <TanStackRouterDevtools position="bottom-right" />
         <Scripts />
       </body>

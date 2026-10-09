@@ -1,54 +1,11 @@
 import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
-import type { ShoppingListItemWithIngredient } from '@convex/shoppingListItems';
-import { convexQuery, useConvexAction, useConvexMutation } from '@convex-dev/react-query';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { sortBy } from 'es-toolkit';
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  Edit,
-  Info,
-  MoreHorizontal,
-  NotebookPen,
-  ShoppingCart,
-  Trash,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { IngredientCombobox } from '@/components/ingredient-combobox';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { createFileRoute } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Item, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
-import { IngredientDialog } from '../ingredients/-components/ingredient-dialog';
-import { ShoppingItemNotesDialog } from './_components/ShoppingItemNotesDialog';
+import { ShoppingList } from './_components/ShoppingList';
 
 export const Route = createFileRoute('/_authed/shopping/')({
   component: ShoppingListComponent,
@@ -60,45 +17,6 @@ function ShoppingListComponent() {
   const { mutateAsync: createDefault } = useMutation({
     mutationFn: useConvexMutation(api.shoppingLists.createDefault),
   });
-  const { mutateAsync: addItem } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.add),
-  });
-  const { mutateAsync: toggleChecked } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.toggleChecked).withOptimisticUpdate((localStore, args) => {
-      const currentList = localStore.getQuery(api.shoppingLists.get, {});
-      const currentItem = currentList?.items?.find((item) => item._id === args.id);
-      if (currentItem) {
-        currentItem.checked = !currentItem.checked;
-        currentItem.skipped = false;
-      }
-      localStore.setQuery(api.shoppingLists.get, {}, currentList);
-    }),
-  });
-  const { mutateAsync: toggleSkipped } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.toggleSkipped).withOptimisticUpdate((localStore, args) => {
-      const currentList = localStore.getQuery(api.shoppingLists.get, {});
-      const currentItem = currentList?.items?.find((item) => item._id === args.id);
-      if (currentItem) {
-        currentItem.skipped = !currentItem.skipped;
-      }
-      localStore.setQuery(api.shoppingLists.get, {}, currentList);
-    }),
-  });
-  const { mutateAsync: clearChecked } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.removeChecked),
-  });
-  const { mutateAsync: removeItem } = useMutation({
-    mutationFn: useConvexMutation(api.shoppingListItems.remove),
-  });
-
-  const { mutateAsync: quickCreateIngredient } = useMutation({
-    mutationFn: useConvexAction(api.ingredients.quickCreate),
-  });
-
-  const [currentItem, setCurrentItem] = useState<ShoppingListItemWithIngredient | null>(null);
-  const [editIngredientDialogOpen, setEditIngredientDialogOpen] = useState(false);
-  const [editNotesDialogOpen, setEditNotesDialogOpen] = useState(false);
-
   // Create default list if it doesn't exist
   useEffect(() => {
     if (list === null) {
@@ -113,75 +31,6 @@ function ShoppingListComponent() {
       </div>
     );
   }
-
-  const handleAddIngredient = async (ingredientId: Id<'ingredients'>) => {
-    try {
-      await addItem({
-        shoppingListId: list._id,
-        ingredientId,
-      });
-      toast.success('Ingredient added', {
-        description: 'The ingredient has been added to your list.',
-      });
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
-  };
-
-  const handleCreateIngredient = async (ingredientName: string) => {
-    try {
-      const [ingredientId] = await quickCreateIngredient({ names: [ingredientName] });
-      await handleAddIngredient(ingredientId);
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
-  };
-
-  const handleToggle = async (itemId: Id<'shoppingListItems'>) => {
-    await toggleChecked({ id: itemId });
-  };
-
-  const handleToggleSkipped = async (itemId: Id<'shoppingListItems'>) => {
-    await toggleSkipped({ id: itemId });
-  };
-
-  const handleRemoveItem = async (itemId: Id<'shoppingListItems'>) => {
-    try {
-      await removeItem({ id: itemId });
-      toast.success('Ingredient removed', {
-        description: 'The ingredient has been removed from your list.',
-      });
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
-  };
-
-  const handleClearChecked = async () => {
-    try {
-      const count = await clearChecked({ shoppingListId: list._id });
-      toast.success('Items cleared', {
-        description: `Removed ${count} checked items from your list.`,
-      });
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
-  };
-
-  const itemIds = list.items?.map((item) => item.ingredientId);
-
-  // Sort items: unchecked first, then skipped, then checked — each group sorted by category name
-  const sortedItems = sortBy(list.items, [
-    (item) => (item.checked ? 2 : item.skipped ? 1 : 0),
-    (item) => item.category?.name || 'Other',
-  ]);
 
   const totalItems = list.items?.length || 0;
   const checkedItems = list.items?.filter((i) => i.checked).length || 0;
@@ -212,156 +61,7 @@ function ShoppingListComponent() {
         </CardContent>
       </Card>
 
-      {/* Add Ingredient Search */}
-      <IngredientCombobox selectedItems={itemIds} onSelect={handleAddIngredient} onCreate={handleCreateIngredient} />
-
-      {/* Actions */}
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button variant="outline" size="sm" disabled={checkedItems === 0}>
-            Clear Checked Items
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear Checked Items</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove all checked items from your shopping list? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearChecked}>Clear Items</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Items */}
-      {totalItems === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">List is empty</h3>
-            <p className="text-muted-foreground text-center mb-4">Add ingredients to your shopping list</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          <AnimatePresence>
-            {sortedItems.map((item) => {
-              return (
-                <motion.div
-                  key={item._id}
-                  className="overflow-hidden"
-                  layout
-                  initial={{ opacity: 0, y: -30 }}
-                  animate={{ opacity: item.skipped ? 0.5 : 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                >
-                  <Item variant="outline" className="cursor-pointer hover:bg-accent py-3 flex-nowrap" asChild>
-                    <Label htmlFor={item._id}>
-                      <ItemMedia>
-                        <Checkbox id={item._id} checked={item.checked} onCheckedChange={() => handleToggle(item._id)} />
-                      </ItemMedia>
-                      <ItemContent className="overflow-x-auto no-scrollbar">
-                        <ItemTitle className="w-full gap-1.5">
-                          {item.ingredient?.emoji && <span>{item.ingredient.emoji}</span>}
-                          <span className={cn(item.checked && 'line-through text-muted-foreground', 'line-clamp-2')}>
-                            {item.ingredient?.name}
-                          </span>
-                          {(item.notes || item.ingredient?.notes) && (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-4 text-muted-foreground cursor-default hover:text-foreground"
-                                >
-                                  <Info />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent side="top" className="w-fit py-3 text-sm text-muted-foreground">
-                                {[item.notes, item.ingredient?.notes].filter(Boolean).join(', ')}
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                          <div className="ml-auto flex items-center gap-2">
-                            {item.category && (
-                              <Badge variant="secondary" className="line-clamp-1">
-                                {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
-                                {item.category.name}
-                              </Badge>
-                            )}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  className="shrink-0 size-5 text-muted-foreground hover:text-foreground"
-                                >
-                                  <MoreHorizontal />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {!item.checked && (
-                                  <DropdownMenuItem onSelect={() => handleToggleSkipped(item._id)}>
-                                    {item.skipped ? <ArrowUp /> : <ArrowDown />}
-                                    {item.skipped ? 'Unskip' : 'Skip'}
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem
-                                  onSelect={() => {
-                                    setCurrentItem(item);
-                                    setEditIngredientDialogOpen(true);
-                                  }}
-                                >
-                                  <Edit /> Edit ingredient
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link to="/ingredients" search={{ q: item.ingredient?.name }}>
-                                    <ArrowRight /> Go to ingredient
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onSelect={() => {
-                                    setCurrentItem(item);
-                                    setEditNotesDialogOpen(true);
-                                  }}
-                                >
-                                  <NotebookPen /> {item.notes ? 'Edit' : 'Add'} notes
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => handleRemoveItem(item._id)}>
-                                  <Trash /> Remove
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </ItemTitle>
-                      </ItemContent>
-                    </Label>
-                  </Item>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-      )}
-      <ShoppingItemNotesDialog
-        open={editNotesDialogOpen}
-        item={currentItem}
-        onClose={() => {
-          setCurrentItem(null);
-          setEditNotesDialogOpen(false);
-        }}
-      />
-      <IngredientDialog
-        open={editIngredientDialogOpen}
-        ingredient={currentItem?.ingredient || undefined}
-        onClose={() => {
-          setCurrentItem(null);
-          setEditIngredientDialogOpen(false);
-        }}
-      />
+      <ShoppingList list={list} />
     </div>
   );
 }

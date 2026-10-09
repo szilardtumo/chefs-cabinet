@@ -2,20 +2,26 @@ import { api } from '@convex/_generated/api';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { BookOpen, Carrot, Library, Plus } from 'lucide-react';
+import { startOfToday } from 'date-fns';
+import { sortBy } from 'es-toolkit';
+import { BookOpen, Flame, Library, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
+import { RecipeCard } from '@/components/recipe-card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { formatDate } from '@/lib/format';
+import { BookCard } from './books/-components/book-card';
+import { getCurrentStreak, getPagesByDay } from './books/-components/reading-days';
+import { ShoppingList } from './shopping/_components/ShoppingList';
 
 export const Route = createFileRoute('/_authed/dashboard')({
+  // The date, today's pages and the streak follow the reader's local day, which the server can't know
+  ssr: false,
   component: DashboardComponent,
 });
 
 function DashboardComponent() {
-  const { data: recipes } = useSuspenseQuery(convexQuery(api.recipes.getAll, {}));
-  const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
-  const { data: books } = useSuspenseQuery(convexQuery(api.books.getAll, {}));
-
   const { mutateAsync: seedUserData } = useMutation({
     mutationFn: useConvexMutation(api.seed.seedUserData),
   });
@@ -34,111 +40,150 @@ function DashboardComponent() {
     initializeData();
   }, [checkSeeded, seedUserData]);
 
-  const stats = [
-    {
-      title: 'Total Recipes',
-      value: recipes?.length || 0,
-      icon: BookOpen,
-      color: 'text-blue-600',
-      to: '/recipes' as const,
-    },
-    {
-      title: 'Total Ingredients',
-      value: ingredients?.length || 0,
-      icon: Carrot,
-      color: 'text-green-600',
-      to: '/ingredients' as const,
-    },
-    {
-      title: 'Books',
-      value: books?.length || 0,
-      icon: Library,
-      color: 'text-amber-600',
-      to: '/books' as const,
-    },
-  ];
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="text-3xl font-bold tracking-tight">
+        {formatDate(new Date(), { weekday: 'long', year: undefined })}
+      </h1>
 
-  const recentRecipes = recipes?.slice(0, 6) || [];
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <ReadingNowCard />
+        <ShoppingCard />
+      </div>
+
+      <RecentRecipesCard />
+    </div>
+  );
+}
+
+function ReadingNowCard() {
+  const { data: books } = useSuspenseQuery(convexQuery(api.books.getAll, {}));
+  const { data: readingEvents } = useSuspenseQuery(convexQuery(api.readingEvents.getAll, {}));
+
+  const pagesByDay = getPagesByDay(readingEvents);
+  const pagesToday = pagesByDay[startOfToday().getTime()] ?? 0;
+  const streak = getCurrentStreak(pagesByDay);
+  const readingBooks = sortBy(
+    books.filter((book) => book.status === 'in_progress'),
+    [(book) => -(book.lastReadAt ?? book.startedAt ?? 0)],
+  );
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to your kitchen management hub</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Link key={stat.title} to={stat.to} className="block">
-              <Card className="hover:shadow-lg transition-shadow h-full">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                  <Icon className={`h-4 w-4 ${stat.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Recent Recipes */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-semibold">Recent Recipes</h2>
-          <Button asChild>
-            <Link to="/recipes/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Recipe
-            </Link>
+    <Card>
+      <CardHeader>
+        <CardTitle>Reading now</CardTitle>
+        <CardDescription className="flex items-center gap-1.5">
+          {pagesToday ? `${pagesToday} pages today` : 'No reading logged today'}
+          {streak > 0 && (
+            <>
+              <span aria-hidden>·</span>
+              <Flame className="size-3.5 text-brand" />
+              {streak} day streak
+            </>
+          )}
+        </CardDescription>
+        <CardAction>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/books">Library</Link>
           </Button>
-        </div>
-
-        {recentRecipes.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-center">No recipes yet. Start by creating your first recipe!</p>
-              <Button asChild className="mt-4">
-                <Link to="/recipes/new">Create Recipe</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentRecipes.map((recipe) => (
-              <Card key={recipe._id} className="overflow-hidden">
-                <Link to="/recipes/$recipeId" params={{ recipeId: recipe._id }}>
-                  {recipe.imageUrl && (
-                    <img src={recipe.imageUrl} alt={recipe.title} className="h-48 w-full object-cover" />
-                  )}
-                  {!recipe.imageUrl && (
-                    <div className="h-48 w-full bg-muted flex items-center justify-center">
-                      <BookOpen className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className="line-clamp-1">{recipe.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{recipe.description}</p>
-                    <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
-                      <span>⏱️ {(recipe.cookingTime ?? 0) + (recipe.prepTime ?? 0)} min</span>
-                      <span>🍽️ {recipe.servings ?? '?'} servings</span>
-                    </div>
-                  </CardContent>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {readingBooks.length === 0 ? (
+          <Empty className="border border-dashed">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Library />
+              </EmptyMedia>
+              <EmptyTitle>No book in progress</EmptyTitle>
+              <EmptyDescription>Start one from your want-to-read shelf.</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/books" search={{ status: 'not_started' }}>
+                  Want to read
                 </Link>
-              </Card>
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {readingBooks.map((book) => (
+              <BookCard key={book._id} book={book} orientation="horizontal" />
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ShoppingCard() {
+  const { data: list } = useSuspenseQuery(convexQuery(api.shoppingLists.get, {}));
+  const toBuy = list?.items.filter((item) => !item.checked && !item.skipped).length ?? 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Shopping list</CardTitle>
+        <CardDescription>{toBuy ? `${toBuy} to buy` : 'Nothing to buy'}</CardDescription>
+        <CardAction>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/shopping">Open</Link>
+          </Button>
+        </CardAction>
+      </CardHeader>
+      {list && (
+        <CardContent>
+          <ShoppingList list={list} />
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+function RecentRecipesCard() {
+  const { data: recipes } = useSuspenseQuery(convexQuery(api.recipes.getAll, {}));
+
+  const recentRecipes = sortBy(recipes, [
+    (recipe) => -(recipe.history.at(-1)?.timestamp ?? recipe._creationTime),
+  ]).slice(0, 6);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Recently updated recipes</CardTitle>
+        <CardAction className="flex gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/recipes/import">
+              <Sparkles />
+              Import recipe
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/recipes">All recipes</Link>
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {recentRecipes.length === 0 ? (
+          <Empty className="border border-dashed">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <BookOpen />
+              </EmptyMedia>
+              <EmptyTitle>No recipes yet</EmptyTitle>
+              <EmptyDescription>Import one from a link or write your own.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentRecipes.map((recipe) => (
+              <RecipeCard key={recipe._id} recipe={recipe} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

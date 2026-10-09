@@ -3,8 +3,8 @@ import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { FunctionReturnType } from 'convex/server';
-import { differenceInDays, eachDayOfInterval, endOfYear, format, startOfDay, startOfToday, subDays } from 'date-fns';
-import { countBy, groupBy, mapValues, mean, range, sumBy } from 'es-toolkit';
+import { differenceInDays, eachDayOfInterval, endOfYear, format, startOfDay, startOfToday } from 'date-fns';
+import { countBy, groupBy, mean, range, sumBy } from 'es-toolkit';
 import { ChartNoAxesColumn } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, Pie, PieChart, XAxis, YAxis } from 'recharts';
 import { z } from 'zod';
@@ -14,6 +14,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { BookCover } from './-components/book-cover';
+import { getCurrentStreak, getPagesByDay } from './-components/reading-days';
 
 export const Route = createFileRoute('/_authed/books/stats')({
   // Books are grouped by the reader's local month and year, which the server can't know
@@ -271,23 +272,9 @@ function BookStatsComponent() {
 type ReadingEvent = FunctionReturnType<typeof api.readingEvents.getAll>[number];
 
 function PagesPerDayCard({ readingEvents, period }: { readingEvents: ReadingEvent[]; period: number | 'all' }) {
-  // A day's net pages; a day of only corrections counts as no reading rather than negative reading
-  const pagesByDay = mapValues(
-    groupBy(readingEvents, (event) => startOfDay(event.at).getTime()),
-    (dayEvents) =>
-      Math.max(
-        0,
-        sumBy(dayEvents, (event) => event.pagesDelta),
-      ),
-  );
+  const pagesByDay = getPagesByDay(readingEvents);
   const today = startOfToday();
-
-  // A streak is still alive until today ends, so it counts back from yesterday when today has no reading yet
-  let currentStreak = 0;
-  for (let day = pagesByDay[today.getTime()] ? today : subDays(today, 1); pagesByDay[day.getTime()]; ) {
-    currentStreak++;
-    day = subDays(day, 1);
-  }
+  const currentStreak = getCurrentStreak(pagesByDay);
 
   // Starts at the first logged reading, so days before tracking existed don't show as days without reading
   const firstDay = readingEvents.length ? startOfDay(readingEvents[0].at) : undefined;
