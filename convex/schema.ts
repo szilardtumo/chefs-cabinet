@@ -59,7 +59,9 @@ export default defineSchema({
         aiPrompt: v.optional(v.string()),
       }),
     ),
-  }).index('by_user', ['userId']),
+  })
+    .index('by_user', ['userId'])
+    .index('by_image', ['image']),
 
   // Recipe Ingredients (join table)
   recipeIngredients: defineTable({
@@ -121,7 +123,9 @@ export default defineSchema({
     seriesName: v.optional(v.string()),
     seriesPosition: v.optional(v.string()),
     language: v.optional(v.string()),
-  }).index('by_user', ['userId']),
+  })
+    .index('by_user', ['userId'])
+    .index('by_cover', ['cover']),
 
   // One row per change of a book's current page, for reading history and daily stats
   readingEvents: defineTable({

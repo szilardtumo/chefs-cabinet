@@ -1,5 +1,6 @@
 import type { ActionCtx } from './_generated/server';
 import { authenticatedMutation } from './lib/helpers';
+import { enforceRateLimit } from './lib/rateLimiter';
 
 /**
  * Generates a short-lived upload URL for Convex Storage.
@@ -8,6 +9,7 @@ import { authenticatedMutation } from './lib/helpers';
 export const generateUploadUrl = authenticatedMutation({
   args: {},
   handler: async (ctx) => {
+    await enforceRateLimit(ctx, 'upload');
     return await ctx.storage.generateUploadUrl();
   },
 });

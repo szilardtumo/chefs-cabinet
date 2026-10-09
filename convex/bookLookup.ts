@@ -7,6 +7,7 @@ import type { ActionCtx } from './_generated/server';
 import * as catalog from './hardcoverApi';
 import { ValidationError } from './lib/errors';
 import { authenticatedAction } from './lib/helpers';
+import { enforceRateLimit } from './lib/rateLimiter';
 import * as openLibrary from './openLibraryApi';
 import { storeImage } from './storage';
 
@@ -78,7 +79,10 @@ async function findByIsbn(isbn: ReturnType<typeof parseIsbn>) {
 export const searchBooks = authenticatedAction({
   args: { query: v.string() },
   returns: v.array(catalog.catalogSearchResult),
-  handler: async (_ctx, args) => await catalog.searchBooks(args.query.trim()),
+  handler: async (ctx, args) => {
+    await enforceRateLimit(ctx, 'catalogSearch');
+    return await catalog.searchBooks(args.query.trim());
+  },
 });
 
 /**
@@ -88,7 +92,8 @@ export const searchBooks = authenticatedAction({
 export const getEditions = authenticatedAction({
   args: { bookId: v.optional(v.number()), isbn: v.optional(v.string()) },
   returns: v.array(catalog.catalogEdition),
-  handler: async (_ctx, args): Promise<Infer<typeof catalog.catalogEdition>[]> => {
+  handler: async (ctx, args): Promise<Infer<typeof catalog.catalogEdition>[]> => {
+    await enforceRateLimit(ctx, 'catalogSearch');
     if (args.bookId !== undefined) return await catalog.listEditions({ bookId: args.bookId });
 
     const isbn = parseIsbn(args.isbn ?? '');
@@ -108,6 +113,7 @@ export const addBook = authenticatedAction({
   returns: v.id('books'),
   // Actions that return what they run need an explicit return type, or TypeScript loops through the generated api
   handler: async (ctx, args): Promise<Id<'books'>> => {
+    await enforceRateLimit(ctx, 'bookImport');
     const found =
       args.editionId !== undefined
         ? await catalog.findEdition({ editionId: args.editionId })
@@ -132,6 +138,7 @@ export const setIsbn = authenticatedAction({
   args: { id: v.id('books'), isbn: v.string() },
   returns: v.string(),
   handler: async (ctx, args) => {
+    await enforceRateLimit(ctx, 'bookImport');
     const isbn = parseIsbn(args.isbn);
     const { coverUrl, ...edition } = await findByIsbn(isbn);
     await withStoredCover(ctx, coverUrl, (cover) =>

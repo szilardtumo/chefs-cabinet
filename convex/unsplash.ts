@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { authenticatedAction } from './lib/helpers';
+import { enforceRateLimit } from './lib/rateLimiter';
 
 type UnsplashSearchResponse = {
   results: {
@@ -21,7 +22,7 @@ export const searchPhotos = authenticatedAction({
     query: v.string(),
     page: v.optional(v.number()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     if (!process.env.UNSPLASH_ACCESS_KEY) {
       throw new Error('Unsplash search is not configured. Set UNSPLASH_ACCESS_KEY in your Convex environment.');
     }
@@ -30,6 +31,7 @@ export const searchPhotos = authenticatedAction({
     if (trimmed.length < 2) {
       return { results: [], total: 0 };
     }
+    await enforceRateLimit(ctx, 'unsplashSearch');
 
     const page = Math.max(1, args.page ?? 1);
     const params = new URLSearchParams({

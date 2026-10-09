@@ -1,6 +1,7 @@
 import { customAction, customCtx, customMutation, customQuery } from 'convex-helpers/server/customFunctions';
-import { action, mutation, query } from '../_generated/server';
-import { UnauthenticatedError } from './errors';
+import type { Doc, Id, TableNames } from '../_generated/dataModel';
+import { action, mutation, type QueryCtx, query } from '../_generated/server';
+import { NotFoundError, UnauthenticatedError } from './errors';
 
 /**
  * Custom query builder that automatically handles authentication.
@@ -42,3 +43,20 @@ export const authenticatedAction = customAction(
     return { userId: identity.subject };
   }),
 );
+
+type OwnedTableName = { [T in TableNames]: Doc<T> extends { userId: string } ? T : never }[TableNames];
+
+/**
+ * Loads a document the user owns. Throws "not found" for documents of other users too, so their ids reveal nothing.
+ */
+export async function requireOwned<T extends OwnedTableName>(
+  ctx: { db: QueryCtx['db']; userId: string },
+  table: T,
+  id: Id<T>,
+): Promise<Doc<T>> {
+  const doc = (await ctx.db.get(id)) as (Doc<T> & { userId: string }) | null;
+  if (!doc || doc.userId !== ctx.userId) {
+    throw new NotFoundError(table, id);
+  }
+  return doc;
+}

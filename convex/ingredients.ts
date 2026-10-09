@@ -7,7 +7,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import type { ActionCtx } from './_generated/server';
 import { createGoogleAI, GEMINI_MODELS } from './lib/ai';
 import { InvalidOperationError, NotFoundError } from './lib/errors';
-import { authenticatedAction, authenticatedMutation, authenticatedQuery } from './lib/helpers';
+import { authenticatedAction, authenticatedMutation, authenticatedQuery, requireOwned } from './lib/helpers';
 import schema from './schema';
 
 export type Ingredient = Doc<'ingredients'>;
@@ -55,6 +55,7 @@ export const getAll = authenticatedQuery({
 export const getByCategory = authenticatedQuery({
   args: { categoryId: v.id('categories') },
   handler: async (ctx, args) => {
+    await requireOwned(ctx, 'categories', args.categoryId);
     return await ctx.db
       .query('ingredients')
       .withIndex('by_category', (q) => q.eq('categoryId', args.categoryId))

@@ -3,7 +3,7 @@ import { increaseUsageScore } from '@/lib/usage-score';
 import type { Doc } from './_generated/dataModel';
 import type { Ingredient } from './ingredients';
 import { NotFoundError } from './lib/errors';
-import { authenticatedMutation } from './lib/helpers';
+import { authenticatedMutation, requireOwned } from './lib/helpers';
 
 export type ShoppingListItem = Doc<'shoppingListItems'>;
 export type ShoppingListItemWithIngredient = ShoppingListItem & {
@@ -31,6 +31,10 @@ export const add = authenticatedMutation({
     if (!list || list.userId !== ctx.userId) {
       // Do not expose the existence of the list if it is not owned by the user
       throw new NotFoundError('shoppingLists', args.shoppingListId);
+    }
+    await requireOwned(ctx, 'ingredients', args.ingredientId);
+    if (args.recipeId) {
+      await requireOwned(ctx, 'recipes', args.recipeId);
     }
 
     // Get current max order

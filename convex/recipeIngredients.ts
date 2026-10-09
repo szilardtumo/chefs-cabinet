@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { pick } from 'es-toolkit';
 import { NotFoundError } from './lib/errors';
-import { authenticatedMutation } from './lib/helpers';
+import { authenticatedMutation, requireOwned } from './lib/helpers';
 import schema from './schema';
 
 /**
@@ -29,6 +29,7 @@ export const add = authenticatedMutation({
       // Do not expose the existence of the recipe if it is not owned by the user
       throw new NotFoundError('recipes', args.recipeId);
     }
+    await requireOwned(ctx, 'ingredients', args.ingredientId);
 
     // Get current max order
     const existing = await ctx.db

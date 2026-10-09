@@ -4,10 +4,10 @@ import { groupBy, isEqual, omit, omitBy } from 'es-toolkit';
 import { isStorageId } from '@/lib/storage';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import type { ActionCtx } from './_generated/server';
+import type { ActionCtx, MutationCtx } from './_generated/server';
 import { internalMutation } from './_generated/server';
 import { NotFoundError } from './lib/errors';
-import { authenticatedAction, authenticatedMutation, authenticatedQuery } from './lib/helpers';
+import { authenticatedAction, authenticatedMutation, authenticatedQuery, requireOwned } from './lib/helpers';
 import schema from './schema';
 
 /**
@@ -165,6 +165,34 @@ async function processIngredients(
 }
 
 /**
+ * Checks what a client sent for a recipe: the ingredients must be the user's, and a stored image must not be used by
+ * another recipe or a book. Storage files have no owner, so this keeps a recipe from taking over, and later deleting,
+ * someone else's file.
+ */
+async function validateRecipeInput(
+  ctx: MutationCtx,
+  userId: string,
+  { ingredients, image }: { ingredients: { ingredientId: Id<'ingredients'> }[]; image?: string | null },
+  recipeId?: Id<'recipes'>,
+) {
+  for (const { ingredientId } of ingredients) {
+    await requireOwned({ db: ctx.db, userId }, 'ingredients', ingredientId);
+  }
+  if (!isStorageId(image)) return;
+  const recipe = await ctx.db
+    .query('recipes')
+    .withIndex('by_image', (q) => q.eq('image', image))
+    .first();
+  const book = await ctx.db
+    .query('books')
+    .withIndex('by_cover', (q) => q.eq('cover', image))
+    .first();
+  if ((recipe && recipe._id !== recipeId) || book) {
+    throw new NotFoundError('_storage', image);
+  }
+}
+
+/**
  * Internal mutation to create a recipe (called from action).
  */
 export const createRecipeMutation = internalMutation({
@@ -174,6 +202,7 @@ export const createRecipeMutation = internalMutation({
   },
   handler: async (ctx, args) => {
     const { aiPrompt, ingredients, ...recipeData } = args;
+    await validateRecipeInput(ctx, args.userId, args);
 
     // Create initial history entry
     const history = [
@@ -249,6 +278,7 @@ export const updateRecipeMutation = internalMutation({
     if (!recipe) {
       throw new NotFoundError('recipes', id);
     }
+    await validateRecipeInput(ctx, recipe.userId, args, id);
 
     // Extract the fields that actually changed
     // TODO: add ingredients to the changes
