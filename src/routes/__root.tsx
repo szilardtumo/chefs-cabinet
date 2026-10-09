@@ -33,6 +33,16 @@ export const Route = createRootRouteWithContext<{
   title?: string;
 }>()({
   beforeLoad: async ({ context }) => {
+    // Once Clerk has loaded in the browser, read the user from it instead of calling the server on every
+    // navigation. The round trip delays back navigation, and Android's back animation flickers while it waits.
+    const clerk =
+      typeof window === 'undefined'
+        ? undefined
+        : (window as { Clerk?: { loaded: boolean; user?: { id: string } | null } }).Clerk;
+    if (clerk?.loaded) {
+      return { userId: clerk.user?.id ?? null, token: null, title: "Chef's Cabinet" };
+    }
+
     const { userId, token } = await fetchClerkAuth();
 
     // During SSR only (the only time serverHttpClient exists),
