@@ -1,6 +1,6 @@
 import { Link, useLocation, useRouter } from '@tanstack/react-router';
 import { BookOpen, Carrot, Home, Library, ShoppingCart } from 'lucide-react';
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect } from 'react';
 import { Logo } from '@/components/logo';
 import {
   Sidebar,
@@ -46,24 +46,22 @@ const navItems = [
 export function AppSidebar() {
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
   const router = useRouter();
-  const onSidebarEntry = useLocation({ select: (location) => location.state.sidebar === true });
+  const open = useLocation({ select: (location) => location.state.sidebar === true });
 
-  // The mobile sidebar gets its own history entry, so Android's back gesture closes it, and the screenshot Chrome
-  // shows when swiping back to a page is taken before the sidebar opened. Links in it replace that entry.
-  // A layout effect pushes the entry before the open sidebar is painted.
-  useLayoutEffect(() => {
-    if (!isMobile) return;
-    const { href, state } = router.history.location;
-    if (openMobile && !state.sidebar) router.navigate({ href, state: { sidebar: true }, resetScroll: false });
-    if (!openMobile && state.sidebar) router.history.back();
-  }, [isMobile, openMobile, router]);
-
+  // The mobile drawer is open while its history entry is current, so Android's back gesture closes it, and the page
+  // screenshot Chrome shows when swiping back is taken before the drawer opened. On mobile, Sidebar passes open and
+  // onOpenChange to its Sheet, so the trigger's openMobile only requests a new entry.
   useEffect(() => {
-    if (!onSidebarEntry) setOpenMobile(false);
-  }, [onSidebarEntry, setOpenMobile]);
+    if (!openMobile) return;
+    setOpenMobile(false);
+    router.navigate({ href: router.state.location.href, state: { sidebar: true }, resetScroll: false });
+  }, [openMobile, setOpenMobile, router]);
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar
+      collapsible="icon"
+      {...(isMobile && { open, onOpenChange: (open: boolean) => !open && router.history.back() })}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -72,7 +70,7 @@ export function AppSidebar() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Link to="/dashboard" replace={onSidebarEntry}>
+              <Link to="/dashboard" replace={open}>
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Logo className="size-5" />
                 </div>
@@ -89,7 +87,7 @@ export function AppSidebar() {
               {navItems.map((navItem) => (
                 <SidebarMenuItem key={navItem.label}>
                   <SidebarMenuButton asChild tooltip={navItem.label} className="data-[active=true]:[&>svg]:text-brand">
-                    <Link to={navItem.to} activeProps={{ 'data-active': 'true' }} replace={onSidebarEntry}>
+                    <Link to={navItem.to} activeProps={{ 'data-active': 'true' }} replace={open}>
                       <navItem.icon /> {navItem.label}
                     </Link>
                   </SidebarMenuButton>
