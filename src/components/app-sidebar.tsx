@@ -71,7 +71,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((navItem) => (
                 <SidebarMenuItem key={navItem.label}>
-                  <SidebarMenuButton asChild tooltip={navItem.label}>
+                  <SidebarMenuButton asChild tooltip={navItem.label} className="data-[active=true]:[&>svg]:text-brand">
                     <Link to={navItem.to} activeProps={{ 'data-active': 'true' }} onClick={() => setOpenMobile(false)}>
                       <navItem.icon /> {navItem.label}
                     </Link>

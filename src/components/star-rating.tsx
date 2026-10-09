@@ -32,7 +32,7 @@ export function StarRating({ value, onValueChange, max = 5, className }: StarRat
           // The toggle forces `[&_svg]:size-4`, so the star size is set the same way
           className="h-auto min-w-0 p-0.5 hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-3.5"
         >
-          <Star className={cn('text-muted-foreground/40', rating <= shown && 'fill-amber-400 text-amber-400')} />
+          <Star className={cn('text-muted-foreground/40', rating <= shown && 'fill-brand text-brand')} />
         </ToggleGroupItem>
       ))}
     </ToggleGroup>

@@ -20,7 +20,7 @@ export const BOOK_STATUS_META: Record<
   { label: string; variant: ComponentProps<typeof Badge>['variant']; icon: LucideIcon }
 > = {
   not_started: { label: 'Want to read', variant: 'outline', icon: Bookmark },
-  in_progress: { label: 'Reading', variant: 'info-soft', icon: BookOpen },
+  in_progress: { label: 'Reading', variant: 'brand-soft', icon: BookOpen },
   done: { label: 'Finished', variant: 'success-soft', icon: CircleCheck },
   cancelled: { label: 'Did not finish', variant: 'destructive-soft', icon: CircleX },
 };

@@ -33,11 +33,11 @@ const MONTHS = Array.from({ length: 12 }, (_, month) =>
 );
 
 const booksChartConfig = {
-  count: { label: 'Books', color: 'var(--chart-1)' },
+  count: { label: 'Books', color: 'var(--brand)' },
 } satisfies ChartConfig;
 
 const pagesChartConfig = {
-  pages: { label: 'Pages', color: 'var(--chart-1)' },
+  pages: { label: 'Pages', color: 'var(--brand)' },
 } satisfies ChartConfig;
 
 function BookStatsComponent() {
@@ -172,7 +172,13 @@ function BookStatsComponent() {
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="var(--color-count)" radius={4}>
+                <Bar
+                  dataKey="count"
+                  fill="var(--color-count)"
+                  fillOpacity={0.7}
+                  activeBar={{ fillOpacity: 1 }}
+                  radius={4}
+                >
                   <LabelList
                     position="top"
                     offset={8}

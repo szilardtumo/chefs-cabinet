@@ -10,7 +10,7 @@ import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } f
 type Book = FunctionReturnType<typeof api.books.getById>;
 
 const chartConfig = {
-  pagesRead: { label: 'Page', color: 'var(--chart-1)' },
+  pagesRead: { label: 'Page', color: 'var(--brand)' },
 } satisfies ChartConfig;
 
 /** The page reached on each day you read the book; hidden until some reading is logged. */

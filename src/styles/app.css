@@ -28,6 +28,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -66,7 +68,10 @@
   --info: oklch(0.55 0.17 255);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --brand: oklch(0.705 0.213 47.604);
+  /* Darker brand for text, where --brand is too light to read */
+  --brand-strong: oklch(0.553 0.195 38.402);
+  --ring: var(--brand);
   /* Colorblind-safe categorical palette, validated in this order for adjacent marks; don't reorder */
   --chart-1: #2a78d6;
   --chart-2: #eb6834;
@@ -105,7 +110,9 @@
   --info: oklch(0.72 0.14 250);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --brand: oklch(0.75 0.17 52);
+  --brand-strong: oklch(0.837 0.128 66.29);
+  --ring: var(--brand);
   --chart-1: #3987e5;
   --chart-2: #d95926;
   --chart-3: #199e70;
@@ -129,6 +136,9 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  ::selection {
+    @apply bg-brand/25;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
