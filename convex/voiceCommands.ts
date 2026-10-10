@@ -73,7 +73,7 @@ export const run = authenticatedAction({
 
     const schema = z.object({
       transcript: z.string().describe("The user's command as they said it, in their language"),
-      ...Object.fromEntries(actionEntries.map(([name, action]) => [name, action.schema(userLibrary)])),
+      ...Object.fromEntries(actionEntries.map(([name, action]) => [name, action.schema])),
       question: z
         .object({ text: z.string(), options: z.array(z.string()) })
         .nullable()

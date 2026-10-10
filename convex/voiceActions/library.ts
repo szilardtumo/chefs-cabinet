@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type { QueryCtx } from '../_generated/server';
 
 /** The lists of the user's data an action can ask the model to pick from. */
@@ -54,11 +53,4 @@ export function libraryPrompt({ recipes, books, ingredients }: Library) {
   ]
     .filter(Boolean)
     .join('\n\n');
-}
-
-/** A schema for one id from `entries`, so the model can only answer with ids from the library. */
-export function idSchema(entries: { _id: string }[]) {
-  const ids = entries.map((entry) => entry._id);
-  // An empty enum isn't a valid schema; `null` is the only answer then
-  return ids.length > 0 ? z.enum(ids as [string, ...string[]]) : z.null();
 }

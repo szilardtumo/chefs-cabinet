@@ -27,7 +27,7 @@ export type VoiceActionEnv = {
 export type VoiceAction<Output> = {
   needs: LibraryPart[];
   instructions: string;
-  schema: (library: Library) => z.ZodType<Output>;
+  schema: z.ZodType<Output>;
   run: (output: Output, env: VoiceActionEnv) => Promise<void>;
 };
 

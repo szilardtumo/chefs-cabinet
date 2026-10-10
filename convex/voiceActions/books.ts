@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { api } from '../_generated/api';
 import type { Id } from '../_generated/dataModel';
 import type { ActionCtx } from '../_generated/server';
-import { idSchema } from './library';
 import { defineVoiceAction } from './types';
 
 /** Undo for logged reading: puts the book back on its previous page. */
@@ -19,17 +18,16 @@ export const logReading = defineVoiceAction({
   needs: ['books'],
   instructions:
     'Log reading progress of a book being read. If only one book is being read, reading without a title is about that book.',
-  schema: (library) =>
-    z
-      .array(
-        z.object({
-          bookId: idSchema(library.books),
-          pagesReadNow: z.number().int().optional().describe('Pages read in this session ("I read 20 pages")'),
-          currentPage: z.number().int().optional().describe('The page the user is at now ("I am at page 120")'),
-          daysAgo: z.number().int().min(0).describe('0 for today, 1 for yesterday, and so on'),
-        }),
-      )
-      .describe('Reading progress to log'),
+  schema: z
+    .array(
+      z.object({
+        bookId: z.string().describe('ID from BOOKS BEING READ'),
+        pagesReadNow: z.number().int().optional().describe('Pages read in this session ("I read 20 pages")'),
+        currentPage: z.number().int().optional().describe('The page the user is at now ("I am at page 120")'),
+        daysAgo: z.number().int().min(0).describe('0 for today, 1 for yesterday, and so on'),
+      }),
+    )
+    .describe('Reading progress to log'),
   run: async (output, { ctx, library, localMidnight, attempt }) => {
     for (const log of output) {
       const book = library.books.find((b) => b._id === log.bookId);
