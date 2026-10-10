@@ -2,9 +2,11 @@ import { Link, useLocation, useRouter } from '@tanstack/react-router';
 import { BookOpen, Carrot, Home, Library, ShoppingCart } from 'lucide-react';
 import { useEffect } from 'react';
 import { Logo } from '@/components/logo';
+import { ModeToggle } from '@/components/mode-toggle';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -97,6 +99,13 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <ModeToggle />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

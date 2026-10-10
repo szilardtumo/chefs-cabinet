@@ -2,7 +2,6 @@ import { SignIn, UserButton } from '@clerk/tanstack-react-start';
 import { ClientOnly, createFileRoute, Outlet } from '@tanstack/react-router';
 import { AppBreadcrumb } from '@/components/app-breadcrumb';
 import { AppSidebar } from '@/components/app-sidebar';
-import { ModeToggle } from '@/components/mode-toggle';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,7 +35,6 @@ function AuthedLayout() {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
           <AppBreadcrumb className="flex-1" />
-          <ModeToggle />
           {/* Clerk renders the button only in the browser, which breaks hydration when server-rendered */}
           <ClientOnly fallback={<Skeleton className="size-7 rounded-full" />}>
             <UserButton />
