@@ -9,6 +9,7 @@ const rateLimiter = new RateLimiter(components.rateLimiter, {
   bookImport: { kind: 'token bucket', rate: 30, period: HOUR, capacity: 10 },
   upload: { kind: 'token bucket', rate: 60, period: HOUR, capacity: 20 },
   recipeAi: { kind: 'token bucket', rate: 30, period: HOUR, capacity: 10 },
+  voiceCommand: { kind: 'token bucket', rate: 60, period: HOUR, capacity: 20 },
 });
 
 export async function enforceRateLimit(

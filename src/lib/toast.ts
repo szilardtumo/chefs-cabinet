@@ -13,8 +13,11 @@ export function toastError(error: unknown) {
 }
 
 /** Success toast with an Undo action that runs `undo` and reports its failure. */
-export function toastWithUndo(message: string, undo: () => Promise<unknown>) {
+export function toastWithUndo(message: string, undo: () => Promise<unknown>, description?: string) {
   toast.success(message, {
+    description,
+    // Twice sonner's default, so there's time to notice a mistake and undo it
+    duration: 8000,
     action: { label: 'Undo', onClick: () => undo().catch(toastError) },
   });
 }

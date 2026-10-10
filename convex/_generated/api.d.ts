@@ -30,6 +30,13 @@ import type * as shoppingListItems from "../shoppingListItems.js";
 import type * as shoppingLists from "../shoppingLists.js";
 import type * as storage from "../storage.js";
 import type * as unsplash from "../unsplash.js";
+import type * as voiceActions_books from "../voiceActions/books.js";
+import type * as voiceActions_library from "../voiceActions/library.js";
+import type * as voiceActions_recipes from "../voiceActions/recipes.js";
+import type * as voiceActions_registry from "../voiceActions/registry.js";
+import type * as voiceActions_shoppingList from "../voiceActions/shoppingList.js";
+import type * as voiceActions_types from "../voiceActions/types.js";
+import type * as voiceCommands from "../voiceCommands.js";
 
 import type {
   ApiFromModules,
@@ -60,6 +67,13 @@ declare const fullApi: ApiFromModules<{
   shoppingLists: typeof shoppingLists;
   storage: typeof storage;
   unsplash: typeof unsplash;
+  "voiceActions/books": typeof voiceActions_books;
+  "voiceActions/library": typeof voiceActions_library;
+  "voiceActions/recipes": typeof voiceActions_recipes;
+  "voiceActions/registry": typeof voiceActions_registry;
+  "voiceActions/shoppingList": typeof voiceActions_shoppingList;
+  "voiceActions/types": typeof voiceActions_types;
+  voiceCommands: typeof voiceCommands;
 }>;
 
 /**

@@ -6,6 +6,7 @@ import { startOfToday } from 'date-fns';
 import { sortBy } from 'es-toolkit';
 import { BookOpen, Flame, Library, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
+import { z } from 'zod';
 import { RecipeCard } from '@/components/recipe-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,8 @@ export const Route = createFileRoute('/_authed/dashboard')({
   // The date, today's pages and the streak follow the reader's local day, which the server can't know
   ssr: false,
   component: DashboardComponent,
+  // Set by the "Voice command" app shortcut (`shortcuts` in site.webmanifest); `VoiceCommandProvider` handles it
+  validateSearch: z.object({ listen: z.boolean().optional().catch(undefined) }),
 });
 
 function DashboardComponent() {

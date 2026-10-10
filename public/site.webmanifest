@@ -28,6 +28,10 @@
   ],
   "shortcuts": [
     {
+      "name": "Voice command",
+      "url": "/dashboard?listen=true"
+    },
+    {
       "name": "Shopping list",
       "url": "/shopping"
     },

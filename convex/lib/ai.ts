@@ -5,6 +5,8 @@ import { AIError } from './errors';
 export const GEMINI_MODELS = {
   /** Complex reasoning, tool use (recipe parsing from URL/text). */
   pro: 'gemini-3.1-pro-preview',
+  /** Fast multimodal understanding (voice commands). */
+  flash: 'gemini-3.8-flash',
   /** Simple structured output (ingredient categorization). */
   flashLite: 'gemini-3.5-flash-lite',
 } as const;
