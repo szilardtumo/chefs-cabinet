@@ -45,9 +45,13 @@ export const addToShoppingList = defineVoiceAction({
         for (const item of items) {
           const ingredientId = (item.ingredientId as Id<'ingredients'> | null) ?? newIds.shift();
           if (!ingredientId) continue;
-          ids.push(
-            await ctx.runMutation(api.shoppingListItems.add, { shoppingListId, ingredientId, notes: item.notes }),
-          );
+          const id = await ctx.runMutation(api.shoppingListItems.add, {
+            shoppingListId,
+            ingredientId,
+            notes: item.notes,
+          });
+          // `null` when it was already on the list
+          if (id) ids.push(id);
         }
       } catch (error) {
         // The items added before the failure stay on the list, so they get their own line with Undo

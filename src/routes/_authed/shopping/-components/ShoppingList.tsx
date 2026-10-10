@@ -94,13 +94,15 @@ export function ShoppingList({ list }: { list: ShoppingListData }) {
 
   const handleAddIngredient = async (ingredientId: Id<'ingredients'>) => {
     try {
-      await addItem({
+      const itemId = await addItem({
         shoppingListId: list._id,
         ingredientId,
       });
-      toast.success('Ingredient added', {
-        description: 'The ingredient has been added to your list.',
-      });
+      if (itemId) {
+        toast.success('Ingredient added', {
+          description: 'The ingredient has been added to your list.',
+        });
+      } else toast.info('Already on your list');
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'An unknown error occurred',

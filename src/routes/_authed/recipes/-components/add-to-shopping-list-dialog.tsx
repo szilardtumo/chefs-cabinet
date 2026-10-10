@@ -43,13 +43,17 @@ export function AddToShoppingListDialog({ open, onOpenChange, recipeId, recipeTi
         listId = await createDefault({});
       }
 
-      await addFromRecipe({
+      const itemIds = await addFromRecipe({
         shoppingListId: listId,
         recipeId,
       });
 
       toast.success('Added to shopping list', {
-        description: 'All ingredients have been added to your shopping list.',
+        // Ingredients already on the list are skipped
+        description:
+          itemIds.length > 0
+            ? `${itemIds.length} ingredients have been added to your shopping list.`
+            : 'All ingredients were already on your shopping list.',
       });
       onOpenChange(false);
     } catch (error) {

@@ -16,7 +16,8 @@ export type ShoppingListItemWithIngredient = ShoppingListItem & {
  * @param args.ingredientId - The ID of the ingredient to add.
  * @param args.notes - The notes for the shopping list item.
  *
- * @returns A promise that resolves to the ID of the created shopping list item.
+ * @returns A promise that resolves to the ID of the created shopping list item, or `null` when the ingredient
+ * was already on the list, which never holds the same ingredient twice.
  */
 export const add = authenticatedMutation({
   args: {
@@ -43,6 +44,7 @@ export const add = authenticatedMutation({
       .withIndex('by_list', (q) => q.eq('shoppingListId', args.shoppingListId))
       .collect();
 
+    if (existing.some((item) => item.ingredientId === args.ingredientId)) return null;
     const maxOrder = existing.reduce((max, item) => Math.max(max, item.order), 0);
 
     const itemId = await ctx.db.insert('shoppingListItems', {
@@ -62,7 +64,8 @@ export const add = authenticatedMutation({
  * @param args.shoppingListId - The ID of the shopping list to add the ingredients to.
  * @param args.recipeId - The ID of the recipe to add the ingredients from.
  *
- * @returns A promise that resolves to an array of the IDs of the created shopping list items.
+ * @returns A promise that resolves to an array of the IDs of the created shopping list items; ingredients already on
+ * the list, or listed twice in the recipe, are skipped.
  */
 export const addFromRecipe = authenticatedMutation({
   args: {
@@ -98,10 +101,13 @@ export const addFromRecipe = authenticatedMutation({
       .collect();
 
     let order = existing.reduce((max, item) => Math.max(max, item.order), 0);
+    const onList = new Set(existing.map((item) => item.ingredientId));
 
     // Add each ingredient
     const addedItems = [];
     for (const ri of recipeIngredients) {
+      if (onList.has(ri.ingredientId)) continue;
+      onList.add(ri.ingredientId);
       order++;
       const notes = `${ri.quantity} ${ri.unit}`;
 
