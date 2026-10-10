@@ -227,7 +227,7 @@ export function RecipeForm({ mode, recipeId, initialValues, onSuccess, onCancel 
           </form.Field>
 
           <form.Field name="tags">
-            {(field) => <FieldTagsInput field={field} label="Tags" placeholder="Add a tag..." withAddButton />}
+            {(field) => <FieldTagsInput field={field} label="Tags" placeholder="Add a tag..." />}
           </form.Field>
 
           <form.Field name="source">

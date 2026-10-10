@@ -190,7 +190,7 @@ function BookDetails({ book, onClose }: { book: Book; onClose: () => void }) {
             value={book.genres}
             onValueChange={(genres) => save({ genres }, { genres: book.genres })}
             placeholder="Add a genre..."
-            inputClassName="border-transparent bg-transparent shadow-none hover:border-input focus-visible:border-input dark:bg-transparent"
+            className="border-transparent bg-transparent shadow-none hover:border-input focus-within:border-input dark:bg-transparent"
           />
 
           {shownDates.map((date) => (
