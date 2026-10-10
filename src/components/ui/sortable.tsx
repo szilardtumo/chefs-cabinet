@@ -32,7 +32,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Slot } from '@radix-ui/react-slot';
+import { Slot as SlotPrimitive } from 'radix-ui';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { useComposedRefs } from '@/lib/compose-refs';
@@ -91,7 +91,7 @@ interface GetItemValue<T> {
   getItemValue: (item: T) => UniqueIdentifier;
 }
 
-type SortableRootProps<T> = DndContextProps &
+type SortableProps<T> = DndContextProps &
   (T extends object ? GetItemValue<T> : Partial<GetItemValue<T>>) & {
     value: T[];
     onValueChange?: (items: T[]) => void;
@@ -101,7 +101,7 @@ type SortableRootProps<T> = DndContextProps &
     flatCursor?: boolean;
   };
 
-function SortableRoot<T>(props: SortableRootProps<T>) {
+function Sortable<T>(props: SortableProps<T>) {
   const {
     value,
     onValueChange,
@@ -131,7 +131,7 @@ function SortableRoot<T>(props: SortableRootProps<T>) {
   const getItemValue = React.useCallback(
     (item: T): UniqueIdentifier => {
       if (typeof item === 'object' && !getItemValueProp) {
-        throw new Error('getItemValue is required when using array of objects');
+        throw new Error('`getItemValue` is required when using array of objects');
       }
       return getItemValueProp ? getItemValueProp(item) : (item as UniqueIdentifier);
     },
@@ -289,7 +289,7 @@ function SortableContent(props: SortableContentProps) {
 
   const context = useSortableContext(CONTENT_NAME);
 
-  const ContentPrimitive = asChild ? Slot : 'div';
+  const ContentPrimitive = asChild ? SlotPrimitive.Slot : 'div';
 
   return (
     <SortableContentContext.Provider value={true}>
@@ -353,11 +353,16 @@ function SortableItem(props: SortableItemProps) {
     disabled,
   });
 
-  const composedRef = useComposedRefs(ref, (node) => {
-    if (disabled) return;
-    setNodeRef(node);
-    if (asHandle) setActivatorNodeRef(node);
-  });
+  const onNodeRefChange = React.useCallback(
+    (node: HTMLElement | null) => {
+      if (disabled) return;
+      setNodeRef(node);
+      if (asHandle) setActivatorNodeRef(node);
+    },
+    [disabled, asHandle, setNodeRef, setActivatorNodeRef],
+  );
+
+  const composedRef = useComposedRefs(ref, onNodeRefChange);
 
   const composedStyle = React.useMemo<React.CSSProperties>(() => {
     return {
@@ -379,7 +384,7 @@ function SortableItem(props: SortableItemProps) {
     [id, attributes, listeners, setActivatorNodeRef, isDragging, disabled],
   );
 
-  const ItemPrimitive = asChild ? Slot : 'div';
+  const ItemPrimitive = asChild ? SlotPrimitive.Slot : 'div';
 
   return (
     <SortableItemContext.Provider value={itemContext}>
@@ -394,7 +399,7 @@ function SortableItem(props: SortableItemProps) {
         ref={composedRef}
         style={composedStyle}
         className={cn(
-          'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1',
+          'focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-hidden',
           {
             'touch-none select-none': asHandle,
             'cursor-default': context.flatCursor,
@@ -422,12 +427,19 @@ function SortableItemHandle(props: SortableItemHandleProps) {
 
   const isDisabled = disabled ?? itemContext.disabled;
 
-  const composedRef = useComposedRefs(ref, (node) => {
-    if (!isDisabled) return;
-    itemContext.setActivatorNodeRef(node);
-  });
+  const { setActivatorNodeRef } = itemContext;
 
-  const HandlePrimitive = asChild ? Slot : 'button';
+  const onActivatorNodeRef = React.useCallback(
+    (node: HTMLElement | null) => {
+      if (isDisabled) return;
+      setActivatorNodeRef(node);
+    },
+    [isDisabled, setActivatorNodeRef],
+  );
+
+  const composedRef = useComposedRefs(ref, onActivatorNodeRef);
+
+  const HandlePrimitive = asChild ? SlotPrimitive.Slot : 'button';
 
   return (
     <HandlePrimitive
@@ -473,6 +485,7 @@ function SortableOverlay(props: SortableOverlayProps) {
   const context = useSortableContext(OVERLAY_NAME);
 
   const [mounted, setMounted] = React.useState(false);
+
   React.useLayoutEffect(() => setMounted(true), []);
 
   const container = containerProp ?? (mounted ? globalThis.document?.body : null);
@@ -494,16 +507,4 @@ function SortableOverlay(props: SortableOverlayProps) {
   );
 }
 
-export {
-  SortableRoot as Sortable,
-  SortableContent,
-  SortableItem,
-  SortableItemHandle,
-  SortableOverlay,
-  //
-  SortableRoot as Root,
-  SortableContent as Content,
-  SortableItem as Item,
-  SortableItemHandle as ItemHandle,
-  SortableOverlay as Overlay,
-};
+export { Sortable, SortableContent, SortableItem, SortableItemHandle, SortableOverlay, type SortableProps };

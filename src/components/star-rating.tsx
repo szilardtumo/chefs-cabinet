@@ -21,7 +21,7 @@ export function StarRating({ value, onValueChange, max = 5, className }: StarRat
       value={value ? String(value) : ''}
       onValueChange={(nextValue) => onValueChange(nextValue ? Number(nextValue) : undefined)}
       onMouseLeave={() => setHovered(undefined)}
-      className={cn('gap-0', className)}
+      className={className}
     >
       {Array.from({ length: max }, (_, index) => index + 1).map((rating) => (
         <ToggleGroupItem
