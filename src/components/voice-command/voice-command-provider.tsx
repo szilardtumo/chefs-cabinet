@@ -92,8 +92,14 @@ export function VoiceCommandProvider({ children }: { children: ReactNode }) {
       // Falls back to the typed text, and keeps the bubble from being empty when nothing was transcribed
       const text = result.transcript || input.text || '(nothing heard)';
       update((command) => ({ ...command, text, lines, question: result.question }));
-      toastCommand({ id, text, lines, question: result.question }, (answer) => void run({ text: answer }));
       const done = result.navigateTo || lines.some((line) => line.undo);
+      // A clip without speech: Gemini returns no transcript, at most a generic reply, which isn't worth a toast
+      if (!result.transcript.trim() && !done) {
+        setOutcome('failed');
+        toastNothingHeard();
+        return;
+      }
+      toastCommand({ id, text, lines, question: result.question }, (answer) => void run({ text: answer }));
       setOutcome(lines.some((line) => line.error) ? 'failed' : done ? 'done' : undefined);
       if (result.navigateTo) await navigate({ href: result.navigateTo });
     } catch (error) {
