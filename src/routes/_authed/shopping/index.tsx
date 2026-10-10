@@ -5,7 +5,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ShoppingList } from './_components/ShoppingList';
+import { ShoppingList } from './-components/ShoppingList';
 
 export const Route = createFileRoute('/_authed/shopping/')({
   component: ShoppingListComponent,

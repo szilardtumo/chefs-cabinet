@@ -18,13 +18,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDataTable } from '@/hooks/use-data-table';
+import type { DataTableFeatures } from '@/lib/data-table-features';
 import { IngredientDialog } from './-components/ingredient-dialog';
 
 export const Route = createFileRoute('/_authed/ingredients/')({
   component: IngredientsComponent,
 });
 
-const columnHelper = createColumnHelper<IngredientWithCategory>();
+const columnHelper = createColumnHelper<DataTableFeatures, IngredientWithCategory>();
 
 function IngredientsComponent() {
   const { data: ingredients } = useSuspenseQuery(convexQuery(api.ingredients.getAll, {}));
@@ -90,7 +91,6 @@ function IngredientsComponent() {
             );
           },
           enableColumnFilter: true,
-          filterFn: 'arrIncludesSome',
           meta: {
             label: 'Category',
             variant: 'multiSelect',
@@ -137,13 +137,14 @@ function IngredientsComponent() {
             );
           },
         }),
-      ] as ColumnDef<IngredientWithCategory>[],
+      ] as ColumnDef<DataTableFeatures, IngredientWithCategory>[],
     [],
   );
 
   const { table } = useDataTable({
     data: ingredients || [],
     columns,
+    mode: 'client',
     getRowId: (row) => row._id,
     enableHiding: true,
   });

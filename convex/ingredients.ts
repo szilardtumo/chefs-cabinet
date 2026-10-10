@@ -290,7 +290,8 @@ export const update = authenticatedMutation({
     id: v.id('ingredients'),
     name: v.optional(v.string()),
     categoryId: v.optional(v.id('categories')),
-    ...pick(schema.tables.ingredients.validator.fields, ['defaultUnit', 'notes', 'emoji']),
+    // Without `as const`, TypeScript 7 infers every field from the surrounding args type
+    ...pick(schema.tables.ingredients.validator.fields, ['defaultUnit', 'notes', 'emoji'] as const),
   },
   handler: async (ctx, args) => {
     const ingredient = await ctx.db.get(args.id);

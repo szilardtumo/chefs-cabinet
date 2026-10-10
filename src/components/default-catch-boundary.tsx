@@ -30,7 +30,7 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
             <div className="w-full space-y-2">
               <p className="text-xs text-muted-foreground">Error details (visible in development mode only):</p>
               <pre className="max-w-full max-h-96 overflow-auto p-4 rounded-md bg-muted border text-xs">
-                <code>{error.message}</code>
+                <code>{error instanceof Error ? error.message : String(error)}</code>
               </pre>
             </div>
           )}

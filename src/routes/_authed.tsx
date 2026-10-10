@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_authed')({
     }
   },
   errorComponent: ({ error }) => {
-    if (error.message === 'Not authenticated') {
+    if (error instanceof Error && error.message === 'Not authenticated') {
       return (
         <div className="flex items-center justify-center p-12">
           <SignIn routing="hash" forceRedirectUrl={typeof window !== 'undefined' ? window.location.href : undefined} />

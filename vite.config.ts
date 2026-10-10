@@ -1,26 +1,29 @@
+import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
-import viteReact from '@vitejs/plugin-react';
-import reactCompiler from 'babel-plugin-react-compiler';
+import viteReact, { reactCompilerPreset } from '@vitejs/plugin-react';
 import { nitro } from 'nitro/vite';
 import { defineConfig } from 'vite';
-import tsConfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   server: {
     port: 3000,
   },
+  resolve: {
+    tsconfigPaths: true,
+  },
   plugins: [
-    tsConfigPaths({
-      projects: ['./tsconfig.json'],
-    }),
     tanstackStart(),
-    nitro(),
-    viteReact({
-      babel: {
-        plugins: [reactCompiler],
+    nitro({
+      rolldownConfig: {
+        // "use client" and "use no memo" mean nothing in the server bundle, and Rolldown warns once per file
+        onwarn(warning, warn) {
+          if (warning.code !== 'MODULE_LEVEL_DIRECTIVE') warn(warning);
+        },
       },
     }),
+    viteReact(),
+    babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
 });

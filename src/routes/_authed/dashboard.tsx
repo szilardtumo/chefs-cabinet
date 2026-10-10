@@ -13,7 +13,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { formatDate } from '@/lib/format';
 import { BookCard } from './books/-components/book-card';
 import { getCurrentStreak, getPagesByDay } from './books/-components/reading-days';
-import { ShoppingList } from './shopping/_components/ShoppingList';
+import { ShoppingList } from './shopping/-components/ShoppingList';
 
 export const Route = createFileRoute('/_authed/dashboard')({
   // The date, today's pages and the streak follow the reader's local day, which the server can't know

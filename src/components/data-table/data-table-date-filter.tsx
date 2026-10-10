@@ -1,15 +1,15 @@
 'use client';
-'use no memo';
 
-import type { Column } from '@tanstack/react-table';
+import { type Column, type RowData, Subscribe } from '@tanstack/react-table';
 import { CalendarIcon, XCircle } from 'lucide-react';
 import * as React from 'react';
 import type { DateRange } from 'react-day-picker';
-
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { useDirection } from '@/components/ui/direction';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import type { DataTableFeatures } from '@/lib/data-table-features';
 import { formatDate } from '@/lib/format';
 
 type DateSelection = Date[] | DateRange;
@@ -46,15 +46,29 @@ function parseColumnFilterValue(value: unknown) {
   return [];
 }
 
-interface DataTableDateFilterProps<TData> {
-  column: Column<TData, unknown>;
+interface DataTableDateFilterProps<TData extends RowData> {
+  column: Column<DataTableFeatures, TData>;
   title?: string;
   multiple?: boolean;
 }
 
-export function DataTableDateFilter<TData>({ column, title, multiple }: DataTableDateFilterProps<TData>) {
-  const columnFilterValue = column.getFilterValue();
+export function DataTableDateFilter<TData extends RowData>({ column, ...props }: DataTableDateFilterProps<TData>) {
+  return (
+    <Subscribe source={column.table.atoms.columnFilters} selector={() => column.getFilterValue()}>
+      {(filterValue) => <DataTableDateFilterContent column={column} columnFilterValue={filterValue} {...props} />}
+    </Subscribe>
+  );
+}
 
+function DataTableDateFilterContent<TData extends RowData>({
+  column,
+  title = column.columnDef.meta?.label ?? column.id,
+  multiple,
+  columnFilterValue,
+}: DataTableDateFilterProps<TData> & {
+  columnFilterValue: unknown;
+}) {
+  const dir = useDirection();
   const selectedDates = React.useMemo<DateSelection>(() => {
     if (!columnFilterValue) {
       return multiple ? { from: undefined, to: undefined } : [];
@@ -128,7 +142,7 @@ export function DataTableDateFilter<TData>({ column, title, multiple }: DataTabl
           <span>{title}</span>
           {hasSelectedDates && (
             <>
-              <Separator orientation="vertical" className="mx-0.5 data-[orientation=vertical]:h-4" />
+              <Separator orientation="vertical" className="mx-0.5 data-vertical:h-4 data-vertical:self-center" />
               <span>{dateText}</span>
             </>
           )}
@@ -146,7 +160,7 @@ export function DataTableDateFilter<TData>({ column, title, multiple }: DataTabl
         <span>{title}</span>
         {hasSelectedDate && (
           <>
-            <Separator orientation="vertical" className="mx-0.5 data-[orientation=vertical]:h-4" />
+            <Separator orientation="vertical" className="mx-0.5 data-vertical:h-4 data-vertical:self-center" />
             <span>{dateText}</span>
           </>
         )}
@@ -157,24 +171,22 @@ export function DataTableDateFilter<TData>({ column, title, multiple }: DataTabl
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="border-dashed font-normal">
+        <Button variant="outline">
           {hasValue ? (
-            <div
-              role="button"
-              aria-label={`Clear ${title} filter`}
-              tabIndex={0}
+            <span
+              aria-hidden="true"
+              className="rounded-sm opacity-70 transition-opacity hover:opacity-100"
               onClick={onReset}
-              className="rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <XCircle />
-            </div>
+            </span>
           ) : (
             <CalendarIcon />
           )}
           {label}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent aria-label={`${title} filter`} dir={dir} className="w-auto p-0" align="start">
         {multiple ? (
           <Calendar
             autoFocus
@@ -190,6 +202,13 @@ export function DataTableDateFilter<TData>({ column, title, multiple }: DataTabl
             selected={!getIsDateRange(selectedDates) ? selectedDates[0] : undefined}
             onSelect={onSelect}
           />
+        )}
+        {hasValue && (
+          <div className="border-t p-3">
+            <Button aria-label={`Clear ${title} filter`} variant="outline" className="w-full" onClick={onReset}>
+              Clear
+            </Button>
+          </div>
         )}
       </PopoverContent>
     </Popover>

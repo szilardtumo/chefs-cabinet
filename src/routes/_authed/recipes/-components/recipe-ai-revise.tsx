@@ -114,6 +114,7 @@ export function RecipeAiRevisePanel({ getCurrentRecipe, onRevisionApplied }: Rec
             <summary className="cursor-pointer select-none">Earlier revisions ({earlierSummaries.length})</summary>
             <ol className="mt-2 list-decimal space-y-2 pl-5">
               {earlierSummaries.map((round, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: past revisions are append-only and have no id
                 <li key={`${index}-${round.prompt.slice(0, 24)}`}>
                   <p className="font-medium text-foreground">{round.prompt}</p>
                   <p className="whitespace-pre-wrap">{round.changeSummary}</p>

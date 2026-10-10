@@ -189,6 +189,7 @@ function RecipeDetailComponent() {
               <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
                 {recipe.ingredientGroups.length > 0 ? (
                   recipe.ingredientGroups.map((group, groupIndex) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: sections have no id and only change with the whole recipe
                     <div key={`${group.title ?? 'section'}-${groupIndex}`} className="space-y-2">
                       {group.title && <h3 className="text-sm font-semibold text-foreground">{group.title}</h3>}
                       <ul className="space-y-2">
@@ -225,6 +226,7 @@ function RecipeDetailComponent() {
               <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
                 {recipe.instructions.length > 0 ? (
                   recipe.instructions.map((group, groupIndex) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: sections have no id and only change with the whole recipe
                     <div key={`${group.title ?? 'section'}-${groupIndex}`} className="space-y-2">
                       {group.title && <h3 className="text-sm font-semibold">{group.title}</h3>}
                       <ol className="list-decimal list-inside space-y-2">

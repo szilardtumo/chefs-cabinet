@@ -9,37 +9,37 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthedIngredientsRouteImport } from './routes/_authed/ingredients'
-import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as AuthedBooksRouteImport } from './routes/_authed/books'
-import { Route as AuthedShoppingIndexRouteImport } from './routes/_authed/shopping/index'
-import { Route as AuthedRecipesIndexRouteImport } from './routes/_authed/recipes/index'
-import { Route as AuthedIngredientsIndexRouteImport } from './routes/_authed/ingredients/index'
-import { Route as AuthedRecipesNewRouteImport } from './routes/_authed/recipes/new'
-import { Route as AuthedRecipesImportRouteImport } from './routes/_authed/recipes/import'
-import { Route as AuthedIngredientsCategoriesRouteImport } from './routes/_authed/ingredients/categories'
-import { Route as AuthedBooksStatsRouteImport } from './routes/_authed/books/stats'
+import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AuthedIngredientsRouteImport } from './routes/_authed/ingredients'
 import { Route as AuthedBooksLibraryRouteImport } from './routes/_authed/books/_library'
-import { Route as AuthedRecipesRecipeIdIndexRouteImport } from './routes/_authed/recipes/$recipeId.index'
+import { Route as AuthedBooksStatsRouteImport } from './routes/_authed/books/stats'
+import { Route as AuthedIngredientsIndexRouteImport } from './routes/_authed/ingredients/index'
+import { Route as AuthedIngredientsCategoriesRouteImport } from './routes/_authed/ingredients/categories'
+import { Route as AuthedRecipesIndexRouteImport } from './routes/_authed/recipes/index'
+import { Route as AuthedRecipesImportRouteImport } from './routes/_authed/recipes/import'
+import { Route as AuthedRecipesNewRouteImport } from './routes/_authed/recipes/new'
+import { Route as AuthedShoppingIndexRouteImport } from './routes/_authed/shopping/index'
 import { Route as AuthedBooksLibraryIndexRouteImport } from './routes/_authed/books/_library/index'
-import { Route as AuthedRecipesRecipeIdEditRouteImport } from './routes/_authed/recipes/$recipeId.edit'
-import { Route as AuthedBooksLibraryNewRouteImport } from './routes/_authed/books/_library/new'
 import { Route as AuthedBooksLibraryBookIdRouteImport } from './routes/_authed/books/_library/$bookId'
+import { Route as AuthedBooksLibraryNewRouteImport } from './routes/_authed/books/_library/new'
+import { Route as AuthedRecipesRecipeIdIndexRouteImport } from './routes/_authed/recipes/$recipeId.index'
+import { Route as AuthedRecipesRecipeIdEditRouteImport } from './routes/_authed/recipes/$recipeId.edit'
 
-const AuthedRoute = AuthedRouteImport.update({
-  id: '/_authed',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthedIngredientsRoute = AuthedIngredientsRouteImport.update({
-  id: '/ingredients',
-  path: '/ingredients',
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedBooksRoute = AuthedBooksRouteImport.update({
+  id: '/books',
+  path: '/books',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
@@ -47,35 +47,24 @@ const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedBooksRoute = AuthedBooksRouteImport.update({
-  id: '/books',
-  path: '/books',
+const AuthedIngredientsRoute = AuthedIngredientsRouteImport.update({
+  id: '/ingredients',
+  path: '/ingredients',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedShoppingIndexRoute = AuthedShoppingIndexRouteImport.update({
-  id: '/shopping/',
-  path: '/shopping/',
-  getParentRoute: () => AuthedRoute,
+const AuthedBooksLibraryRoute = AuthedBooksLibraryRouteImport.update({
+  id: '/_library',
+  getParentRoute: () => AuthedBooksRoute,
 } as any)
-const AuthedRecipesIndexRoute = AuthedRecipesIndexRouteImport.update({
-  id: '/recipes/',
-  path: '/recipes/',
-  getParentRoute: () => AuthedRoute,
+const AuthedBooksStatsRoute = AuthedBooksStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => AuthedBooksRoute,
 } as any)
 const AuthedIngredientsIndexRoute = AuthedIngredientsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthedIngredientsRoute,
-} as any)
-const AuthedRecipesNewRoute = AuthedRecipesNewRouteImport.update({
-  id: '/recipes/new',
-  path: '/recipes/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedRecipesImportRoute = AuthedRecipesImportRouteImport.update({
-  id: '/recipes/import',
-  path: '/recipes/import',
-  getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedIngredientsCategoriesRoute =
   AuthedIngredientsCategoriesRouteImport.update({
@@ -83,35 +72,29 @@ const AuthedIngredientsCategoriesRoute =
     path: '/categories',
     getParentRoute: () => AuthedIngredientsRoute,
   } as any)
-const AuthedBooksStatsRoute = AuthedBooksStatsRouteImport.update({
-  id: '/stats',
-  path: '/stats',
-  getParentRoute: () => AuthedBooksRoute,
+const AuthedRecipesIndexRoute = AuthedRecipesIndexRouteImport.update({
+  id: '/recipes/',
+  path: '/recipes/',
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedBooksLibraryRoute = AuthedBooksLibraryRouteImport.update({
-  id: '/_library',
-  getParentRoute: () => AuthedBooksRoute,
+const AuthedRecipesImportRoute = AuthedRecipesImportRouteImport.update({
+  id: '/recipes/import',
+  path: '/recipes/import',
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedRecipesRecipeIdIndexRoute =
-  AuthedRecipesRecipeIdIndexRouteImport.update({
-    id: '/recipes/$recipeId/',
-    path: '/recipes/$recipeId/',
-    getParentRoute: () => AuthedRoute,
-  } as any)
+const AuthedRecipesNewRoute = AuthedRecipesNewRouteImport.update({
+  id: '/recipes/new',
+  path: '/recipes/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedShoppingIndexRoute = AuthedShoppingIndexRouteImport.update({
+  id: '/shopping/',
+  path: '/shopping/',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedBooksLibraryIndexRoute = AuthedBooksLibraryIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthedBooksLibraryRoute,
-} as any)
-const AuthedRecipesRecipeIdEditRoute =
-  AuthedRecipesRecipeIdEditRouteImport.update({
-    id: '/recipes/$recipeId/edit',
-    path: '/recipes/$recipeId/edit',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedBooksLibraryNewRoute = AuthedBooksLibraryNewRouteImport.update({
-  id: '/new',
-  path: '/new',
   getParentRoute: () => AuthedBooksLibraryRoute,
 } as any)
 const AuthedBooksLibraryBookIdRoute =
@@ -120,10 +103,27 @@ const AuthedBooksLibraryBookIdRoute =
     path: '/$bookId',
     getParentRoute: () => AuthedBooksLibraryRoute,
   } as any)
+const AuthedBooksLibraryNewRoute = AuthedBooksLibraryNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthedBooksLibraryRoute,
+} as any)
+const AuthedRecipesRecipeIdIndexRoute =
+  AuthedRecipesRecipeIdIndexRouteImport.update({
+    id: '/recipes/$recipeId/',
+    path: '/recipes/$recipeId/',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedRecipesRecipeIdEditRoute =
+  AuthedRecipesRecipeIdEditRouteImport.update({
+    id: '/recipes/$recipeId/edit',
+    path: '/recipes/$recipeId/edit',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/books': typeof AuthedBooksLibraryRouteWithChildren
+  '/books': typeof AuthedBooksRouteWithChildren
   '/dashboard': typeof AuthedDashboardRoute
   '/ingredients': typeof AuthedIngredientsRouteWithChildren
   '/books/stats': typeof AuthedBooksStatsRoute
@@ -131,13 +131,13 @@ export interface FileRoutesByFullPath {
   '/recipes/import': typeof AuthedRecipesImportRoute
   '/recipes/new': typeof AuthedRecipesNewRoute
   '/ingredients/': typeof AuthedIngredientsIndexRoute
-  '/recipes': typeof AuthedRecipesIndexRoute
-  '/shopping': typeof AuthedShoppingIndexRoute
+  '/recipes/': typeof AuthedRecipesIndexRoute
+  '/shopping/': typeof AuthedShoppingIndexRoute
   '/books/$bookId': typeof AuthedBooksLibraryBookIdRoute
   '/books/new': typeof AuthedBooksLibraryNewRoute
   '/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
   '/books/': typeof AuthedBooksLibraryIndexRoute
-  '/recipes/$recipeId': typeof AuthedRecipesRecipeIdIndexRoute
+  '/recipes/$recipeId/': typeof AuthedRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -188,13 +188,13 @@ export interface FileRouteTypes {
     | '/recipes/import'
     | '/recipes/new'
     | '/ingredients/'
-    | '/recipes'
-    | '/shopping'
+    | '/recipes/'
+    | '/shopping/'
     | '/books/$bookId'
     | '/books/new'
     | '/recipes/$recipeId/edit'
     | '/books/'
-    | '/recipes/$recipeId'
+    | '/recipes/$recipeId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -240,13 +240,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_authed': {
-      id: '/_authed'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof AuthedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -254,11 +247,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authed/ingredients': {
-      id: '/_authed/ingredients'
-      path: '/ingredients'
-      fullPath: '/ingredients'
-      preLoaderRoute: typeof AuthedIngredientsRouteImport
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed/books': {
+      id: '/_authed/books'
+      path: '/books'
+      fullPath: '/books'
+      preLoaderRoute: typeof AuthedBooksRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/dashboard': {
@@ -268,26 +268,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedDashboardRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/books': {
-      id: '/_authed/books'
-      path: '/books'
+    '/_authed/ingredients': {
+      id: '/_authed/ingredients'
+      path: '/ingredients'
+      fullPath: '/ingredients'
+      preLoaderRoute: typeof AuthedIngredientsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/books/_library': {
+      id: '/_authed/books/_library'
+      path: ''
       fullPath: '/books'
-      preLoaderRoute: typeof AuthedBooksRouteImport
-      parentRoute: typeof AuthedRoute
+      preLoaderRoute: typeof AuthedBooksLibraryRouteImport
+      parentRoute: typeof AuthedBooksRoute
     }
-    '/_authed/shopping/': {
-      id: '/_authed/shopping/'
-      path: '/shopping'
-      fullPath: '/shopping'
-      preLoaderRoute: typeof AuthedShoppingIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/recipes/': {
-      id: '/_authed/recipes/'
-      path: '/recipes'
-      fullPath: '/recipes'
-      preLoaderRoute: typeof AuthedRecipesIndexRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_authed/books/stats': {
+      id: '/_authed/books/stats'
+      path: '/stats'
+      fullPath: '/books/stats'
+      preLoaderRoute: typeof AuthedBooksStatsRouteImport
+      parentRoute: typeof AuthedBooksRoute
     }
     '/_authed/ingredients/': {
       id: '/_authed/ingredients/'
@@ -296,11 +296,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIngredientsIndexRouteImport
       parentRoute: typeof AuthedIngredientsRoute
     }
-    '/_authed/recipes/new': {
-      id: '/_authed/recipes/new'
-      path: '/recipes/new'
-      fullPath: '/recipes/new'
-      preLoaderRoute: typeof AuthedRecipesNewRouteImport
+    '/_authed/ingredients/categories': {
+      id: '/_authed/ingredients/categories'
+      path: '/categories'
+      fullPath: '/ingredients/categories'
+      preLoaderRoute: typeof AuthedIngredientsCategoriesRouteImport
+      parentRoute: typeof AuthedIngredientsRoute
+    }
+    '/_authed/recipes/': {
+      id: '/_authed/recipes/'
+      path: '/recipes'
+      fullPath: '/recipes/'
+      preLoaderRoute: typeof AuthedRecipesIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/recipes/import': {
@@ -310,32 +317,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRecipesImportRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/ingredients/categories': {
-      id: '/_authed/ingredients/categories'
-      path: '/categories'
-      fullPath: '/ingredients/categories'
-      preLoaderRoute: typeof AuthedIngredientsCategoriesRouteImport
-      parentRoute: typeof AuthedIngredientsRoute
+    '/_authed/recipes/new': {
+      id: '/_authed/recipes/new'
+      path: '/recipes/new'
+      fullPath: '/recipes/new'
+      preLoaderRoute: typeof AuthedRecipesNewRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/_authed/books/stats': {
-      id: '/_authed/books/stats'
-      path: '/stats'
-      fullPath: '/books/stats'
-      preLoaderRoute: typeof AuthedBooksStatsRouteImport
-      parentRoute: typeof AuthedBooksRoute
-    }
-    '/_authed/books/_library': {
-      id: '/_authed/books/_library'
-      path: ''
-      fullPath: '/books'
-      preLoaderRoute: typeof AuthedBooksLibraryRouteImport
-      parentRoute: typeof AuthedBooksRoute
-    }
-    '/_authed/recipes/$recipeId/': {
-      id: '/_authed/recipes/$recipeId/'
-      path: '/recipes/$recipeId'
-      fullPath: '/recipes/$recipeId'
-      preLoaderRoute: typeof AuthedRecipesRecipeIdIndexRouteImport
+    '/_authed/shopping/': {
+      id: '/_authed/shopping/'
+      path: '/shopping'
+      fullPath: '/shopping/'
+      preLoaderRoute: typeof AuthedShoppingIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/books/_library/': {
@@ -345,12 +338,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedBooksLibraryIndexRouteImport
       parentRoute: typeof AuthedBooksLibraryRoute
     }
-    '/_authed/recipes/$recipeId/edit': {
-      id: '/_authed/recipes/$recipeId/edit'
-      path: '/recipes/$recipeId/edit'
-      fullPath: '/recipes/$recipeId/edit'
-      preLoaderRoute: typeof AuthedRecipesRecipeIdEditRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_authed/books/_library/$bookId': {
+      id: '/_authed/books/_library/$bookId'
+      path: '/$bookId'
+      fullPath: '/books/$bookId'
+      preLoaderRoute: typeof AuthedBooksLibraryBookIdRouteImport
+      parentRoute: typeof AuthedBooksLibraryRoute
     }
     '/_authed/books/_library/new': {
       id: '/_authed/books/_library/new'
@@ -359,12 +352,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedBooksLibraryNewRouteImport
       parentRoute: typeof AuthedBooksLibraryRoute
     }
-    '/_authed/books/_library/$bookId': {
-      id: '/_authed/books/_library/$bookId'
-      path: '/$bookId'
-      fullPath: '/books/$bookId'
-      preLoaderRoute: typeof AuthedBooksLibraryBookIdRouteImport
-      parentRoute: typeof AuthedBooksLibraryRoute
+    '/_authed/recipes/$recipeId/': {
+      id: '/_authed/recipes/$recipeId/'
+      path: '/recipes/$recipeId'
+      fullPath: '/recipes/$recipeId/'
+      preLoaderRoute: typeof AuthedRecipesRecipeIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/recipes/$recipeId/edit': {
+      id: '/_authed/recipes/$recipeId/edit'
+      path: '/recipes/$recipeId/edit'
+      fullPath: '/recipes/$recipeId/edit'
+      preLoaderRoute: typeof AuthedRecipesRecipeIdEditRouteImport
+      parentRoute: typeof AuthedRoute
     }
   }
 }
