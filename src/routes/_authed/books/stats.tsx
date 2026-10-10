@@ -185,7 +185,7 @@ function BookStatsComponent() {
                     offset={8}
                     className="fill-muted-foreground"
                     fontSize={12}
-                    formatter={(value: number) => value || ''}
+                    formatter={(value) => value || ''}
                   />
                 </Bar>
               </BarChart>
