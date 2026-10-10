@@ -60,7 +60,8 @@ export const run = authenticatedAction({
   },
   handler: async (ctx, args): Promise<VoiceCommandResult> => {
     const text = args.text?.trim();
-    if (!args.audio && !text) throw new ValidationError('Say or type a command');
+    // Empty audio counts as nothing; Gemini would reject it with an unhelpful error
+    if (!args.audio?.byteLength && !text) throw new ValidationError('Say or type a command');
     if (args.audio && args.audio.byteLength > 2_000_000) throw new ValidationError('Keep the command under a minute');
     await enforceRateLimit(ctx, 'voiceCommand');
 

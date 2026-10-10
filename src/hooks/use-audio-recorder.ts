@@ -9,7 +9,7 @@ const MAX_MS = 45000;
 
 /**
  * Records one clip from the microphone. It stops by itself after a pause in speech.
- * `onRecorded` gets `null` when nothing was said. `analyser` reads the microphone while recording.
+ * `onRecorded` gets `null` when nothing was said or recorded. `analyser` reads the microphone while recording.
  */
 export function useAudioRecorder(onRecorded: (audio: Blob | null) => void) {
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
@@ -24,10 +24,9 @@ export function useAudioRecorder(onRecorded: (audio: Blob | null) => void) {
       stopRef.current = null;
       throw error;
     });
-    // Gemini doesn't list WebM as an audio format, so prefer the formats it lists where the browser can record them
-    const mimeType = ['audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm;codecs=opus'].find((type) =>
-      MediaRecorder.isTypeSupported(type),
-    );
+    // WebM first: Gemini takes it, and MP4 clips from Chrome on Android seem to come through empty.
+    // MP4 is for Safari, which can't record WebM
+    const mimeType = ['audio/webm;codecs=opus', 'audio/mp4'].find((type) => MediaRecorder.isTypeSupported(type));
     const recorder = new MediaRecorder(stream, { mimeType });
     const chunks: Blob[] = [];
     const audioContext = new AudioContext();
@@ -64,7 +63,8 @@ export function useAudioRecorder(onRecorded: (audio: Blob | null) => void) {
       for (const track of stream.getTracks()) track.stop();
       void audioContext.close();
       setAnalyser(null);
-      handleRecorded(spokeAt === undefined ? null : new Blob(chunks, { type: recorder.mimeType }));
+      const audio = new Blob(chunks, { type: recorder.mimeType });
+      handleRecorded(spokeAt === undefined || audio.size === 0 ? null : audio);
     };
     recorder.start();
     setAnalyser(analyser);
