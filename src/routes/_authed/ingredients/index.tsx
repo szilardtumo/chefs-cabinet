@@ -1,5 +1,3 @@
-'use no memo';
-
 import { api } from '@convex/_generated/api';
 import type { IngredientWithCategory } from '@convex/ingredients';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
@@ -76,6 +74,12 @@ function IngredientsComponent() {
               </div>
             );
           },
+          enableColumnFilter: true,
+          meta: {
+            label: 'Name',
+            placeholder: 'Search ingredients...',
+            variant: 'text',
+          },
         }),
         columnHelper.accessor('category.name', {
           id: 'category',
@@ -142,9 +146,11 @@ function IngredientsComponent() {
   );
 
   const { table } = useDataTable({
-    data: ingredients || [],
+    data: ingredients,
     columns,
     mode: 'client',
+    // tablecn's client mode always paginates, so one page holds every ingredient
+    initialState: { pagination: { pageIndex: 0, pageSize: Number.MAX_SAFE_INTEGER } },
     getRowId: (row) => row._id,
     enableHiding: true,
   });
@@ -183,8 +189,8 @@ function IngredientsComponent() {
             <CardTitle>All Ingredients ({table.getFilteredRowModel().rows.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <DataTable table={table}>
-              <DataTableToolbar table={table}></DataTableToolbar>
+            <DataTable table={table} showPagination={false}>
+              <DataTableToolbar table={table} />
             </DataTable>
           </CardContent>
         </Card>

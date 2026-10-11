@@ -26,11 +26,13 @@ import {
 interface DataTableProps<TData extends RowData> extends React.ComponentProps<'div'> {
   table: ReactTable<DataTableFeatures, TData, unknown>;
   actionBar?: React.ReactNode;
+  showPagination?: boolean;
 }
 
 export function DataTable<TData extends RowData>({
   table,
   actionBar,
+  showPagination = true,
   children,
   className,
   'aria-label': ariaLabel,
@@ -54,7 +56,7 @@ export function DataTable<TData extends RowData>({
         </DataTableLayout>
       </div>
       <div className="flex flex-col gap-2.5">
-        <DataTablePagination table={table} />
+        {showPagination && <DataTablePagination table={table} />}
         {actionBar ? <DataTableActionBar table={table} actionBar={actionBar} /> : null}
       </div>
     </div>

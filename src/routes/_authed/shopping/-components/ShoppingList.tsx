@@ -270,7 +270,7 @@ export function ShoppingList({ list }: { list: ShoppingListData }) {
                                   <Edit /> Edit ingredient
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
-                                  <Link to="/ingredients" search={{ q: item.ingredient?.name }}>
+                                  <Link to="/ingredients" search={{ name: item.ingredient?.name }}>
                                     <ArrowRight /> Go to ingredient
                                   </Link>
                                 </DropdownMenuItem>
