@@ -57,7 +57,7 @@ export const IngredientCartButton = ({ ingredientId }: { ingredientId: Id<'ingre
       onClick={handleToggleShoppingList}
       title={isInShoppingList ? 'Remove from shopping list' : 'Add to shopping list'}
     >
-      <ShoppingCart className={cn(isInShoppingList && 'fill-black text-black')} />
+      <ShoppingCart className={cn(isInShoppingList && 'fill-current')} />
       {isInShoppingList && <Check className="absolute right-0.5 top-0.5 size-3 text-green-500" />}
     </Button>
   );
