@@ -47,14 +47,17 @@ export function VoiceCommandProvider({ children }: { children: ReactNode }) {
         audio: await audio?.arrayBuffer(),
         mimeType: audio?.type.split(';')[0],
         text,
-        history: commands.flatMap(({ text, lines, question }) =>
-          text
+        history: commands.flatMap(({ text, lines, question }) => {
+          const reply = [...lines.map((line) => line.message), question?.text].filter(Boolean).join('\n');
+          // Skips commands without a reply, including this one: the mutation runs after the re-render that adds it.
+          // Gemini would read the user turns around an empty reply as one message, repeating the command
+          return text && reply
             ? [
                 { role: 'user' as const, text },
-                { role: 'assistant' as const, text: [...lines.map((line) => line.message), question?.text].join('\n') },
+                { role: 'assistant' as const, text: reply },
               ]
-            : [],
-        ),
+            : [];
+        }),
         path: pathname,
         timezoneOffset: new Date().getTimezoneOffset(),
       }),
