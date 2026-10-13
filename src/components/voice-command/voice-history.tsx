@@ -1,5 +1,5 @@
 import { useLocation } from '@tanstack/react-router';
-import { History, SendHorizontal } from 'lucide-react';
+import { History, Mic, SendHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
@@ -47,8 +47,16 @@ export function VoiceHistory() {
             {commands.map((command) => (
               <div key={command.id} className="flex flex-col gap-2">
                 <Bubble align="end">
-                  <BubbleContent>{command.text ?? <Spinner />}</BubbleContent>
+                  {/* A spoken command shows what was heard once the answer arrives */}
+                  <BubbleContent>{command.text ?? <Mic className="size-4" aria-label="Voice command" />}</BubbleContent>
                 </Bubble>
+                {status.type === 'working' && command === lastCommand && (
+                  <Bubble variant="muted">
+                    <BubbleContent>
+                      <Spinner />
+                    </BubbleContent>
+                  </Bubble>
+                )}
                 {command.lines.map(({ message, error, undone, undo }) => (
                   <Bubble key={message} variant={error ? 'destructive' : 'muted'}>
                     <BubbleContent className="flex items-center gap-2">
