@@ -6,20 +6,11 @@ import { useMutation } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import type { FunctionReturnType } from 'convex/server';
 import { sortBy } from 'es-toolkit';
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  Edit,
-  Info,
-  MoreHorizontal,
-  NotebookPen,
-  ShoppingCart,
-  Trash,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { ArrowDown, ArrowRight, ArrowUp, Edit, NotebookPen, ShoppingCart, Trash } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { CheckListItem } from '@/components/check-list-item';
 import { IngredientCombobox } from '@/components/ingredient-combobox';
 import {
   AlertDialog,
@@ -34,19 +25,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Item, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { IngredientDialog } from '../../ingredients/-components/ingredient-dialog';
 import { ShoppingItemNotesDialog } from './ShoppingItemNotesDialog';
 
@@ -201,101 +181,61 @@ export function ShoppingList({ list }: { list: ShoppingListData }) {
       ) : (
         <div className="space-y-2">
           <AnimatePresence>
-            {sortedItems.map((item) => {
-              return (
-                <motion.div
-                  key={item._id}
-                  className="overflow-hidden"
-                  layout
-                  initial={{ opacity: 0, y: -30 }}
-                  animate={{ opacity: item.skipped ? 0.5 : 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                >
-                  <Item variant="outline" className="cursor-pointer hover:bg-accent py-3 flex-nowrap" asChild>
-                    <Label htmlFor={item._id}>
-                      <ItemMedia>
-                        <Checkbox id={item._id} checked={item.checked} onCheckedChange={() => handleToggle(item._id)} />
-                      </ItemMedia>
-                      <ItemContent className="overflow-x-auto no-scrollbar">
-                        <ItemTitle className="w-full gap-1.5">
-                          {item.ingredient?.emoji && <span>{item.ingredient.emoji}</span>}
-                          <span className={cn(item.checked && 'line-through text-muted-foreground', 'line-clamp-2')}>
-                            {item.ingredient?.name}
-                          </span>
-                          {(item.notes || item.ingredient?.notes) && (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-4 text-muted-foreground cursor-default hover:text-foreground"
-                                >
-                                  <Info />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent side="top" className="w-fit py-3 text-sm text-muted-foreground">
-                                {[item.notes, item.ingredient?.notes].filter(Boolean).join(', ')}
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                          <div className="ml-auto flex items-center gap-2">
-                            {item.category && (
-                              <Badge variant="secondary" className="line-clamp-1">
-                                {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
-                                {item.category.name}
-                              </Badge>
-                            )}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  className="shrink-0 size-5 text-muted-foreground hover:text-foreground"
-                                >
-                                  <MoreHorizontal />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {!item.checked && (
-                                  <DropdownMenuItem onSelect={() => handleToggleSkipped(item._id)}>
-                                    {item.skipped ? <ArrowUp /> : <ArrowDown />}
-                                    {item.skipped ? 'Unskip' : 'Skip'}
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem
-                                  onSelect={() => {
-                                    setCurrentItem(item);
-                                    setEditIngredientDialogOpen(true);
-                                  }}
-                                >
-                                  <Edit /> Edit ingredient
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link to="/ingredients" search={{ name: item.ingredient?.name }}>
-                                    <ArrowRight /> Go to ingredient
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onSelect={() => {
-                                    setCurrentItem(item);
-                                    setEditNotesDialogOpen(true);
-                                  }}
-                                >
-                                  <NotebookPen /> {item.notes ? 'Edit' : 'Add'} notes
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => handleRemoveItem(item._id)}>
-                                  <Trash /> Remove
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </ItemTitle>
-                      </ItemContent>
-                    </Label>
-                  </Item>
-                </motion.div>
-              );
-            })}
+            {sortedItems.map((item) => (
+              <CheckListItem
+                key={item._id}
+                id={item._id}
+                checked={item.checked}
+                onCheckedChange={() => handleToggle(item._id)}
+                dimmed={item.skipped}
+                emoji={item.ingredient?.emoji}
+                title={item.ingredient?.name}
+                notes={[item.notes, item.ingredient?.notes].filter(Boolean).join(', ')}
+                trailing={
+                  item.category && (
+                    <Badge variant="secondary" className="line-clamp-1">
+                      {item.category.emoji && <span className="mr-1">{item.category.emoji}</span>}
+                      {item.category.name}
+                    </Badge>
+                  )
+                }
+                menu={
+                  <>
+                    {!item.checked && (
+                      <DropdownMenuItem onSelect={() => handleToggleSkipped(item._id)}>
+                        {item.skipped ? <ArrowUp /> : <ArrowDown />}
+                        {item.skipped ? 'Unskip' : 'Skip'}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setCurrentItem(item);
+                        setEditIngredientDialogOpen(true);
+                      }}
+                    >
+                      <Edit /> Edit ingredient
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/ingredients" search={{ name: item.ingredient?.name }}>
+                        <ArrowRight /> Go to ingredient
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setCurrentItem(item);
+                        setEditNotesDialogOpen(true);
+                      }}
+                    >
+                      <NotebookPen /> {item.notes ? 'Edit' : 'Add'} notes
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleRemoveItem(item._id)}>
+                      <Trash /> Remove
+                    </DropdownMenuItem>
+                  </>
+                }
+              />
+            ))}
           </AnimatePresence>
         </div>
       )}

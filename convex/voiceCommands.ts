@@ -13,9 +13,10 @@ import { readingUndo } from './voiceActions/books';
 import { libraryPrompt, loadLibrary } from './voiceActions/library';
 import { voiceActions } from './voiceActions/registry';
 import { shoppingItemsUndo } from './voiceActions/shoppingList';
+import { todosUndo } from './voiceActions/todos';
 import type { VoiceActionEnv, VoiceLine } from './voiceActions/types';
 
-const undoValidator = v.union(shoppingItemsUndo.validator, readingUndo.validator);
+const undoValidator = v.union(shoppingItemsUndo.validator, readingUndo.validator, todosUndo.validator);
 
 /** What a result line hands back to `undo`; each action that can be undone adds its kind. */
 export type VoiceUndo = Infer<typeof undoValidator>;
@@ -88,7 +89,7 @@ export const run = authenticatedAction({
       model: google(GEMINI_MODELS.flash),
       output: Output.object({ schema }),
       providerOptions: { google: { thinkingConfig: { thinkingLevel: 'low' } } },
-      system: `You turn the user's commands into actions in their kitchen and reading app. The user may speak any language.
+      system: `You turn the user's commands into actions in their kitchen, reading and to-do app. The user may speak any language.
 Supported actions:
 ${actionEntries.map(([, action]) => `- ${action.instructions}`).join('\n')}
 Match names loosely: across languages, singular and plural, nicknames and mishearings.
@@ -149,6 +150,7 @@ export const undo = authenticatedAction({
   args: { change: undoValidator },
   handler: async (ctx, { change }) => {
     if (change.type === 'shoppingItems') await shoppingItemsUndo.run(ctx, change);
+    else if (change.type === 'todos') await todosUndo.run(ctx, change);
     else await readingUndo.run(ctx, change);
   },
 });

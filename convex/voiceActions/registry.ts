@@ -1,6 +1,7 @@
 import { logReading } from './books';
 import { openRecipe } from './recipes';
 import { addRecipeIngredients, addToShoppingList } from './shoppingList';
+import { addTodos } from './todos';
 
 /**
  * Everything a voice command can do, by the name of its field in the model's output.
@@ -12,4 +13,5 @@ export const voiceActions = {
   recipeIngredients: addRecipeIngredients,
   openRecipe,
   readingLogs: logReading,
+  todos: addTodos,
 };

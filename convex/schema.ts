@@ -129,6 +129,25 @@ export default defineSchema({
     .index('by_list_and_order', ['shoppingListId', 'order'])
     .index('by_ingredient', ['ingredientId']),
 
+  // Extra to-do lists; the main list has no row
+  todoLists: defineTable({
+    userId: v.string(),
+    name: v.string(),
+  }).index('by_user', ['userId']),
+
+  todos: defineTable({
+    userId: v.string(),
+    // Unset for the main list
+    listId: v.optional(v.id('todoLists')),
+    title: v.string(),
+    notes: v.optional(v.string()),
+    priority: v.optional(literals('low', 'medium', 'high')),
+    // Local days as 'yyyy-MM-dd': when the user plans to do it, and when it must be done
+    plannedDate: v.optional(v.string()),
+    dueDate: v.optional(v.string()),
+    completedAt: v.optional(v.number()),
+  }).index('by_user_list_and_completedAt', ['userId', 'listId', 'completedAt']),
+
   books: defineTable({
     userId: v.string(),
     title: v.string(),

@@ -15,6 +15,7 @@ import { formatDate } from '@/lib/format';
 import { BookCard } from './books/-components/book-card';
 import { getCurrentStreak, getPagesByDay } from './books/-components/reading-days';
 import { ShoppingList } from './shopping/-components/ShoppingList';
+import { TodoList } from './todos/-components/todo-list';
 
 export const Route = createFileRoute('/_authed/dashboard')({
   // The date, today's pages and the streak follow the reader's local day, which the server can't know
@@ -50,7 +51,11 @@ function DashboardComponent() {
       </h1>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <ReadingNowCard />
+        {/* Stacks per column, so the short reading card doesn't leave a hole beside a long list */}
+        <div className="flex flex-col gap-6">
+          <ReadingNowCard />
+          <TodosCard />
+        </div>
         <ShoppingCard />
       </div>
 
@@ -141,6 +146,30 @@ function ShoppingCard() {
           <ShoppingList list={list} />
         </CardContent>
       )}
+    </Card>
+  );
+}
+
+function TodosCard() {
+  const { data: todos } = useSuspenseQuery(convexQuery(api.todos.getAll, { completedSince: startOfToday().getTime() }));
+  const open = todos.filter((todo) => !todo.completedAt).length;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>To-dos</CardTitle>
+        <CardDescription>
+          {open ? `${open} to do` : 'All done'} · {todos.length - open} done today
+        </CardDescription>
+        <CardAction>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/todos">Open</Link>
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <TodoList todos={todos} />
+      </CardContent>
     </Card>
   );
 }

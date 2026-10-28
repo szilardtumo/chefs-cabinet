@@ -1,5 +1,5 @@
 import { Link, useLocation, useRouter } from '@tanstack/react-router';
-import { BookOpen, Carrot, Home, Library, ShoppingCart } from 'lucide-react';
+import { BookOpen, Carrot, Home, Library, ListTodo, ShoppingCart } from 'lucide-react';
 import { useEffect } from 'react';
 import { Logo } from '@/components/logo';
 import { ModeToggle } from '@/components/mode-toggle';
@@ -42,6 +42,11 @@ const navItems = [
     label: 'Shopping List',
     icon: ShoppingCart,
     to: '/shopping',
+  },
+  {
+    label: 'To-dos',
+    icon: ListTodo,
+    to: '/todos',
   },
 ];
 

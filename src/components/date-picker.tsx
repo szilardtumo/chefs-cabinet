@@ -1,3 +1,4 @@
+import { addYears } from 'date-fns';
 import { ChevronDownIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,8 +13,12 @@ type DatePickerProps = {
   onValueChange: (date: Date) => void;
   placeholder?: string;
   className?: string;
-  /** Earliest day that can be picked; days after today can never be picked. */
+  /** Earliest day that can be picked */
   minDate?: Date;
+  /** Lets days after today be picked */
+  allowFuture?: boolean;
+  /** Adds a Clear button, which calls this */
+  onClear?: () => void;
 };
 
 export function DatePicker({
@@ -23,6 +28,8 @@ export function DatePicker({
   placeholder = 'Select date',
   className,
   minDate,
+  allowFuture,
+  onClear,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
 
@@ -47,13 +54,29 @@ export function DatePicker({
           defaultMonth={value}
           captionLayout="dropdown"
           startMonth={new Date(1990, 0)}
-          endMonth={new Date()}
-          disabled={[{ after: new Date() }, minDate ? { before: minDate } : false]}
+          endMonth={allowFuture ? addYears(new Date(), 5) : new Date()}
+          disabled={[!allowFuture && { after: new Date() }, minDate ? { before: minDate } : false]}
           onSelect={(date) => {
             onValueChange(date);
             setOpen(false);
           }}
         />
+        {onClear && value && (
+          <div className="border-t p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                onClear();
+                setOpen(false);
+              }}
+            >
+              Clear
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

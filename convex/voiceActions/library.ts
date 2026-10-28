@@ -8,7 +8,7 @@ export type Library = Awaited<ReturnType<typeof loadLibrary>>;
 /** Loads the requested lists of the user's data; the others stay empty. */
 export async function loadLibrary(ctx: QueryCtx, userId: string, parts: string[]) {
   const load = <T>(part: string, query: () => Promise<T[]>) => (parts.includes(part) ? query() : Promise.resolve([]));
-  const [recipes, books, ingredients] = await Promise.all([
+  const [recipes, books, ingredients, todoLists] = await Promise.all([
     load('recipes', () =>
       ctx.db
         .query('recipes')
@@ -27,6 +27,12 @@ export async function loadLibrary(ctx: QueryCtx, userId: string, parts: string[]
         .withIndex('by_user', (q) => q.eq('userId', userId))
         .collect(),
     ),
+    load('todoLists', () =>
+      ctx.db
+        .query('todoLists')
+        .withIndex('by_user', (q) => q.eq('userId', userId))
+        .collect(),
+    ),
   ]);
 
   return {
@@ -38,11 +44,12 @@ export async function loadLibrary(ctx: QueryCtx, userId: string, parts: string[]
       )
       .map(({ _id, title, author, pagesRead, pageCount }) => ({ _id, title, author, pagesRead, pageCount })),
     ingredients: ingredients.map(({ _id, name }) => ({ _id, name })),
+    todoLists: todoLists.map(({ _id, name }) => ({ _id, name })),
   };
 }
 
 /** The loaded lists as prompt sections, one line per entry with the id the model answers with. */
-export function libraryPrompt({ recipes, books, ingredients }: Library) {
+export function libraryPrompt({ recipes, books, ingredients, todoLists }: Library) {
   return [
     recipes.length > 0 && `RECIPES (id: title):\n${recipes.map((r) => `${r._id}: ${r.title}`).join('\n')}`,
     books.length > 0 &&
@@ -50,6 +57,7 @@ export function libraryPrompt({ recipes, books, ingredients }: Library) {
         .map((b) => `${b._id}: ${b.title} by ${b.author}, page ${b.pagesRead} / ${b.pageCount ?? '?'}`)
         .join('\n')}`,
     ingredients.length > 0 && `INGREDIENTS (id: name):\n${ingredients.map((i) => `${i._id}: ${i.name}`).join('\n')}`,
+    todoLists.length > 0 && `TO-DO LISTS (id: name):\n${todoLists.map((l) => `${l._id}: ${l.name}`).join('\n')}`,
   ]
     .filter(Boolean)
     .join('\n\n');

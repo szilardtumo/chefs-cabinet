@@ -22,6 +22,7 @@ import { Route as AuthedRecipesIndexRouteImport } from './routes/_authed/recipes
 import { Route as AuthedRecipesImportRouteImport } from './routes/_authed/recipes/import'
 import { Route as AuthedRecipesNewRouteImport } from './routes/_authed/recipes/new'
 import { Route as AuthedShoppingIndexRouteImport } from './routes/_authed/shopping/index'
+import { Route as AuthedTodosIndexRouteImport } from './routes/_authed/todos/index'
 import { Route as AuthedBooksLibraryIndexRouteImport } from './routes/_authed/books/_library/index'
 import { Route as AuthedBooksLibraryBookIdRouteImport } from './routes/_authed/books/_library/$bookId'
 import { Route as AuthedBooksLibraryNewRouteImport } from './routes/_authed/books/_library/new'
@@ -92,6 +93,11 @@ const AuthedShoppingIndexRoute = AuthedShoppingIndexRouteImport.update({
   path: '/shopping/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedTodosIndexRoute = AuthedTodosIndexRouteImport.update({
+  id: '/todos/',
+  path: '/todos/',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedBooksLibraryIndexRoute = AuthedBooksLibraryIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/ingredients/': typeof AuthedIngredientsIndexRoute
   '/recipes/': typeof AuthedRecipesIndexRoute
   '/shopping/': typeof AuthedShoppingIndexRoute
+  '/todos/': typeof AuthedTodosIndexRoute
   '/books/$bookId': typeof AuthedBooksLibraryBookIdRoute
   '/books/new': typeof AuthedBooksLibraryNewRoute
   '/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/ingredients': typeof AuthedIngredientsIndexRoute
   '/recipes': typeof AuthedRecipesIndexRoute
   '/shopping': typeof AuthedShoppingIndexRoute
+  '/todos': typeof AuthedTodosIndexRoute
   '/books/$bookId': typeof AuthedBooksLibraryBookIdRoute
   '/books/new': typeof AuthedBooksLibraryNewRoute
   '/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_authed/ingredients/': typeof AuthedIngredientsIndexRoute
   '/_authed/recipes/': typeof AuthedRecipesIndexRoute
   '/_authed/shopping/': typeof AuthedShoppingIndexRoute
+  '/_authed/todos/': typeof AuthedTodosIndexRoute
   '/_authed/books/_library/$bookId': typeof AuthedBooksLibraryBookIdRoute
   '/_authed/books/_library/new': typeof AuthedBooksLibraryNewRoute
   '/_authed/recipes/$recipeId/edit': typeof AuthedRecipesRecipeIdEditRoute
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/ingredients/'
     | '/recipes/'
     | '/shopping/'
+    | '/todos/'
     | '/books/$bookId'
     | '/books/new'
     | '/recipes/$recipeId/edit'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/ingredients'
     | '/recipes'
     | '/shopping'
+    | '/todos'
     | '/books/$bookId'
     | '/books/new'
     | '/recipes/$recipeId/edit'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/_authed/ingredients/'
     | '/_authed/recipes/'
     | '/_authed/shopping/'
+    | '/_authed/todos/'
     | '/_authed/books/_library/$bookId'
     | '/_authed/books/_library/new'
     | '/_authed/recipes/$recipeId/edit'
@@ -331,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedShoppingIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/todos/': {
+      id: '/_authed/todos/'
+      path: '/todos'
+      fullPath: '/todos/'
+      preLoaderRoute: typeof AuthedTodosIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/books/_library/': {
       id: '/_authed/books/_library/'
       path: '/'
@@ -419,6 +438,7 @@ interface AuthedRouteChildren {
   AuthedRecipesNewRoute: typeof AuthedRecipesNewRoute
   AuthedRecipesIndexRoute: typeof AuthedRecipesIndexRoute
   AuthedShoppingIndexRoute: typeof AuthedShoppingIndexRoute
+  AuthedTodosIndexRoute: typeof AuthedTodosIndexRoute
   AuthedRecipesRecipeIdEditRoute: typeof AuthedRecipesRecipeIdEditRoute
   AuthedRecipesRecipeIdIndexRoute: typeof AuthedRecipesRecipeIdIndexRoute
 }
@@ -431,6 +451,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedRecipesNewRoute: AuthedRecipesNewRoute,
   AuthedRecipesIndexRoute: AuthedRecipesIndexRoute,
   AuthedShoppingIndexRoute: AuthedShoppingIndexRoute,
+  AuthedTodosIndexRoute: AuthedTodosIndexRoute,
   AuthedRecipesRecipeIdEditRoute: AuthedRecipesRecipeIdEditRoute,
   AuthedRecipesRecipeIdIndexRoute: AuthedRecipesRecipeIdIndexRoute,
 }

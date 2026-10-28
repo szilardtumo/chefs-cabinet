@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,17 +17,26 @@ type ConfirmDeleteDialogProps = {
   /** What is being deleted, e.g. "recipe". */
   itemType: string;
   itemName?: string;
+  /** Replaces the default "Are you sure..." text */
+  description?: ReactNode;
 };
 
-export function ConfirmDeleteDialog({ open, onOpenChange, onConfirm, itemType, itemName }: ConfirmDeleteDialogProps) {
+export function ConfirmDeleteDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  itemType,
+  itemName,
+  description,
+}: ConfirmDeleteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {itemType}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete {itemName ? `"${itemName}"` : `this ${itemType}`}? This action cannot be
-            undone.
+            {description ??
+              `Are you sure you want to delete ${itemName ? `"${itemName}"` : `this ${itemType}`}? This action cannot be undone.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
